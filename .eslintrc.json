@@ -1,0 +1,36 @@
+{
+  "env": {
+    "browser": true,
+    "es2021": true
+  },
+  "extends": [
+    "eslint:recommended",
+    "plugin:@typescript-eslint/recommended",
+    "plugin:import/typescript",
+    "airbnb-base"
+  ],
+  "overrides": [],
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "ecmaVersion": "latest",
+    "sourceType": "module"
+  },
+  "plugins": [
+    "@typescript-eslint"
+  ],
+  "rules": {
+    "no-new": "off",
+    "import/prefer-default-export": "off",
+    "no-console": [
+      "warn",
+      {
+        "allow": [
+          "debug",
+          "error",
+          "time",
+          "timeEnd"
+        ]
+      }
+    ]
+  }
+}
