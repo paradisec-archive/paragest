@@ -9,7 +9,9 @@
     "watch": "tsc -w",
     "test": "jest",
     "cdk": "cdk",
-    "file:wav": "aws s3 cp samples/JD1-W6-16bit44kHz.wav s3://paragest-ingest-stage/incoming/JD1-W6-16bit44kHz.wav"
+    "file:wav": "aws s3 cp samples/JD1-W6-16bit44kHz.wav s3://paragest-ingest-stage/incoming/JD1-W6-16bit44kHz.wav",
+    "file:badname": "aws s3 cp samples/bad-name.txt s3://paragest-ingest-stage/incoming/bad-name.txt",
+    "localstack": "docker run --rm -it -p 4566:4566 -p 4510-4559:4510-4559 localstack/localstack"
   },
   "devDependencies": {
     "@types/aws-lambda": "^8.10.115",

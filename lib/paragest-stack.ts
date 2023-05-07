@@ -17,22 +17,38 @@ export class ParagestStack extends cdk.Stack {
       bucketName: `paragest-ingest-${env}`,
     });
     const startState = new sfn.Pass(this, 'StartState');
-    const successState = new sfn.Pass(this, 'SuccessState');
-    // const failureState = new sfn.Pass(this, 'FailureState');
+    const successState = new sfn.Succeed(this, 'SuccessState');
+    const failureState = new sfn.Fail(this, 'FailureState');
     // const choice = new sfn.Choice(this, 'Did it work?');
 
     const checkCatalogForItem = new nodejs.NodejsFunction(this, 'CheckCatalogForItemLambda', {
       entry: 'src/checkCatalogForItem.ts',
     });
-    const checkCatalogForItemStep = new tasks.LambdaInvoke(this, 'CheckDBForItemTask', {
+    const checkCatalogForItemTask = new tasks.LambdaInvoke(this, 'CheckDBForItemTask', {
       lambdaFunction: checkCatalogForItem,
-      // Lambda's result is in the attribute `guid`
-      // outputPath: '$.guid',
     });
+
+    const sendFailureNotification = new nodejs.NodejsFunction(this, 'SendFailureNotificationLambda', {
+      entry: 'src/sendFailureNotification.ts',
+    });
+    const sendFailureNotificationTask = new tasks.LambdaInvoke(this, 'sendFailureNotificationTask', {
+      lambdaFunction: sendFailureNotification,
+    });
+
+    const parallel = new sfn.Parallel(this, 'ParallelErrorCatcher');
+
+    const workflow = sfn.Chain
+      .start(checkCatalogForItemTask);
+    parallel.branch(workflow);
+
+    const failure = sfn.Chain
+      .start(sendFailureNotificationTask)
+      .next(failureState);
+    parallel.addCatch(failure);
 
     const definition = sfn.Chain
       .start(startState)
-      .next(checkCatalogForItemStep)
+      .next(parallel)
       .next(successState);
 
     const stateMachine = new sfn.StateMachine(this, 'StateMachine', {
