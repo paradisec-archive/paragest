@@ -2,10 +2,13 @@ import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 
 import * as eventsources from 'aws-cdk-lib/aws-lambda-event-sources';
+import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as nodejs from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as s3 from 'aws-cdk-lib/aws-s3';
+import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import * as sfn from 'aws-cdk-lib/aws-stepfunctions';
 import * as tasks from 'aws-cdk-lib/aws-stepfunctions-tasks';
+import { SecretValue } from 'aws-cdk-lib';
 
 export class ParagestStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -16,6 +19,7 @@ export class ParagestStack extends cdk.Stack {
     const bucket = new s3.Bucket(this, 'IngestBucket', {
       bucketName: `paragest-ingest-${env}`,
     });
+
     const startState = new sfn.Pass(this, 'StartState');
     const successState = new sfn.Succeed(this, 'SuccessState');
     const failureState = new sfn.Fail(this, 'FailureState');
@@ -23,13 +27,25 @@ export class ParagestStack extends cdk.Stack {
 
     const checkCatalogForItem = new nodejs.NodejsFunction(this, 'CheckCatalogForItemLambda', {
       entry: 'src/checkCatalogForItem.ts',
+      runtime: lambda.Runtime.NODEJS_18_X,
     });
     const checkCatalogForItemTask = new tasks.LambdaInvoke(this, 'CheckDBForItemTask', {
       lambdaFunction: checkCatalogForItem,
     });
 
+    const nabuOauthSecret = new secretsmanager.Secret(this, 'NabuOAuthSecret', {
+      description: 'OAuth credentials for Nabu',
+      secretName: '/paragest/nabu/oauth',
+      secretObjectValue: {
+        clientId: SecretValue.unsafePlainText('FIXME'),
+        clientSecret: SecretValue.unsafePlainText('FIXME'),
+      },
+    });
+    nabuOauthSecret.grantRead(checkCatalogForItem);
+
     const sendFailureNotification = new nodejs.NodejsFunction(this, 'SendFailureNotificationLambda', {
       entry: 'src/sendFailureNotification.ts',
+      runtime: lambda.Runtime.NODEJS_18_X,
     });
     const sendFailureNotificationTask = new tasks.LambdaInvoke(this, 'sendFailureNotificationTask', {
       lambdaFunction: sendFailureNotification,

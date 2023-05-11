@@ -13,6 +13,8 @@
       "package*.json",
       "yarn.lock",
       "node_modules",
+      "samples",
+      "spike",
       "test"
     ]
   },
