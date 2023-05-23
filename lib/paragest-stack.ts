@@ -78,6 +78,7 @@ export class ParagestStack extends cdk.Stack {
       environment: {
         STATE_MACHINE_ARN: stateMachine.stateMachineArn,
       },
+      runtime: lambda.Runtime.NODEJS_18_X,
     });
 
     const s3EventSource = new eventsources.S3EventSource(bucket, {
