@@ -14,7 +14,7 @@ export class ParagestStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    const env = props?.env?.account === '847483222616' ? 'stage' : 'prod';
+    const env = props?.env?.account === '618916419351' ? 'prod' : 'stage';
 
     const bucket = new s3.Bucket(this, 'IngestBucket', {
       bucketName: `paragest-ingest-${env}`,
@@ -68,7 +68,7 @@ export class ParagestStack extends cdk.Stack {
       .next(successState);
 
     const stateMachine = new sfn.StateMachine(this, 'StateMachine', {
-      definition,
+      definitionBody: sfn.DefinitionBody.fromChainable(definition),
       stateMachineName: 'Paragest',
       timeout: cdk.Duration.hours(1), // TODO: Set a reasonable timeout once we know more
     });
