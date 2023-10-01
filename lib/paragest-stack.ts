@@ -14,7 +14,7 @@ export class ParagestStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    const env = props?.env?.account === '386274780754' ? 'stage' : 'prod';
+    const env = props?.env?.account === '847483222616' ? 'stage' : 'prod';
 
     const bucket = new s3.Bucket(this, 'IngestBucket', {
       bucketName: `paragest-ingest-${env}`,
