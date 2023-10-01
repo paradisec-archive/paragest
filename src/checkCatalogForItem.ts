@@ -39,6 +39,9 @@ export const handler: Handler = async (event: Event) => {
   const response = await graphQLClient.request(document);
 
   console.debug('MOO', JSON.stringify(response, null, 2));
+  if (response.item === null) {
+    throw new StepError(`File ${filename} is for collection: ${collectionIdentifier} item: ${itemIdentifier} but that is not in the database`, principalId, { objectKey });
+  }
 
   return {
     bucketName,

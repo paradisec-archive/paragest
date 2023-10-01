@@ -18,7 +18,7 @@ export class ParagestStack extends cdk.Stack {
 
     const lambdaCommon: nodejs.NodejsFunctionProps = {
       environment: {
-        PARAGEST_DEV: env,
+        PARAGEST_ENV: env,
       },
       runtime: lambda.Runtime.NODEJS_18_X,
     };
