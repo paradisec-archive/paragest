@@ -10,6 +10,7 @@ type Event = {
   objectKey: string,
   principalId: string
 };
+
 export const handler: Handler = async (event: Event) => {
   console.debug('S3 Data:', JSON.stringify(event, null, 2));
 

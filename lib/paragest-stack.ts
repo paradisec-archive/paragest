@@ -16,6 +16,13 @@ export class ParagestStack extends cdk.Stack {
 
     const env = props?.env?.account === '618916419351' ? 'prod' : 'stage';
 
+    const lambdaCommon: nodejs.NodejsFunctionProps = {
+      environment: {
+        PARAGEST_DEV: env,
+      },
+      runtime: lambda.Runtime.NODEJS_18_X,
+    };
+
     const bucket = new s3.Bucket(this, 'IngestBucket', {
       bucketName: `paragest-ingest-${env}`,
     });
@@ -26,8 +33,8 @@ export class ParagestStack extends cdk.Stack {
     // const choice = new sfn.Choice(this, 'Did it work?');
 
     const checkCatalogForItem = new nodejs.NodejsFunction(this, 'CheckCatalogForItemLambda', {
+      ...lambdaCommon,
       entry: 'src/checkCatalogForItem.ts',
-      runtime: lambda.Runtime.NODEJS_18_X,
     });
     const checkCatalogForItemTask = new tasks.LambdaInvoke(this, 'CheckDBForItemTask', {
       lambdaFunction: checkCatalogForItem,
@@ -45,6 +52,7 @@ export class ParagestStack extends cdk.Stack {
 
     const sendFailureNotification = new nodejs.NodejsFunction(this, 'SendFailureNotificationLambda', {
       entry: 'src/sendFailureNotification.ts',
+      ...lambdaCommon,
       runtime: lambda.Runtime.NODEJS_18_X,
     });
     const sendFailureNotificationTask = new tasks.LambdaInvoke(this, 'sendFailureNotificationTask', {
@@ -75,10 +83,11 @@ export class ParagestStack extends cdk.Stack {
 
     const processS3Event = new nodejs.NodejsFunction(this, 'ProcessS3EventLambda', {
       entry: 'src/processS3Event.ts',
+      ...lambdaCommon,
       environment: {
+        ...lambdaCommon.environment,
         STATE_MACHINE_ARN: stateMachine.stateMachineArn,
       },
-      runtime: lambda.Runtime.NODEJS_18_X,
     });
 
     const s3EventSource = new eventsources.S3EventSource(bucket, {
