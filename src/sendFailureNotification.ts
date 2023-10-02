@@ -39,4 +39,6 @@ export const handler: Handler = async (event: Event) => {
   console.error(cc);
   console.error(subject);
   console.error(body);
+
+  // TODO: Send an email
 };

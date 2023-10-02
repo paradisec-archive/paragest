@@ -32,6 +32,15 @@ export class ParagestStack extends cdk.Stack {
     const failureState = new sfn.Fail(this, 'FailureState');
     // const choice = new sfn.Choice(this, 'Did it work?');
 
+    const rejectEmptyFiles = new nodejs.NodejsFunction(this, 'RejectEmptyFilesLambda', {
+      ...lambdaCommon,
+      entry: 'src/rejectEmptyFiles.ts',
+    });
+    const rejectEmptyFilesTask = new tasks.LambdaInvoke(this, 'rejectEmptyFilesTask', {
+      lambdaFunction: rejectEmptyFiles,
+      resultPath: sfn.JsonPath.DISCARD,
+    });
+
     const checkCatalogForItem = new nodejs.NodejsFunction(this, 'CheckCatalogForItemLambda', {
       ...lambdaCommon,
       entry: 'src/checkCatalogForItem.ts',
@@ -62,7 +71,8 @@ export class ParagestStack extends cdk.Stack {
     const parallel = new sfn.Parallel(this, 'ParallelErrorCatcher');
 
     const workflow = sfn.Chain
-      .start(checkCatalogForItemTask);
+      .start(rejectEmptyFilesTask)
+      .next(checkCatalogForItemTask);
     parallel.branch(workflow);
 
     const failure = sfn.Chain

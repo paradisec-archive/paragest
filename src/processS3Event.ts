@@ -14,9 +14,15 @@ export const handler: Handler = async (event: S3Event) => {
   const promises = event.Records.map((record) => {
     const bucketName = record.s3.bucket.name;
     const objectKey = record.s3.object.key;
+    const objectSize = record.s3.object.size;
     const { principalId } = record.userIdentity;
 
-    const input = JSON.stringify({ bucketName, objectKey, principalId });
+    const input = JSON.stringify({
+      bucketName,
+      objectKey,
+      objectSize,
+      principalId,
+    });
 
     const params: StartExecutionCommandInput = { stateMachineArn, input };
     const promise = sfn.startExecution(params);
