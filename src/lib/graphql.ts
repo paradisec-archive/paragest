@@ -1,4 +1,4 @@
-import { GraphQLClient } from 'graphql-request';
+import { Client, fetchExchange } from '@urql/core';
 
 import { getSecret } from './secrets.js';
 
@@ -32,16 +32,18 @@ const getAccessToken = async (credentials: OAuthSecret): Promise<string> => {
   return tokenData.access_token;
 };
 
-export const getGraphQLClient = async (): Promise<GraphQLClient> => {
+export const getGraphQLClient = async () => {
   const oauthCredentials = await getSecret<OAuthSecret>('/paragest/nabu/oauth');
 
   const accessToken = await getAccessToken(oauthCredentials);
 
-  const graphQLClient = new GraphQLClient(`${apiUrl}/api/v1/graphql`, {
-    headers: {
-      authorization: `Bearer ${accessToken}`,
-    },
+  const client = new Client({
+    url: `${apiUrl}/api/v1/graphql`,
+    exchanges: [fetchExchange],
+    fetchOptions: () => ({
+      headers: { authorization: `Bearer ${accessToken}` },
+    }),
   });
 
-  return graphQLClient;
+  return client;
 };

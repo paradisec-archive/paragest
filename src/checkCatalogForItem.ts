@@ -1,6 +1,6 @@
 import type { Handler } from 'aws-lambda';
 
-import { gql } from 'graphql-request';
+import { graphql } from './gql';
 
 import { StepError } from './lib/errors.js';
 import { getGraphQLClient } from './lib/graphql.js';
@@ -26,20 +26,19 @@ export const handler: Handler = async (event: Event) => {
   const filename = `${collectionIdentifier}-${itemIdentifier}-${rest}.${extension}`;
   console.debug('Filename:', filename);
 
-  const document = gql`
-    {
-      item(fullIdentifier: "${collectionIdentifier}-${itemIdentifier}") {
+  const ItemQuery = graphql(/* GraphQL */ `
+    query GetItemQuery($fullIdentifier: ID!) {
+      item(fullIdentifier: $fullIdentifier) {
         full_identifier
         title
       }
     }
-  `;
+  `);
 
-  const graphQLClient = await getGraphQLClient();
-  const response = await graphQLClient.request(document);
+  const gqlClient = await getGraphQLClient();
+  const response = await gqlClient.query(ItemQuery, { fullIdentifier: `${collectionIdentifier}-${itemIdentifier}` });
 
-  console.debug('MOO', JSON.stringify(response, null, 2));
-  if (response.item === null) {
+  if (!response.data?.item) {
     throw new StepError(`File ${filename} is for collection: ${collectionIdentifier} item: ${itemIdentifier} but that is not in the database`, principalId, { objectKey });
   }
 

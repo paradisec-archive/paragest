@@ -4,6 +4,7 @@
     "@tsconfig/strictest/tsconfig.json",
   ],
   "compilerOptions": {
-    "moduleResolution": "bundler"
+    "moduleResolution": "bundler",
+    "lib": ["dom"] // for fetch remove after TS 5.3
   }
 }
