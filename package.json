@@ -14,7 +14,8 @@
     "file:notInDb": "aws s3 cp samples/JD1-W6-16bit44kHz.wav s3://paragest-ingest-stage/incoming/JD1-WBAD-16bit44kHz.wav",
     "file:badName": "aws s3 cp samples/bad-name.txt s3://paragest-ingest-stage/incoming/bad-name.txt",
     "file:empty": "aws s3 cp samples/empty.txt s3://paragest-ingest-stage/incoming/empty.txt",
-    "file:emptyAnnis": "aws s3 cp samples/empty.txt s3://paragest-ingest-stage/incoming/JD1-W6-16bit44kHz.annis"
+    "file:emptyAnnis": "aws s3 cp samples/empty.txt s3://paragest-ingest-stage/incoming/JD1-W6-16bit44kHz.annis",
+    "file:PDSC": "aws s3 cp samples/bad-name.txt s3://paragest-ingest-stage/incoming/JD1-W6-CAT-PDSC_ADMIN.xml"
   },
   "devDependencies": {
     "@graphql-codegen/cli": "^5.0.0",
@@ -38,6 +39,7 @@
     "typescript": "^5.2.2"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.421.0",
     "@aws-sdk/client-secrets-manager": "^3.329.0",
     "@aws-sdk/client-sfn": "^3.328.0",
     "@types/source-map-support": "^0.5.6",

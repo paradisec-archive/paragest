@@ -14,7 +14,7 @@ type Event = {
 export const handler: Handler = async (event: Event) => {
   console.debug('S3 Data:', JSON.stringify(event, null, 2));
 
-  const { bucketName, objectKey, principalId } = event;
+  const { objectKey, principalId } = event;
 
   const md = objectKey.match(/^incoming\/([A-Za-z][a-zA-Z0-9_]+)-([A-Za-z][a-zA-Z0-9_]+)-(.*)\.([^.]+)$/);
   if (!md) {
@@ -43,8 +43,6 @@ export const handler: Handler = async (event: Event) => {
   }
 
   return {
-    bucketName,
-    objectKey,
     collectionIdentifier,
     itemIdentifier,
     filename,

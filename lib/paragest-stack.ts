@@ -23,9 +23,10 @@ export class ParagestStack extends cdk.Stack {
       runtime: lambda.Runtime.NODEJS_18_X,
     };
 
-    const bucket = new s3.Bucket(this, 'IngestBucket', {
+    const ingestBucket = new s3.Bucket(this, 'IngestBucket', {
       bucketName: `paragest-ingest-${env}`,
     });
+    const catalogBucket = s3.Bucket.fromBucketName(this, 'CatalogBucket', `nabu-catalog-${env}`);
 
     const startState = new sfn.Pass(this, 'StartState');
     const successState = new sfn.Succeed(this, 'SuccessState');
@@ -47,6 +48,46 @@ export class ParagestStack extends cdk.Stack {
     });
     const checkCatalogForItemTask = new tasks.LambdaInvoke(this, 'CheckDBForItemTask', {
       lambdaFunction: checkCatalogForItem,
+      resultPath: sfn.JsonPath.stringAt('$.details'),
+      resultSelector: {
+        collectionIdentifier: sfn.JsonPath.stringAt('$.Payload.collectionIdentifier'),
+        itemIdentifier: sfn.JsonPath.stringAt('$.Payload.itemIdentifier'),
+        filename: sfn.JsonPath.stringAt('$.Payload.filename'),
+        extension: sfn.JsonPath.stringAt('$.Payload.extension'),
+      },
+    });
+
+    const checkIfPDSC = new nodejs.NodejsFunction(this, 'CheckIfPDSCLambda', {
+      ...lambdaCommon,
+      entry: 'src/checkIfPDSC.ts',
+    });
+    const checkIfPDSCTask = new tasks.LambdaInvoke(this, 'CheckIfPDSCTask', {
+      lambdaFunction: checkIfPDSC,
+      resultPath: sfn.JsonPath.stringAt('$.pdscCheck'),
+      resultSelector: {
+        isPDSCFile: sfn.JsonPath.stringAt('$.Payload'),
+      },
+    });
+
+    const addToCatalog = new nodejs.NodejsFunction(this, 'AddToCatalogLambda', {
+      ...lambdaCommon,
+      entry: 'src/addToCatalog.ts',
+    });
+    ingestBucket.grantRead(addToCatalog);
+    ingestBucket.grantDelete(addToCatalog);
+    catalogBucket.grantPut(addToCatalog);
+
+    const addToCatalogTask = new tasks.LambdaInvoke(this, 'AddToCatalogTask', {
+      lambdaFunction: addToCatalog,
+      resultPath: sfn.JsonPath.DISCARD,
+    });
+
+    const importMetadata = new nodejs.NodejsFunction(this, 'ImportMetadataLambda', {
+      ...lambdaCommon,
+      entry: 'src/importMetadata.ts',
+    });
+    const importMetadataTask = new tasks.LambdaInvoke(this, 'ImportMetadataTask', {
+      lambdaFunction: importMetadata,
     });
 
     const nabuOauthSecret = new secretsmanager.Secret(this, 'NabuOAuthSecret', {
@@ -70,9 +111,22 @@ export class ParagestStack extends cdk.Stack {
 
     const parallel = new sfn.Parallel(this, 'ParallelErrorCatcher');
 
+    const addToCatalogFlow = sfn.Chain
+      .start(addToCatalogTask);
+
+    const importMetadataFlow = sfn.Chain
+      .start(importMetadataTask);
+
     const workflow = sfn.Chain
       .start(rejectEmptyFilesTask)
-      .next(checkCatalogForItemTask);
+      .next(checkCatalogForItemTask)
+      .next(checkIfPDSCTask)
+      .next(
+        new sfn.Choice(this, 'Is PDSC File?')
+          .when(sfn.Condition.booleanEquals('$.pdscCheck.isPDSCFile', true), addToCatalogFlow)
+          .when(sfn.Condition.booleanEquals('$.pdscCheck.isPDSCFile', false), importMetadataFlow),
+      );
+
     parallel.branch(workflow);
 
     const failure = sfn.Chain
@@ -100,7 +154,7 @@ export class ParagestStack extends cdk.Stack {
       },
     });
 
-    const s3EventSource = new eventsources.S3EventSource(bucket, {
+    const s3EventSource = new eventsources.S3EventSource(ingestBucket, {
       events: [s3.EventType.OBJECT_CREATED],
       filters: [{ prefix: 'incoming/' }],
     });
