@@ -1,21 +1,41 @@
 import type { Handler } from 'aws-lambda';
 
+import { S3Client, CopyObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+
 type Event = {
   Cause: string,
 }
 type ErrorData = {
   message: string,
-  principalId: string
+  event: Record<string, string> & { principalId: string }
   data: Record<string, string>,
 };
+
+const s3 = new S3Client();
 
 export const handler: Handler = async (event: Event) => {
   console.debug('Error:', JSON.stringify(event, null, 2));
 
   const { Cause } = event;
   const { errorMessage } = JSON.parse(Cause);
-  const { message, principalId, data } = JSON.parse(errorMessage) as ErrorData;
+  const { message, event: { principalId, bucketName, objectKey }, data } = JSON.parse(errorMessage) as ErrorData;
   console.debug({ message, principalId, data });
+
+  const copyCommand = new CopyObjectCommand({
+    Bucket: bucketName,
+    CopySource: `${bucketName}/${objectKey}`,
+    Key: objectKey!.replace(/^incoming/, 'rejected'),
+    ChecksumAlgorithm: 'SHA256',
+  });
+  console.debug('Copying object to rejected bucket', copyCommand);
+  await s3.send(copyCommand);
+
+  const deleteCommand = new DeleteObjectCommand({
+    Bucket: bucketName,
+    Key: objectKey,
+  });
+  console.debug('Deleting object from incoming bucket', deleteCommand);
+  await s3.send(deleteCommand);
 
   const to = principalId.replace(/.*:/, '');
   const cc = 'admin@paradisec.org';

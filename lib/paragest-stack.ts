@@ -10,6 +10,8 @@ import * as sfn from 'aws-cdk-lib/aws-stepfunctions';
 import * as tasks from 'aws-cdk-lib/aws-stepfunctions-tasks';
 import { SecretValue } from 'aws-cdk-lib';
 
+// TODO: Be more specific on where functions can read and write
+
 export class ParagestStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
@@ -103,8 +105,9 @@ export class ParagestStack extends cdk.Stack {
     const sendFailureNotification = new nodejs.NodejsFunction(this, 'SendFailureNotificationLambda', {
       entry: 'src/sendFailureNotification.ts',
       ...lambdaCommon,
-      runtime: lambda.Runtime.NODEJS_18_X,
     });
+    ingestBucket.grantReadWrite(sendFailureNotification);
+
     const sendFailureNotificationTask = new tasks.LambdaInvoke(this, 'sendFailureNotificationTask', {
       lambdaFunction: sendFailureNotification,
     });
