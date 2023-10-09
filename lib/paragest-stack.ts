@@ -25,6 +25,24 @@ export class ParagestStack extends cdk.Stack {
       runtime: lambda.Runtime.NODEJS_18_X,
     };
 
+    const paragestStepDefaults: Partial<tasks.LambdaInvokeProps> = { resultPath: sfn.JsonPath.DISCARD };
+    const paragestStep = (stepId: string, entry: string, taskProps = paragestStepDefaults) => {
+      const lambdaFunction = new nodejs.NodejsFunction(this, `${stepId}Lambda`, {
+        environment: {
+          PARAGEST_ENV: env,
+        },
+        runtime: lambda.Runtime.NODEJS_18_X,
+        entry,
+      });
+
+      const task = new tasks.LambdaInvoke(this, `${stepId}Task`, {
+        lambdaFunction,
+        ...taskProps,
+      });
+
+      return task;
+    };
+
     const ingestBucket = new s3.Bucket(this, 'IngestBucket', {
       bucketName: `paragest-ingest-${env}`,
     });
@@ -35,21 +53,9 @@ export class ParagestStack extends cdk.Stack {
     const failureState = new sfn.Fail(this, 'FailureState');
     // const choice = new sfn.Choice(this, 'Did it work?');
 
-    const rejectEmptyFiles = new nodejs.NodejsFunction(this, 'RejectEmptyFilesLambda', {
-      ...lambdaCommon,
-      entry: 'src/rejectEmptyFiles.ts',
-    });
-    const rejectEmptyFilesTask = new tasks.LambdaInvoke(this, 'rejectEmptyFilesTask', {
-      lambdaFunction: rejectEmptyFiles,
-      resultPath: sfn.JsonPath.DISCARD,
-    });
-
-    const checkCatalogForItem = new nodejs.NodejsFunction(this, 'CheckCatalogForItemLambda', {
-      ...lambdaCommon,
-      entry: 'src/checkCatalogForItem.ts',
-    });
-    const checkCatalogForItemTask = new tasks.LambdaInvoke(this, 'CheckDBForItemTask', {
-      lambdaFunction: checkCatalogForItem,
+    const rejectEmptyFilesStep = paragestStep('RejectEmptyFiles', 'src/rejectEmptyFiles.ts');
+    const checkItemIdentifierLengthStep = paragestStep('CheckItemIdentifierLength', 'src/checkItemIdentifierLength.ts');
+    const checkCatalogForItemStep = paragestStep('CheckCatalogForItem', 'src/checkCatalogForItem.ts', {
       resultPath: sfn.JsonPath.stringAt('$.details'),
       resultSelector: {
         collectionIdentifier: sfn.JsonPath.stringAt('$.Payload.collectionIdentifier'),
@@ -58,39 +64,18 @@ export class ParagestStack extends cdk.Stack {
         extension: sfn.JsonPath.stringAt('$.Payload.extension'),
       },
     });
-
-    const checkIfPDSC = new nodejs.NodejsFunction(this, 'CheckIfPDSCLambda', {
-      ...lambdaCommon,
-      entry: 'src/checkIfPDSC.ts',
-    });
-    const checkIfPDSCTask = new tasks.LambdaInvoke(this, 'CheckIfPDSCTask', {
-      lambdaFunction: checkIfPDSC,
+    const checkIfPDSCStep = paragestStep('CheckIfPDSC', 'src/checkIfPDSC.ts', {
       resultPath: sfn.JsonPath.stringAt('$.pdscCheck'),
       resultSelector: {
         isPDSCFile: sfn.JsonPath.stringAt('$.Payload'),
       },
     });
+    const addToCatalogStep = paragestStep('AddToCatalog', 'src/addToCatalog.ts');
+    ingestBucket.grantRead(addToCatalogStep['props'].lambdaFunction); // eslint-disable-line dot-notation
+    ingestBucket.grantDelete(addToCatalogStep['props'].lambdaFunction); // eslint-disable-line dot-notation
+    catalogBucket.grantPut(addToCatalogStep['props'].lambdaFunction); // eslint-disable-line dot-notation
 
-    const addToCatalog = new nodejs.NodejsFunction(this, 'AddToCatalogLambda', {
-      ...lambdaCommon,
-      entry: 'src/addToCatalog.ts',
-    });
-    ingestBucket.grantRead(addToCatalog);
-    ingestBucket.grantDelete(addToCatalog);
-    catalogBucket.grantPut(addToCatalog);
-
-    const addToCatalogTask = new tasks.LambdaInvoke(this, 'AddToCatalogTask', {
-      lambdaFunction: addToCatalog,
-      resultPath: sfn.JsonPath.DISCARD,
-    });
-
-    const importMetadata = new nodejs.NodejsFunction(this, 'ImportMetadataLambda', {
-      ...lambdaCommon,
-      entry: 'src/importMetadata.ts',
-    });
-    const importMetadataTask = new tasks.LambdaInvoke(this, 'ImportMetadataTask', {
-      lambdaFunction: importMetadata,
-    });
+    const importMetadataStep = paragestStep('ImportMetadata', 'src/importMetadata.ts', {});
 
     const nabuOauthSecret = new secretsmanager.Secret(this, 'NabuOAuthSecret', {
       description: 'OAuth credentials for Nabu',
@@ -100,7 +85,7 @@ export class ParagestStack extends cdk.Stack {
         clientSecret: SecretValue.unsafePlainText('FIXME'),
       },
     });
-    nabuOauthSecret.grantRead(checkCatalogForItem);
+    nabuOauthSecret.grantRead(checkCatalogForItemStep['props'].lambdaFunction); // eslint-disable-line dot-notation
 
     const sendFailureNotification = new nodejs.NodejsFunction(this, 'SendFailureNotificationLambda', {
       entry: 'src/sendFailureNotification.ts',
@@ -115,15 +100,16 @@ export class ParagestStack extends cdk.Stack {
     const parallel = new sfn.Parallel(this, 'ParallelErrorCatcher');
 
     const addToCatalogFlow = sfn.Chain
-      .start(addToCatalogTask);
+      .start(addToCatalogStep);
 
     const importMetadataFlow = sfn.Chain
-      .start(importMetadataTask);
+      .start(importMetadataStep);
 
     const workflow = sfn.Chain
-      .start(rejectEmptyFilesTask)
-      .next(checkCatalogForItemTask)
-      .next(checkIfPDSCTask)
+      .start(rejectEmptyFilesStep)
+      .next(checkCatalogForItemStep)
+      .next(checkItemIdentifierLengthStep)
+      .next(checkIfPDSCStep)
       .next(
         new sfn.Choice(this, 'Is PDSC File?')
           .when(sfn.Condition.booleanEquals('$.pdscCheck.isPDSCFile', true), addToCatalogFlow)
