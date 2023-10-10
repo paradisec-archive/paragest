@@ -23,15 +23,19 @@ export class ParagestStack extends cdk.Stack {
         PARAGEST_ENV: env,
       },
       runtime: lambda.Runtime.NODEJS_18_X,
+      bundling: {
+        format: nodejs.OutputFormat.ESM,
+        target: 'esnext',
+        mainFields: ['module', 'main'],
+        // DIrty hack from https://github.com/evanw/esbuild/pull/2067
+        banner: "import { createRequire } from 'module';const require = createRequire(import.meta.url);",
+      },
     };
 
     const paragestStepDefaults: Partial<tasks.LambdaInvokeProps> = { resultPath: sfn.JsonPath.DISCARD };
     const paragestStep = (stepId: string, entry: string, taskProps = paragestStepDefaults) => {
       const lambdaFunction = new nodejs.NodejsFunction(this, `${stepId}Lambda`, {
-        environment: {
-          PARAGEST_ENV: env,
-        },
-        runtime: lambda.Runtime.NODEJS_18_X,
+        ...lambdaCommon,
         entry,
       });
 
@@ -76,6 +80,7 @@ export class ParagestStack extends cdk.Stack {
     catalogBucket.grantPut(addToCatalogStep['props'].lambdaFunction); // eslint-disable-line dot-notation
 
     const importMetadataStep = paragestStep('ImportMetadata', 'src/importMetadata.ts', {});
+    ingestBucket.grantRead(importMetadataStep['props'].lambdaFunction); // eslint-disable-line dot-notation
 
     const nabuOauthSecret = new secretsmanager.Secret(this, 'NabuOAuthSecret', {
       description: 'OAuth credentials for Nabu',
@@ -86,6 +91,7 @@ export class ParagestStack extends cdk.Stack {
       },
     });
     nabuOauthSecret.grantRead(checkCatalogForItemStep['props'].lambdaFunction); // eslint-disable-line dot-notation
+    nabuOauthSecret.grantRead(importMetadataStep['props'].lambdaFunction); // eslint-disable-line dot-notation
 
     const sendFailureNotification = new nodejs.NodejsFunction(this, 'SendFailureNotificationLambda', {
       entry: 'src/sendFailureNotification.ts',
