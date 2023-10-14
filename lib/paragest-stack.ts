@@ -79,8 +79,8 @@ export class ParagestStack extends cdk.Stack {
     ingestBucket.grantDelete(addToCatalogStep['props'].lambdaFunction); // eslint-disable-line dot-notation
     catalogBucket.grantPut(addToCatalogStep['props'].lambdaFunction); // eslint-disable-line dot-notation
 
-    const importMetadataStep = paragestStep('ImportMetadata', 'src/importMetadata.ts', {});
-    ingestBucket.grantRead(importMetadataStep['props'].lambdaFunction); // eslint-disable-line dot-notation
+    const addMediaMetadataStep = paragestStep('AddMediaMetadata', 'src/addMediaMetadata.ts', {});
+    ingestBucket.grantRead(addMediaMetadataStep['props'].lambdaFunction); // eslint-disable-line dot-notation
 
     const nabuOauthSecret = new secretsmanager.Secret(this, 'NabuOAuthSecret', {
       description: 'OAuth credentials for Nabu',
@@ -91,7 +91,7 @@ export class ParagestStack extends cdk.Stack {
       },
     });
     nabuOauthSecret.grantRead(checkCatalogForItemStep['props'].lambdaFunction); // eslint-disable-line dot-notation
-    nabuOauthSecret.grantRead(importMetadataStep['props'].lambdaFunction); // eslint-disable-line dot-notation
+    nabuOauthSecret.grantRead(addMediaMetadataStep['props'].lambdaFunction); // eslint-disable-line dot-notation
 
     const sendFailureNotification = new nodejs.NodejsFunction(this, 'SendFailureNotificationLambda', {
       entry: 'src/sendFailureNotification.ts',
@@ -108,8 +108,8 @@ export class ParagestStack extends cdk.Stack {
     const addToCatalogFlow = sfn.Chain
       .start(addToCatalogStep);
 
-    const importMetadataFlow = sfn.Chain
-      .start(importMetadataStep);
+    const metadataFlow = sfn.Chain
+      .start(addMediaMetadataStep);
 
     const workflow = sfn.Chain
       .start(rejectEmptyFilesStep)
@@ -119,7 +119,7 @@ export class ParagestStack extends cdk.Stack {
       .next(
         new sfn.Choice(this, 'Is PDSC File?')
           .when(sfn.Condition.booleanEquals('$.pdscCheck.isPDSCFile', true), addToCatalogFlow)
-          .when(sfn.Condition.booleanEquals('$.pdscCheck.isPDSCFile', false), importMetadataFlow),
+          .when(sfn.Condition.booleanEquals('$.pdscCheck.isPDSCFile', false), metadataFlow),
       );
 
     parallel.branch(workflow);

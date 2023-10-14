@@ -7,6 +7,7 @@ import { graphql } from './gql';
 
 import { StepError } from './lib/errors.js';
 import { getGraphQLClient } from './lib/graphql.js';
+import { Essence } from './gql/graphql';
 
 type Event = {
   principalId: string,
@@ -22,13 +23,6 @@ type Event = {
 };
 
 const s3 = new S3Client();
-
-//  if (!process.env.PARAGEST_ENV) {
-//   throw new Error('PARAGEST_ENV not set');
-// }
-// const env = process.env.PARAGEST_ENV;
-
-// const destBucket = `nabu-catalog-${env}2`;
 
 const gqlClient = await getGraphQLClient();
 
@@ -59,7 +53,7 @@ const getEssence = async (collectionIdentifier: string, itemIdentifier: string, 
   return response.data?.essence;
 };
 
-const createEssence = async (collectionIdentifier: string, itemIdentifier: string, filename: string) => {
+const createEssence = async (collectionIdentifier: string, itemIdentifier: string, filename: string, attributes: Omit<Essence, 'id'>) => {
   const EssenceCreateMutation = graphql(/* GraphQL */ `
       mutation EssenceCreateMutation($input: EssenceCreateInput!) {
         essenceCreate(input: $input) {
@@ -73,6 +67,7 @@ const createEssence = async (collectionIdentifier: string, itemIdentifier: strin
 
   const params = {
     essenceInput: {
+      ...attributes,
       collectionIdentifier,
       itemIdentifier,
       filename,
@@ -82,7 +77,7 @@ const createEssence = async (collectionIdentifier: string, itemIdentifier: strin
   const createResponse = await gqlClient.mutation(EssenceCreateMutation, { input: params });
   console.debug('CreateResponse:', JSON.stringify(createResponse, null, 2));
 
-  return createResponse.data?.essenceCreate?.essence;
+  return [createResponse.data?.essenceCreate?.essence, createResponse.error];
 };
 
 export const handler: Handler = async (event: Event) => {
@@ -97,38 +92,29 @@ export const handler: Handler = async (event: Event) => {
     },
     bucketName,
     objectKey,
+    objectSize,
   } = event;
 
   const filetype = await getFiletype(bucketName, objectKey);
   console.debug(filetype);
   if (!filetype) {
-    throw new StepError(`${filename}: Couldn't determine filetype`, event, {
-      objectKey,
-      collectionIdentifier,
-      itemIdentifier,
-      filename,
-    });
+    throw new StepError(`${filename}: Couldn't determine filetype`, event, event);
   }
 
   if (filetype.ext !== extension) {
-    throw new StepError(`${filename}: File extension doesn't match detected filetype ${filetype.ext}`, event, {
-      objectKey,
-      collectionIdentifier,
-      itemIdentifier,
-      filename,
-    });
+    throw new StepError(`${filename}: File extension doesn't match detected filetype ${filetype.ext}`, event, event);
   }
 
   const essence = await getEssence(collectionIdentifier, itemIdentifier, filename);
   console.debug(essence);
 
-  const createdEssence = await createEssence(collectionIdentifier, itemIdentifier, filename);
+  const attributes = {
+    mimetype: filetype.mime,
+    size: objectSize,
+  };
+
+  const [createdEssence, error] = await createEssence(collectionIdentifier, itemIdentifier, filename, attributes);
   if (!createdEssence) {
-    throw new StepError(`${filename}: Couldn't create essence`, event, {
-      objectKey,
-      collectionIdentifier,
-      itemIdentifier,
-      filename,
-    });
+    throw new StepError(`${filename}: Couldn't create essence`, event, { ...event, error });
   }
 };
