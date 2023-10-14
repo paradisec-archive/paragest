@@ -7,7 +7,7 @@ import { graphql } from './gql';
 
 import { StepError } from './lib/errors.js';
 import { getGraphQLClient } from './lib/graphql.js';
-import { Essence } from './gql/graphql';
+import { Essence, EssenceAttributes } from './gql/graphql';
 
 type Event = {
   principalId: string,
@@ -37,12 +37,30 @@ const getFiletype = async (bucketName: string, objectKey: string) => {
   return fileType;
 };
 
+graphql(/* GraphQL */ `
+  fragment EssenceItem on Essence {
+    id
+
+    filename
+    size
+
+    mimetype
+    channels
+    citation
+    duration
+    fps
+    samplerate
+
+    createdAt
+    updatedAt
+  }
+`);
+
 const getEssence = async (collectionIdentifier: string, itemIdentifier: string, filename: string) => {
   const EssenceQuery = graphql(/* GraphQL */ `
     query GetEssenceQuery($fullIdentifier: ID!, $filename: String!) {
       essence(fullIdentifier: $fullIdentifier, filename: $filename) {
         id
-        filename
       }
     }
   `);
@@ -58,19 +76,29 @@ const createEssence = async (collectionIdentifier: string, itemIdentifier: strin
       mutation EssenceCreateMutation($input: EssenceCreateInput!) {
         essenceCreate(input: $input) {
           essence {
-            id
-            filename
+            ...EssenceItem
           }
         }
       }
     `);
 
+  const { mimetype, size } = attributes;
+  if (!mimetype) {
+    throw new Error('Mimetype is required');
+  }
+
+  if (!size) {
+    throw new Error('Size is required');
+  }
+
   const params = {
-    essenceInput: {
+    collectionIdentifier,
+    itemIdentifier,
+    filename,
+    attributes: {
       ...attributes,
-      collectionIdentifier,
-      itemIdentifier,
-      filename,
+      mimetype,
+      size,
     },
   };
 
@@ -78,6 +106,28 @@ const createEssence = async (collectionIdentifier: string, itemIdentifier: strin
   console.debug('CreateResponse:', JSON.stringify(createResponse, null, 2));
 
   return [createResponse.data?.essenceCreate?.essence, createResponse.error];
+};
+
+const updateEssence = async (id: string, attributes: EssenceAttributes) => {
+  const EssenceUpdateMutation = graphql(/* GraphQL */ `
+    mutation EssenceUpdateMutation($input: EssenceUpdateInput!) {
+      essenceUpdate(input: $input) {
+        essence {
+          ...EssenceItem
+        }
+      }
+    }
+  `);
+
+  const params = {
+    id,
+    attributes,
+  };
+
+  const createResponse = await gqlClient.mutation(EssenceUpdateMutation, { input: params });
+  console.debug('CreateResponse:', JSON.stringify(createResponse, null, 2));
+
+  return [createResponse.data?.essenceUpdate?.essence, createResponse.error];
 };
 
 export const handler: Handler = async (event: Event) => {
@@ -113,8 +163,15 @@ export const handler: Handler = async (event: Event) => {
     size: objectSize,
   };
 
-  const [createdEssence, error] = await createEssence(collectionIdentifier, itemIdentifier, filename, attributes);
-  if (!createdEssence) {
-    throw new StepError(`${filename}: Couldn't create essence`, event, { ...event, error });
+  if (essence) {
+    const [updatedEssence, error] = await updateEssence(essence.id, attributes);
+    if (!updatedEssence) {
+      throw new StepError(`${filename}: Couldn't update essence`, event, { ...event, error });
+    }
+  } else {
+    const [createdEssence, error] = await createEssence(collectionIdentifier, itemIdentifier, filename, attributes);
+    if (!createdEssence) {
+      throw new StepError(`${filename}: Couldn't create essence`, event, { ...event, error });
+    }
   }
 };
