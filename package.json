@@ -10,7 +10,10 @@
     "test": "jest",
     "cdk": "cdk",
     "codegen": "graphql-codegen",
-    "file:wav": "aws s3 cp samples/JD1-W6-16bit44kHz.wav s3://paragest-ingest-stage/incoming/JD1-W6-16bit44kHz.wav",
+    "file:wav": "aws s3 cp samples/VD1-krd20140214_wordlist-101_tidak.wav s3://paragest-ingest-stage/incoming/VD1-krd20140214_wordlist-101_tidak.wav",
+    "file:mp3": "aws s3 cp samples/VD1-krd20140214_wordlist-101_tidak.mp3 s3://paragest-ingest-stage/incoming/VD1-krd20140214_wordlist-101_tidak.mp3",
+    "file:mov": "aws s3 cp samples/RD1-004-Bibibulak_24.mov s3://paragest-ingest-stage/incoming/RD1-004-Bibibulak_24.mov",
+    "file:mp4": "aws s3 cp samples/RD1-004-Bibibulak_24.mp4 s3://paragest-ingest-stage/incoming/RD1-004-Bibibulak_24.mp4",
     "file:wavbadmime": "aws s3 cp samples/JD1-W6-16bit44kHz.wav s3://paragest-ingest-stage/incoming/JD1-W6-16bit44kHz.xml",
     "file:wavbadmime2": "aws s3 cp samples/random.bin s3://paragest-ingest-stage/incoming/JD1-W6-16bit44kHz.wav",
     "file:notInDb": "aws s3 cp samples/JD1-W6-16bit44kHz.wav s3://paragest-ingest-stage/incoming/JD1-WBAD-16bit44kHz.wav",
@@ -46,6 +49,7 @@
     "@aws-sdk/client-s3": "^3.421.0",
     "@aws-sdk/client-secrets-manager": "^3.329.0",
     "@aws-sdk/client-sfn": "^3.328.0",
+    "@aws-sdk/s3-request-presigner": "^3.429.0",
     "@tokenizer/s3": "^0.2.3",
     "@types/source-map-support": "^0.5.6",
     "@urql/core": "^4.1.3",
@@ -53,6 +57,7 @@
     "constructs": "^10.0.0",
     "file-type": "^18.5.0",
     "graphql": "^16.8.1",
-    "source-map-support": "^0.5.21"
+    "source-map-support": "^0.5.21",
+    "zod": "^3.22.4"
   }
 }

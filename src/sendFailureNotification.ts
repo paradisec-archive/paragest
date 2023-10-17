@@ -27,14 +27,14 @@ export const handler: Handler = async (event: Event) => {
     Key: objectKey!.replace(/^incoming/, 'rejected'),
     ChecksumAlgorithm: 'SHA256',
   });
-  console.debug('Copying object to rejected bucket', copyCommand);
+  console.debug('Copying object to rejected bucket');
   await s3.send(copyCommand);
 
   const deleteCommand = new DeleteObjectCommand({
     Bucket: bucketName,
     Key: objectKey,
   });
-  console.debug('Deleting object from incoming bucket', deleteCommand);
+  console.debug('Deleting object from incoming bucket');
   await s3.send(deleteCommand);
 
   const to = principalId.replace(/.*:/, '');

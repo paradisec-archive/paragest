@@ -1,3 +1,5 @@
+import * as path from 'node:path';
+
 import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 
@@ -23,6 +25,7 @@ export class ParagestStack extends cdk.Stack {
         PARAGEST_ENV: env,
       },
       runtime: lambda.Runtime.NODEJS_18_X,
+      timeout: cdk.Duration.seconds(30),
       bundling: {
         format: nodejs.OutputFormat.ESM,
         target: 'esnext',
@@ -32,10 +35,43 @@ export class ParagestStack extends cdk.Stack {
       },
     };
 
+    // /////////////////////////////
+    // //  Create MediaInfo Layer
+    // /////////////////////////////
+    //
+    // const mediaInfoVersion = '23.10';
+    // const url = `https://mediaarea.net/download/binary/mediainfo/${version}/MediaInfo_CLI_${version}_Lambda_x86_64.zip`;
+    //
+    // const response = await fetch(url);
+    // const reader = response.body.getReader();
+    //
+    // reader
+    //   .pipe(unzipper.Parse())
+    //   .pipe(new Transform({
+    //     objectMode: true,
+    //     transform: (entry, e, cb) => {
+    //       const fileName = entry.path;
+    //       const type = entry.type; // 'Directory' or 'File'
+    //       if (fileName === 'bin/mediainfo') {
+    //         entry.pipe(fs.createWriteStream(out)).on('finish', cb);
+    //       } else {
+    //         entry.autodrain();
+    //         cb();
+    //       }
+    //     },
+    //   }));
+
+    const mediaInfoBin = path.join(__dirname, '..', 'cdk.out', 'mediainfo');
+    const mediaInfoLayer = new lambda.LayerVersion(this, 'MediaInfoLayer', {
+      code: lambda.Code.fromAsset(mediaInfoBin),
+      compatibleRuntimes: [lambdaCommon.runtime!],
+      description: 'MediaInfo Layer',
+    });
+
     const paragestStepDefaults: Partial<tasks.LambdaInvokeProps> = { resultPath: sfn.JsonPath.DISCARD };
-    const paragestStep = (stepId: string, entry: string, taskProps = paragestStepDefaults) => {
+    const paragestStep = (stepId: string, entry: string, taskProps = paragestStepDefaults, lambdaFunctionProps = lambdaCommon) => {
       const lambdaFunction = new nodejs.NodejsFunction(this, `${stepId}Lambda`, {
-        ...lambdaCommon,
+        ...lambdaFunctionProps,
         entry,
       });
 
@@ -79,7 +115,7 @@ export class ParagestStack extends cdk.Stack {
     ingestBucket.grantDelete(addToCatalogStep['props'].lambdaFunction); // eslint-disable-line dot-notation
     catalogBucket.grantPut(addToCatalogStep['props'].lambdaFunction); // eslint-disable-line dot-notation
 
-    const addMediaMetadataStep = paragestStep('AddMediaMetadata', 'src/addMediaMetadata.ts', {});
+    const addMediaMetadataStep = paragestStep('AddMediaMetadata', 'src/addMediaMetadata.ts', {}, { ...lambdaCommon, layers: [mediaInfoLayer] });
     ingestBucket.grantRead(addMediaMetadataStep['props'].lambdaFunction); // eslint-disable-line dot-notation
 
     const nabuOauthSecret = new secretsmanager.Secret(this, 'NabuOAuthSecret', {

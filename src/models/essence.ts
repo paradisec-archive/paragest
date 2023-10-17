@@ -17,6 +17,7 @@ graphql(/* GraphQL */ `
     citation
     duration
     fps
+    bitrate
     samplerate
 
     createdAt
@@ -92,8 +93,8 @@ export const updateEssence = async (id: string, attributes: EssenceAttributes) =
     attributes,
   };
 
-  const createResponse = await gqlClient.mutation(EssenceUpdateMutation, { input: params });
-  console.debug('CreateResponse:', JSON.stringify(createResponse, null, 2));
+  const updateResponse = await gqlClient.mutation(EssenceUpdateMutation, { input: params });
+  console.debug('UpdateResponse:', JSON.stringify(updateResponse, null, 2));
 
-  return [createResponse.data?.essenceUpdate?.essence, createResponse.error];
+  return [updateResponse.data?.essenceUpdate?.essence, updateResponse.error];
 };
