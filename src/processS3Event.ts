@@ -17,6 +17,10 @@ export const handler: Handler = async (event: S3Event) => {
     const objectSize = record.s3.object.size;
     const { principalId } = record.userIdentity;
 
+    if (objectKey.match(/\/\.keep$/)) {
+      return false;
+    }
+
     const input = JSON.stringify({
       bucketName,
       objectKey,
