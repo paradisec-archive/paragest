@@ -4,6 +4,7 @@ import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 
 import * as eventsources from 'aws-cdk-lib/aws-lambda-event-sources';
+import * as iam from 'aws-cdk-lib/aws-iam';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as nodejs from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as s3 from 'aws-cdk-lib/aws-s3';
@@ -25,6 +26,7 @@ export class ParagestStack extends cdk.Stack {
         PARAGEST_ENV: env,
       },
       runtime: lambda.Runtime.NODEJS_18_X,
+      memorySize: 256,
       timeout: cdk.Duration.seconds(30),
       bundling: {
         format: nodejs.OutputFormat.ESM,
@@ -115,8 +117,22 @@ export class ParagestStack extends cdk.Stack {
     ingestBucket.grantDelete(addToCatalogStep['props'].lambdaFunction); // eslint-disable-line dot-notation
     catalogBucket.grantPut(addToCatalogStep['props'].lambdaFunction); // eslint-disable-line dot-notation
 
-    const addMediaMetadataStep = paragestStep('AddMediaMetadata', 'src/addMediaMetadata.ts', {}, { ...lambdaCommon, layers: [mediaInfoLayer] });
+    const addMediaMetadataStep = paragestStep('AddMediaMetadata', 'src/addMediaMetadata.ts', { resultPath: sfn.JsonPath.DISCARD }, { ...lambdaCommon, layers: [mediaInfoLayer] });
     ingestBucket.grantRead(addMediaMetadataStep['props'].lambdaFunction); // eslint-disable-line dot-notation
+
+    const processFailureStep = paragestStep('ProcessFailure', 'src/processFailure.ts');
+    processFailureStep['props'].lambdaFunction.addToRolePolicy(new iam.PolicyStatement({ // eslint-disable-line dot-notation
+      actions: ['ses:SendEmail'],
+      resources: ['*'],
+    }));
+    ingestBucket.grantReadWrite(processFailureStep['props'].lambdaFunction); // eslint-disable-line dot-notation
+
+    const processSuccessStep = paragestStep('ProcessSuccess', 'src/processSuccess.ts');
+    processSuccessStep['props'].lambdaFunction.addToRolePolicy(new iam.PolicyStatement({ // eslint-disable-line dot-notation
+      actions: ['ses:SendEmail'],
+      resources: ['*'],
+    }));
+    ingestBucket.grantDelete(processSuccessStep['props'].lambdaFunction); // eslint-disable-line dot-notation
 
     const nabuOauthSecret = new secretsmanager.Secret(this, 'NabuOAuthSecret', {
       description: 'OAuth credentials for Nabu',
@@ -128,24 +144,18 @@ export class ParagestStack extends cdk.Stack {
     });
     nabuOauthSecret.grantRead(checkCatalogForItemStep['props'].lambdaFunction); // eslint-disable-line dot-notation
     nabuOauthSecret.grantRead(addMediaMetadataStep['props'].lambdaFunction); // eslint-disable-line dot-notation
-
-    const sendFailureNotification = new nodejs.NodejsFunction(this, 'SendFailureNotificationLambda', {
-      entry: 'src/sendFailureNotification.ts',
-      ...lambdaCommon,
-    });
-    ingestBucket.grantReadWrite(sendFailureNotification);
-
-    const sendFailureNotificationTask = new tasks.LambdaInvoke(this, 'sendFailureNotificationTask', {
-      lambdaFunction: sendFailureNotification,
-    });
+    nabuOauthSecret.grantRead(processFailureStep['props'].lambdaFunction); // eslint-disable-line dot-notation
+    nabuOauthSecret.grantRead(processSuccessStep['props'].lambdaFunction); // eslint-disable-line dot-notation
 
     const parallel = new sfn.Parallel(this, 'ParallelErrorCatcher');
 
     const addToCatalogFlow = sfn.Chain
-      .start(addToCatalogStep);
+      .start(addToCatalogStep)
+      .next(processSuccessStep);
 
     const metadataFlow = sfn.Chain
-      .start(addMediaMetadataStep);
+      .start(addMediaMetadataStep)
+      .next(addToCatalogStep);
 
     const workflow = sfn.Chain
       .start(rejectEmptyFilesStep)
@@ -161,7 +171,7 @@ export class ParagestStack extends cdk.Stack {
     parallel.branch(workflow);
 
     const failure = sfn.Chain
-      .start(sendFailureNotificationTask)
+      .start(processFailureStep)
       .next(failureState);
     parallel.addCatch(failure);
 

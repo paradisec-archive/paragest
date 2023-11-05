@@ -1,6 +1,8 @@
 import type { Handler } from 'aws-lambda';
 
 import { S3Client, CopyObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { sendEmail } from './lib/email';
+import { EmailUser } from './gql/graphql';
 
 type Event = {
   Cause: string,
@@ -37,11 +39,11 @@ export const handler: Handler = async (event: Event) => {
   console.debug('Deleting object from incoming bucket');
   await s3.send(deleteCommand);
 
-  const to = principalId.replace(/.*:/, '');
-  const cc = 'admin@paradisec.org';
   const subject = `Paraget Error: ${message}`;
-  const body = `
+  const body = (admin: EmailUser | undefined | null, unikey: string) => `
     Hi,
+
+    ${!admin?.email && `NOTE: The unikey ${unikey} doesn't exist in Nabu`}
 
     The following error was encountered in the ingestion pipeline:
 
@@ -53,12 +55,7 @@ export const handler: Handler = async (event: Event) => {
 
     Cheers,
     Your friendly Paraget engine.
-  `;
+  `.replace(/^ {4}/gm, '');
 
-  console.error(to);
-  console.error(cc);
-  console.error(subject);
-  console.error(body);
-
-  // TODO: Send an email
+  await sendEmail(principalId, subject, body);
 };

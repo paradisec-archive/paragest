@@ -18,6 +18,7 @@ const documents = {
     "\n    query GetEssenceQuery($fullIdentifier: ID!, $filename: String!) {\n      essence(fullIdentifier: $fullIdentifier, filename: $filename) {\n        id\n      }\n    }\n  ": types.GetEssenceQueryDocument,
     "\n      mutation EssenceCreateMutation($input: EssenceCreateInput!) {\n        essenceCreate(input: $input) {\n          essence {\n            ...EssenceItem\n          }\n        }\n      }\n    ": types.EssenceCreateMutationDocument,
     "\n    mutation EssenceUpdateMutation($input: EssenceUpdateInput!) {\n      essenceUpdate(input: $input) {\n        essence {\n          ...EssenceItem\n        }\n      }\n    }\n  ": types.EssenceUpdateMutationDocument,
+    "\n    query GetEssenceByUnikeyQuery($unikey: String!) {\n      userByUnikey(unikey: $unikey) {\n        email\n        firstName\n        lastName\n      }\n    }\n  ": types.GetEssenceByUnikeyQueryDocument,
 };
 
 /**
@@ -54,6 +55,10 @@ export function graphql(source: "\n      mutation EssenceCreateMutation($input: 
  * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
 export function graphql(source: "\n    mutation EssenceUpdateMutation($input: EssenceUpdateInput!) {\n      essenceUpdate(input: $input) {\n        essence {\n          ...EssenceItem\n        }\n      }\n    }\n  "): (typeof documents)["\n    mutation EssenceUpdateMutation($input: EssenceUpdateInput!) {\n      essenceUpdate(input: $input) {\n        essence {\n          ...EssenceItem\n        }\n      }\n    }\n  "];
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n    query GetEssenceByUnikeyQuery($unikey: String!) {\n      userByUnikey(unikey: $unikey) {\n        email\n        firstName\n        lastName\n      }\n    }\n  "): (typeof documents)["\n    query GetEssenceByUnikeyQuery($unikey: String!) {\n      userByUnikey(unikey: $unikey) {\n        email\n        firstName\n        lastName\n      }\n    }\n  "];
 
 export function graphql(source: string) {
   return (documents as any)[source] ?? {};
