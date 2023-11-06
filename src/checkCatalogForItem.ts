@@ -20,7 +20,8 @@ export const handler: Handler = async (event: Event) => {
     throw new StepError(`Object key ${objectKey} does not match expected pattern`, event, { objectKey });
   }
 
-  const [, collectionIdentifier, itemIdentifier, rest, extension] = md;
+  const [, collectionIdentifier, itemIdentifier, rest, extensionOrig] = md;
+  const extension = extensionOrig?.toLowerCase();
 
   const filename = `${collectionIdentifier}-${itemIdentifier}-${rest}.${extension}`;
   console.debug('Filename:', filename);
