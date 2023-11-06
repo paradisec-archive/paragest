@@ -6,7 +6,7 @@ const gqlClient = await getGraphQLClient();
 
 export const getUserByUnikey = async (unikey: string) => {
   const UserByUnikeyQuery = graphql(/* GraphQL */ `
-    query GetEssenceByUnikeyQuery($unikey: String!) {
+    query GetUserByUnikeyQuery($unikey: String!) {
       userByUnikey(unikey: $unikey) {
         email
         firstName
