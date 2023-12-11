@@ -35,6 +35,9 @@ export class ParagestStack extends cdk.Stack {
         mainFields: ['module', 'main'],
         // DIrty hack from https://github.com/evanw/esbuild/pull/2067
         banner: "import { createRequire } from 'module';const require = createRequire(import.meta.url);",
+        loader: {
+          '.node': 'copy', // for sentry profiling library
+        },
       },
     };
 
