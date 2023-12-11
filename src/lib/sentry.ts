@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/serverless';
 
-import { ProfilingIntegration } from '@sentry/profiling-node';
+// import { ProfilingIntegration } from '@sentry/profiling-node';
 
 // import { RewriteFrames } from '@sentry/integrations';
 
@@ -34,7 +34,7 @@ Sentry.AWSLambda.init({
   dsn: process.env.SENTRY_DSN,
   environment: process.env.PARAGEST_ENV,
   integrations: [
-    new ProfilingIntegration(),
+    // new ProfilingIntegration(),
   //   new RewriteFrames({
   //     iteratee: transformStacktrace,
   //   }),
