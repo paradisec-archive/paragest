@@ -5,6 +5,6 @@
   ],
   "compilerOptions": {
     "moduleResolution": "bundler",
-    "lib": ["dom"] // for fetch remove after TS 5.3
+    "noPropertyAccessFromIndexSignature": false,
   }
 }

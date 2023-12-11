@@ -1,6 +1,11 @@
 import type { Handler } from 'aws-lambda';
 
+import * as Sentry from '@sentry/serverless';
+
 import { S3Client, DeleteObjectCommand } from '@aws-sdk/client-s3';
+
+import './lib/sentry.js';
+
 import { sendEmail } from './lib/email';
 import { EmailUser } from './gql/graphql';
 
@@ -19,7 +24,7 @@ type Event = {
 
 const s3 = new S3Client();
 
-export const handler: Handler = async (event: Event) => {
+export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event: Event) => {
   console.debug('Error:', JSON.stringify(event, null, 2));
 
   const {
@@ -43,9 +48,7 @@ export const handler: Handler = async (event: Event) => {
   const subject = `Paraget Success: ${collectionIdentifier}/${itemIdentifier}/${filename}`;
   const body = (admin: EmailUser | undefined | null, unikey: string) => `
     Hi,
-
-    ${!admin?.email && `NOTE: The unikey ${unikey} doesn't exist in Nabu`}
-
+${!admin?.email ? `\nNOTE: The unikey ${unikey} doesn't exist in Nabu\n` : ''}
     File has been processed and placed in the catalog.
 
     Cheers,
@@ -53,4 +56,4 @@ export const handler: Handler = async (event: Event) => {
   `.replace(/^ {4}/gm, '');
 
   await sendEmail(principalId, subject, body);
-};
+});

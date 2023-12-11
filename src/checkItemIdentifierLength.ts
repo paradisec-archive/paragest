@@ -1,5 +1,9 @@
 import type { Handler } from 'aws-lambda';
 
+import * as Sentry from '@sentry/serverless';
+
+import './lib/sentry.js';
+
 import { StepError } from './lib/errors.js';
 
 type Event = {
@@ -10,7 +14,7 @@ type Event = {
   },
 };
 
-export const handler: Handler = async (event: Event) => {
+export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event: Event) => {
   console.debug('Event:', JSON.stringify(event, null, 2));
 
   const { details: { itemIdentifier }, objectKey } = event;
@@ -18,4 +22,4 @@ export const handler: Handler = async (event: Event) => {
   if (itemIdentifier.length > 30) {
     throw new StepError(`File ${objectKey}: Item id longer than 30 chars (OLAC incompatible)`, event, { objectKey, itemIdentifier });
   }
-};
+});

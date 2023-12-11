@@ -1,5 +1,7 @@
 import { execSync } from 'node:child_process';
 
+import * as Sentry from '@sentry/serverless';
+
 import type { Handler } from 'aws-lambda';
 import { fileTypeFromTokenizer } from 'file-type/core';
 
@@ -11,6 +13,7 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { z } from 'zod';
 
 import { StepError } from './lib/errors.js';
+import './lib/sentry.js';
 
 import { getEssence, createEssence, updateEssence } from './models/essence.js';
 
@@ -251,7 +254,7 @@ const lookupMimetypeFromExtension = (extension: string) => {
   }
 };
 
-export const handler: Handler = async (event: Event) => {
+export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event: Event) => {
   console.debug('Event:', JSON.stringify(event, null, 2));
 
   const {
@@ -309,4 +312,4 @@ export const handler: Handler = async (event: Event) => {
       throw new StepError(`${filename}: Couldn't create essence`, event, { ...event, error, attributes });
     }
   }
-};
+});

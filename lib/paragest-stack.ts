@@ -24,6 +24,7 @@ export class ParagestStack extends cdk.Stack {
     const lambdaCommon: nodejs.NodejsFunctionProps = {
       environment: {
         PARAGEST_ENV: env,
+        SENTRY_DSN: 'https://e36e8aa3d034861a3803d2edbd4773ff@o4504801902985216.ingest.sentry.io/4506375864254464',
       },
       runtime: lambda.Runtime.NODEJS_18_X,
       memorySize: 256,

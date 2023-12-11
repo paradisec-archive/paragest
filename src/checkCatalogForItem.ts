@@ -1,6 +1,10 @@
 import type { Handler } from 'aws-lambda';
 
+import * as Sentry from '@sentry/serverless';
+
 import { graphql } from './gql';
+
+import './lib/sentry.js';
 
 import { StepError } from './lib/errors.js';
 import { getGraphQLClient } from './lib/graphql.js';
@@ -10,7 +14,7 @@ type Event = {
   objectKey: string,
 };
 
-export const handler: Handler = async (event: Event) => {
+export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event: Event) => {
   console.debug('S3 Data:', JSON.stringify(event, null, 2));
 
   const { objectKey } = event;
@@ -48,4 +52,4 @@ export const handler: Handler = async (event: Event) => {
     filename,
     extension,
   };
-};
+});
