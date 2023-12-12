@@ -25,6 +25,7 @@ export class ParagestStack extends cdk.Stack {
       environment: {
         PARAGEST_ENV: env,
         SENTRY_DSN: 'https://e36e8aa3d034861a3803d2edbd4773ff@o4504801902985216.ingest.sentry.io/4506375864254464',
+        NODE_OPTIONS: '--enable-source-maps',
       },
       runtime: lambda.Runtime.NODEJS_18_X,
       memorySize: 256,
@@ -38,6 +39,8 @@ export class ParagestStack extends cdk.Stack {
         loader: {
           '.node': 'copy', // for sentry profiling library
         },
+        sourceMap: true,
+        minify: true,
       },
     };
 
@@ -125,17 +128,23 @@ export class ParagestStack extends cdk.Stack {
     ingestBucket.grantRead(addMediaMetadataStep['props'].lambdaFunction); // eslint-disable-line dot-notation
 
     const processFailureStep = paragestStep('ProcessFailure', 'src/processFailure.ts');
-    processFailureStep['props'].lambdaFunction.addToRolePolicy(new iam.PolicyStatement({ // eslint-disable-line dot-notation
-      actions: ['ses:SendEmail'],
-      resources: ['*'],
-    }));
+    processFailureStep['props'].lambdaFunction.addToRolePolicy(
+      new iam.PolicyStatement({
+        // eslint-disable-line dot-notation
+        actions: ['ses:SendEmail'],
+        resources: ['*'],
+      }),
+    );
     ingestBucket.grantReadWrite(processFailureStep['props'].lambdaFunction); // eslint-disable-line dot-notation
 
     const processSuccessStep = paragestStep('ProcessSuccess', 'src/processSuccess.ts');
-    processSuccessStep['props'].lambdaFunction.addToRolePolicy(new iam.PolicyStatement({ // eslint-disable-line dot-notation
-      actions: ['ses:SendEmail'],
-      resources: ['*'],
-    }));
+    processSuccessStep['props'].lambdaFunction.addToRolePolicy(
+      new iam.PolicyStatement({
+        // eslint-disable-line dot-notation
+        actions: ['ses:SendEmail'],
+        resources: ['*'],
+      }),
+    );
     ingestBucket.grantDelete(processSuccessStep['props'].lambdaFunction); // eslint-disable-line dot-notation
 
     const nabuOauthSecret = new secretsmanager.Secret(this, 'NabuOAuthSecret', {
@@ -153,16 +162,11 @@ export class ParagestStack extends cdk.Stack {
 
     const parallel = new sfn.Parallel(this, 'ParallelErrorCatcher');
 
-    const addToCatalogFlow = sfn.Chain
-      .start(addToCatalogStep)
-      .next(processSuccessStep);
+    const addToCatalogFlow = sfn.Chain.start(addToCatalogStep).next(processSuccessStep);
 
-    const metadataFlow = sfn.Chain
-      .start(addMediaMetadataStep)
-      .next(addToCatalogStep);
+    const metadataFlow = sfn.Chain.start(addMediaMetadataStep).next(addToCatalogStep);
 
-    const workflow = sfn.Chain
-      .start(rejectEmptyFilesStep)
+    const workflow = sfn.Chain.start(rejectEmptyFilesStep)
       .next(checkCatalogForItemStep)
       .next(checkItemIdentifierLengthStep)
       .next(checkIfPDSCStep)
@@ -174,15 +178,10 @@ export class ParagestStack extends cdk.Stack {
 
     parallel.branch(workflow);
 
-    const failure = sfn.Chain
-      .start(processFailureStep)
-      .next(failureState);
+    const failure = sfn.Chain.start(processFailureStep).next(failureState);
     parallel.addCatch(failure);
 
-    const definition = sfn.Chain
-      .start(startState)
-      .next(parallel)
-      .next(successState);
+    const definition = sfn.Chain.start(startState).next(parallel).next(successState);
 
     const stateMachine = new sfn.StateMachine(this, 'StateMachine', {
       definitionBody: sfn.DefinitionBody.fromChainable(definition),
