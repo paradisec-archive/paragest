@@ -119,7 +119,7 @@ export class ParagestStack extends cdk.Stack {
         isPDSCFile: sfn.JsonPath.stringAt('$.Payload'),
       },
     });
-    const addToCatalogStep = paragestStep('AddToCatalog', 'src/addToCatalog.ts');
+    const addToCatalogStep = paragestStep('AddToCatalog', 'src/addToCatalog.ts', undefined, { ...lambdaCommon, timeout: cdk.Duration.minutes(5) });
     ingestBucket.grantRead(addToCatalogStep['props'].lambdaFunction); // eslint-disable-line dot-notation
     ingestBucket.grantDelete(addToCatalogStep['props'].lambdaFunction); // eslint-disable-line dot-notation
     catalogBucket.grantPut(addToCatalogStep['props'].lambdaFunction); // eslint-disable-line dot-notation

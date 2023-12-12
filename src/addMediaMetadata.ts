@@ -53,7 +53,7 @@ const VideoTrack = z.object({
   Format: z.string(),
   CodecID: z.string(),
   Duration: z.coerce.number(),
-  BitRate_Mode: z.string(),
+  BitRate_Mode: z.string().optional(),
   BitRate: z.coerce.number(),
   Width: z.coerce.number(),
   Height: z.coerce.number(),
@@ -70,7 +70,7 @@ const VideoTrack = z.object({
   ColorSpace: z.string(),
   BitDepth: z.coerce.number(),
   ScanType: z.string(),
-  Compression_Mode: z.string(),
+  Compression_Mode: z.string().optional(),
   StreamSize: z.coerce.number(),
 });
 
