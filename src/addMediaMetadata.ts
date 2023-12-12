@@ -38,7 +38,7 @@ const GeneralTrack = z.object({
   Format: z.string(),
   FileSize: z.coerce.number(),
   Duration: z.coerce.number(),
-  OverallBitRate_Mode: z.string(),
+  OverallBitRate_Mode: z.string().optional(),
   OverallBitRate: z.coerce.number(),
   FrameRate: z.coerce.number().optional(),
   FrameCount: z.coerce.number().optional(),
