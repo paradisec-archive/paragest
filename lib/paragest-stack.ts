@@ -27,7 +27,7 @@ export class ParagestStack extends cdk.Stack {
         SENTRY_DSN: 'https://e36e8aa3d034861a3803d2edbd4773ff@o4504801902985216.ingest.sentry.io/4506375864254464',
         NODE_OPTIONS: '--enable-source-maps',
       },
-      runtime: lambda.Runtime.NODEJS_18_X,
+      runtime: lambda.Runtime.NODEJS_LATEST,
       memorySize: 256,
       timeout: cdk.Duration.seconds(30),
       bundling: {
@@ -73,16 +73,23 @@ export class ParagestStack extends cdk.Stack {
     const mediaInfoBin = path.join(__dirname, '..', 'cdk.out', 'mediainfo');
     const mediaInfoLayer = new lambda.LayerVersion(this, 'MediaInfoLayer', {
       code: lambda.Code.fromAsset(mediaInfoBin),
-      compatibleRuntimes: [lambdaCommon.runtime!],
+      // compatibleRuntimes: [lambdaCommon.runtime],
       description: 'MediaInfo Layer',
     });
 
     const paragestStepDefaults: Partial<tasks.LambdaInvokeProps> = { resultPath: sfn.JsonPath.DISCARD };
-    const paragestStep = (stepId: string, entry: string, taskProps = paragestStepDefaults, lambdaFunctionProps = lambdaCommon) => {
+    type paragestStepOpts = {
+      taskProps?: Partial<tasks.LambdaInvokeProps>;
+      lambdaProps?: nodejs.NodejsFunctionProps;
+      grantFunc?: (lamdaFunc: nodejs.NodejsFunction) => void; // eslint-disable-line no-unused-vars
+    };
+    const paragestStep = (stepId: string, entry: string, { taskProps = paragestStepDefaults, lambdaProps, grantFunc }: paragestStepOpts = {}) => {
       const lambdaFunction = new nodejs.NodejsFunction(this, `${stepId}Lambda`, {
-        ...lambdaFunctionProps,
+        ...lambdaCommon,
+        ...lambdaProps,
         entry,
       });
+      grantFunc?.(lambdaFunction);
 
       const task = new tasks.LambdaInvoke(this, `${stepId}Task`, {
         lambdaFunction,
@@ -97,56 +104,6 @@ export class ParagestStack extends cdk.Stack {
     });
     const catalogBucket = s3.Bucket.fromBucketName(this, 'CatalogBucket', `nabu-catalog-${env}`);
 
-    const startState = new sfn.Pass(this, 'StartState');
-    const successState = new sfn.Succeed(this, 'SuccessState');
-    const failureState = new sfn.Fail(this, 'FailureState');
-    // const choice = new sfn.Choice(this, 'Did it work?');
-
-    const rejectEmptyFilesStep = paragestStep('RejectEmptyFiles', 'src/rejectEmptyFiles.ts');
-    const checkItemIdentifierLengthStep = paragestStep('CheckItemIdentifierLength', 'src/checkItemIdentifierLength.ts');
-    const checkCatalogForItemStep = paragestStep('CheckCatalogForItem', 'src/checkCatalogForItem.ts', {
-      resultPath: sfn.JsonPath.stringAt('$.details'),
-      resultSelector: {
-        collectionIdentifier: sfn.JsonPath.stringAt('$.Payload.collectionIdentifier'),
-        itemIdentifier: sfn.JsonPath.stringAt('$.Payload.itemIdentifier'),
-        filename: sfn.JsonPath.stringAt('$.Payload.filename'),
-        extension: sfn.JsonPath.stringAt('$.Payload.extension'),
-      },
-    });
-    const checkIfPDSCStep = paragestStep('CheckIfPDSC', 'src/checkIfPDSC.ts', {
-      resultPath: sfn.JsonPath.stringAt('$.pdscCheck'),
-      resultSelector: {
-        isPDSCFile: sfn.JsonPath.stringAt('$.Payload'),
-      },
-    });
-    const addToCatalogStep = paragestStep('AddToCatalog', 'src/addToCatalog.ts', undefined, { ...lambdaCommon, timeout: cdk.Duration.minutes(5) });
-    ingestBucket.grantRead(addToCatalogStep['props'].lambdaFunction); // eslint-disable-line dot-notation
-    ingestBucket.grantDelete(addToCatalogStep['props'].lambdaFunction); // eslint-disable-line dot-notation
-    catalogBucket.grantPut(addToCatalogStep['props'].lambdaFunction); // eslint-disable-line dot-notation
-
-    const addMediaMetadataStep = paragestStep('AddMediaMetadata', 'src/addMediaMetadata.ts', { resultPath: sfn.JsonPath.DISCARD }, { ...lambdaCommon, layers: [mediaInfoLayer] });
-    ingestBucket.grantRead(addMediaMetadataStep['props'].lambdaFunction); // eslint-disable-line dot-notation
-
-    const processFailureStep = paragestStep('ProcessFailure', 'src/processFailure.ts');
-    processFailureStep['props'].lambdaFunction.addToRolePolicy(
-      new iam.PolicyStatement({
-        // eslint-disable-line dot-notation
-        actions: ['ses:SendEmail'],
-        resources: ['*'],
-      }),
-    );
-    ingestBucket.grantReadWrite(processFailureStep['props'].lambdaFunction); // eslint-disable-line dot-notation
-
-    const processSuccessStep = paragestStep('ProcessSuccess', 'src/processSuccess.ts');
-    processSuccessStep['props'].lambdaFunction.addToRolePolicy(
-      new iam.PolicyStatement({
-        // eslint-disable-line dot-notation
-        actions: ['ses:SendEmail'],
-        resources: ['*'],
-      }),
-    );
-    ingestBucket.grantDelete(processSuccessStep['props'].lambdaFunction); // eslint-disable-line dot-notation
-
     const nabuOauthSecret = new secretsmanager.Secret(this, 'NabuOAuthSecret', {
       description: 'OAuth credentials for Nabu',
       secretName: '/paragest/nabu/oauth',
@@ -155,10 +112,77 @@ export class ParagestStack extends cdk.Stack {
         clientSecret: SecretValue.unsafePlainText('FIXME'),
       },
     });
-    nabuOauthSecret.grantRead(checkCatalogForItemStep['props'].lambdaFunction); // eslint-disable-line dot-notation
-    nabuOauthSecret.grantRead(addMediaMetadataStep['props'].lambdaFunction); // eslint-disable-line dot-notation
-    nabuOauthSecret.grantRead(processFailureStep['props'].lambdaFunction); // eslint-disable-line dot-notation
-    nabuOauthSecret.grantRead(processSuccessStep['props'].lambdaFunction); // eslint-disable-line dot-notation
+
+    const startState = new sfn.Pass(this, 'StartState');
+    const successState = new sfn.Succeed(this, 'SuccessState');
+    const failureState = new sfn.Fail(this, 'FailureState');
+    // const choice = new sfn.Choice(this, 'Did it work?');
+
+    const rejectEmptyFilesStep = paragestStep('RejectEmptyFiles', 'src/rejectEmptyFiles.ts');
+    const checkItemIdentifierLengthStep = paragestStep('CheckItemIdentifierLength', 'src/checkItemIdentifierLength.ts');
+    const checkCatalogForItemStep = paragestStep('CheckCatalogForItem', 'src/checkCatalogForItem.ts', {
+      taskProps: {
+        resultPath: sfn.JsonPath.stringAt('$.details'),
+        resultSelector: {
+          collectionIdentifier: sfn.JsonPath.stringAt('$.Payload.collectionIdentifier'),
+          itemIdentifier: sfn.JsonPath.stringAt('$.Payload.itemIdentifier'),
+          filename: sfn.JsonPath.stringAt('$.Payload.filename'),
+          extension: sfn.JsonPath.stringAt('$.Payload.extension'),
+        },
+      },
+      grantFunc: (lambdaFunc) => nabuOauthSecret.grantRead(lambdaFunc),
+    });
+    const checkIfPDSCStep = paragestStep('CheckIfPDSC', 'src/checkIfPDSC.ts', {
+      taskProps: {
+        resultPath: sfn.JsonPath.stringAt('$.pdscCheck'),
+        resultSelector: {
+          isPDSCFile: sfn.JsonPath.stringAt('$.Payload'),
+        },
+      },
+    });
+    const addToCatalogStep = paragestStep('AddToCatalog', 'src/addToCatalog.ts', {
+      lambdaProps: { ...lambdaCommon, timeout: cdk.Duration.minutes(5) },
+      grantFunc: (lambdaFunc) => {
+        ingestBucket.grantRead(lambdaFunc);
+        ingestBucket.grantDelete(lambdaFunc);
+        catalogBucket.grantPut(lambdaFunc);
+      },
+    });
+
+    const addMediaMetadataStep = paragestStep('AddMediaMetadata', 'src/addMediaMetadata.ts', {
+      taskProps: { resultPath: sfn.JsonPath.DISCARD },
+      lambdaProps: { layers: [mediaInfoLayer] },
+      grantFunc: (lambdaFunc) => {
+        ingestBucket.grantRead(lambdaFunc);
+        nabuOauthSecret.grantRead(lambdaFunc);
+      },
+    });
+
+    const processFailureStep = paragestStep('ProcessFailure', 'src/processFailure.ts', {
+      grantFunc: (lambdaFunc) => {
+        lambdaFunc.addToRolePolicy(
+          new iam.PolicyStatement({
+            actions: ['ses:SendEmail'],
+            resources: ['*'],
+          }),
+        );
+        ingestBucket.grantReadWrite(lambdaFunc);
+        nabuOauthSecret.grantRead(lambdaFunc);
+      },
+    });
+
+    const processSuccessStep = paragestStep('ProcessSuccess', 'src/processSuccess.ts', {
+      grantFunc: (lambdaFunc) => {
+        lambdaFunc.addToRolePolicy(
+          new iam.PolicyStatement({
+            actions: ['ses:SendEmail'],
+            resources: ['*'],
+          }),
+        );
+        ingestBucket.grantDelete(lambdaFunc);
+        nabuOauthSecret.grantRead(lambdaFunc);
+      },
+    });
 
     const parallel = new sfn.Parallel(this, 'ParallelErrorCatcher');
 
