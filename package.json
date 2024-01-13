@@ -3,8 +3,7 @@
   "version": "0.1.0",
   "bin": "bin/paragest.js",
   "scripts": {
-    "build": "tsc",
-    "watch": "tsc -w",
+    "watch": "cdk watch",
     "test": "jest",
     "cdk": "cdk",
     "codegen": "graphql-codegen",
