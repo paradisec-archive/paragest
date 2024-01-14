@@ -6,6 +6,7 @@
     "watch": "cdk watch",
     "test": "jest",
     "cdk": "cdk",
+    "deploy": "cdk deploy",
     "codegen": "graphql-codegen",
     "file:wav": "aws s3 cp samples/VD1-krd20140214_wordlist-101_tidak.wav s3://paragest-ingest-stage/incoming/VD1-krd20140214_wordlist-101_tidak.wav",
     "file:WAV": "aws s3 cp samples/VD1-krd20140214_wordlist-101_tidak.wav s3://paragest-ingest-stage/incoming/VD1-krd20140214_wordlist-101_tidak.WAV",
@@ -19,7 +20,8 @@
     "file:badName": "aws s3 cp samples/bad-name.txt s3://paragest-ingest-stage/incoming/bad-name.txt",
     "file:empty": "aws s3 cp samples/empty.txt s3://paragest-ingest-stage/incoming/empty.txt",
     "file:emptyAnnis": "aws s3 cp samples/empty.txt s3://paragest-ingest-stage/incoming/JD1-W6-16bit44kHz.annis",
-    "file:PDSC": "aws s3 cp samples/bad-name.txt s3://paragest-ingest-stage/incoming/JD1-W6-CAT-PDSC_ADMIN.xml"
+    "file:PDSC": "aws s3 cp samples/bad-name.txt s3://paragest-ingest-stage/incoming/JD1-W6-CAT-PDSC_ADMIN.xml",
+    "file:notexportable": "aws s3 cp samples/VD1-krd20140214_wordlist-101_tidak.wav s3://paragest-ingest-stage/incoming/AA4-001-tidak.wav"
   },
   "devDependencies": {
     "@graphql-codegen/cli": "^5.0.0",

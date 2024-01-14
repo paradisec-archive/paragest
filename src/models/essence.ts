@@ -1,7 +1,7 @@
 import { graphql } from '../gql';
 
 import { getGraphQLClient } from '../lib/graphql.js';
-import { Essence, EssenceAttributes } from '../gql/graphql';
+import type { Essence, EssenceAttributes } from '../gql/graphql';
 
 const gqlClient = await getGraphQLClient();
 

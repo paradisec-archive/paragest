@@ -150,11 +150,43 @@ export class ParagestStack extends cdk.Stack {
     });
 
     const addMediaMetadataStep = paragestStep('AddMediaMetadata', 'src/addMediaMetadata.ts', {
-      taskProps: { resultPath: sfn.JsonPath.DISCARD },
+      taskProps: {
+        resultPath: sfn.JsonPath.stringAt('$.mediaType'),
+        resultSelector: {
+          mediaType: sfn.JsonPath.stringAt('$.Payload'),
+        },
+      },
       lambdaProps: { layers: [mediaInfoLayer] },
       grantFunc: (lambdaFunc) => {
         ingestBucket.grantRead(lambdaFunc);
         nabuOauthSecret.grantRead(lambdaFunc);
+      },
+    });
+
+    const checkMetadataReadyStep = paragestStep('CheckMetadataReady', 'src/checkMetadataReady.ts', {
+      grantFunc: (lambdaFunc) => {
+        nabuOauthSecret.grantRead(lambdaFunc);
+      },
+    });
+
+    const processAudioStep = paragestStep('ProcessAudio', 'src/processAudio.ts', {
+      grantFunc: (lambdaFunc) => {
+        ingestBucket.grantRead(lambdaFunc);
+        // nabuOauthSecret.grantRead(lambdaFunc);
+      },
+    });
+
+    const processVideoStep = paragestStep('ProcessVideo', 'src/processVideo.ts', {
+      grantFunc: (lambdaFunc) => {
+        ingestBucket.grantRead(lambdaFunc);
+        // nabuOauthSecret.grantRead(lambdaFunc);
+      },
+    });
+
+    const processOtherStep = paragestStep('ProcessOther', 'src/processOther.ts', {
+      grantFunc: (lambdaFunc) => {
+        ingestBucket.grantRead(lambdaFunc);
+        // nabuOauthSecret.grantRead(lambdaFunc);
       },
     });
 
@@ -188,7 +220,18 @@ export class ParagestStack extends cdk.Stack {
 
     const addToCatalogFlow = sfn.Chain.start(addToCatalogStep).next(processSuccessStep);
 
-    const metadataFlow = sfn.Chain.start(addMediaMetadataStep).next(addToCatalogStep);
+    const processAudioFlow = sfn.Chain.start(processAudioStep).next(addToCatalogFlow);
+    const processVideoFlow = sfn.Chain.start(processVideoStep).next(addToCatalogFlow);
+    const processOtherFlow = sfn.Chain.start(processOtherStep).next(addToCatalogFlow);
+
+    const mediaFlow = sfn.Chain.start(addMediaMetadataStep)
+      .next(checkMetadataReadyStep)
+      .next(
+        new sfn.Choice(this, 'Media Type')
+          .when(sfn.Condition.stringEquals('$.mediaType.mediaType', 'audio'), processAudioFlow)
+          .when(sfn.Condition.stringEquals('$.mediaType.mediaType', 'video'), processVideoFlow)
+          .when(sfn.Condition.stringEquals('$.mediaType.mediaType', 'other'), processOtherFlow),
+      );
 
     const workflow = sfn.Chain.start(rejectEmptyFilesStep)
       .next(checkCatalogForItemStep)
@@ -197,7 +240,7 @@ export class ParagestStack extends cdk.Stack {
       .next(
         new sfn.Choice(this, 'Is PDSC File?')
           .when(sfn.Condition.booleanEquals('$.pdscCheck.isPDSCFile', true), addToCatalogFlow)
-          .when(sfn.Condition.booleanEquals('$.pdscCheck.isPDSCFile', false), metadataFlow),
+          .when(sfn.Condition.booleanEquals('$.pdscCheck.isPDSCFile', false), mediaFlow),
       );
 
     parallel.branch(workflow);

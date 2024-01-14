@@ -18,16 +18,16 @@ import './lib/sentry.js';
 import { getEssence, createEssence, updateEssence } from './models/essence.js';
 
 type Event = {
-  principalId: string,
-  bucketName: string,
-  objectKey: string,
-  objectSize: number
+  principalId: string;
+  bucketName: string;
+  objectKey: string;
+  objectSize: number;
   details: {
-    itemIdentifier: string,
-    collectionIdentifier: string,
-    filename: string,
-    extension: string,
-  },
+    itemIdentifier: string;
+    collectionIdentifier: string;
+    filename: string;
+    extension: string;
+  };
 };
 
 const GeneralTrack = z.object({
@@ -43,7 +43,10 @@ const GeneralTrack = z.object({
   FrameRate: z.coerce.number().optional(),
   FrameCount: z.coerce.number().optional(),
   StreamSize: z.coerce.number(),
-  IsStreamable: z.string().transform((value) => value === 'Yes').optional(),
+  IsStreamable: z
+    .string()
+    .transform((value) => value === 'Yes')
+    .optional(),
 });
 
 const VideoTrack = z.object({
@@ -258,12 +261,7 @@ export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event: Event
   console.debug('Event:', JSON.stringify(event, null, 2));
 
   const {
-    details: {
-      collectionIdentifier,
-      itemIdentifier,
-      filename,
-      extension,
-    },
+    details: { collectionIdentifier, itemIdentifier, filename, extension },
     bucketName,
     objectKey,
     objectSize,
@@ -284,7 +282,12 @@ export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event: Event
   }
 
   if (filetype.mime !== mimetype) {
-    throw new StepError(`${filename}: File mimetype doesn't match detected filetype ${mimetype} vs ${filetype.mime}`, event, { ...event, filetype });
+    switch (true) {
+      case filetype.mime === 'audio/wav' && mimetype === 'audio/vnd.wave':
+        break;
+      default:
+        throw new StepError(`${filename}: File mimetype doesn't match detected filetype ${mimetype} vs ${filetype.mime}`, event, { ...event, filetype });
+    }
   }
 
   const essence = await getEssence(collectionIdentifier, itemIdentifier, filename);
@@ -297,6 +300,18 @@ export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event: Event
   if (mimetype.startsWith('audio') || mimetype.startsWith('video')) {
     const mediaAttributes = await getMediaMetadata(bucketName, objectKey);
     Object.assign(attributes, mediaAttributes);
+  }
+
+  let mediaType: string;
+  switch (true) {
+    case mimetype.startsWith('audio'):
+      mediaType = 'audio';
+      break;
+    case mimetype.startsWith('video'):
+      mediaType = 'audio';
+      break;
+    default:
+      mediaType = 'other';
   }
 
   console.debug('Attributes:', JSON.stringify(attributes, null, 2));
@@ -312,4 +327,6 @@ export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event: Event
       throw new StepError(`${filename}: Couldn't create essence`, event, { ...event, error, attributes });
     }
   }
+
+  return mediaType;
 });

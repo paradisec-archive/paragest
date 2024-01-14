@@ -2,16 +2,14 @@ import type { Handler } from 'aws-lambda';
 
 import * as Sentry from '@sentry/serverless';
 
-import { graphql } from './gql';
-
 import './lib/sentry.js';
 
 import { StepError } from './lib/errors.js';
-import { getGraphQLClient } from './lib/graphql.js';
+import { getItem } from './models/item.js';
 
 type Event = {
-  bucketName: string,
-  objectKey: string,
+  bucketName: string;
+  objectKey: string;
 };
 
 export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event: Event) => {
@@ -25,24 +23,17 @@ export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event: Event
   }
 
   const [, collectionIdentifier, itemIdentifier, rest, extensionOrig] = md;
+  if (!collectionIdentifier || !itemIdentifier || !rest || !extensionOrig) {
+    throw new StepError(`Object key ${objectKey} does not match expected pattern`, event, { objectKey });
+  }
   const extension = extensionOrig?.toLowerCase();
 
   const filename = `${collectionIdentifier}-${itemIdentifier}-${rest}.${extension}`;
   console.debug('Filename:', filename);
 
-  const ItemQuery = graphql(/* GraphQL */ `
-    query GetItemQuery($fullIdentifier: ID!) {
-      item(fullIdentifier: $fullIdentifier) {
-        full_identifier
-        title
-      }
-    }
-  `);
+  const item = await getItem(collectionIdentifier, itemIdentifier);
 
-  const gqlClient = await getGraphQLClient();
-  const response = await gqlClient.query(ItemQuery, { fullIdentifier: `${collectionIdentifier}-${itemIdentifier}` });
-
-  if (!response.data?.item) {
+  if (!item) {
     throw new StepError(`File ${filename} is for collection: ${collectionIdentifier} item: ${itemIdentifier} but that is not in the database`, event, { objectKey });
   }
 
