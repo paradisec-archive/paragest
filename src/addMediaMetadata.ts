@@ -132,7 +132,7 @@ const getMediaMetadata = async (bucketName: string, objectKey: string) => {
 
   const signedUrl = await getSignedUrl(s3, getObjectCommand, { expiresIn: 300 });
 
-  const command = `/opt/mediainfo --output=JSON '${signedUrl}'`;
+  const command = `mediainfo --output=JSON '${signedUrl}'`;
 
   const output = execSync(command, { encoding: 'utf-8' });
   console.debug('MediaInfo output:', output);

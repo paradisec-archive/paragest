@@ -3,8 +3,8 @@ import { Client, fetchExchange } from '@urql/core';
 import { getSecret } from './secrets.js';
 
 type OAuthSecret = {
-  clientId: string,
-  clientSecret: string,
+  clientId: string;
+  clientSecret: string;
 };
 
 if (!process.env.PARAGEST_ENV) {
@@ -18,6 +18,7 @@ const getAccessToken = async (credentials: OAuthSecret): Promise<string> => {
     grant_type: 'client_credentials',
     client_id: credentials.clientId,
     client_secret: credentials.clientSecret,
+    scope: 'read admin',
   };
 
   const tokenResponse = await fetch(tokenUrl, {
@@ -27,7 +28,11 @@ const getAccessToken = async (credentials: OAuthSecret): Promise<string> => {
     },
     body: JSON.stringify(tokenRequestData),
   });
-  const tokenData = await tokenResponse.json();
+  const tokenData = (await tokenResponse.json()) as { access_token: string };
+
+  if (!tokenData.access_token) {
+    throw new Error(`No access token returned: ${JSON.stringify(tokenData)}`);
+  }
 
   return tokenData.access_token;
 };

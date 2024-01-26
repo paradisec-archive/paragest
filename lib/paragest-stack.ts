@@ -28,8 +28,8 @@ export class ParagestStack extends cdk.Stack {
         NODE_OPTIONS: '--enable-source-maps',
       },
       runtime: lambda.Runtime.NODEJS_LATEST,
-      memorySize: 256,
-      timeout: cdk.Duration.seconds(30),
+      memorySize: 2048,
+      timeout: cdk.Duration.seconds(120),
       bundling: {
         format: nodejs.OutputFormat.ESM,
         target: 'esnext',
@@ -44,37 +44,16 @@ export class ParagestStack extends cdk.Stack {
       },
     };
 
-    // /////////////////////////////
-    // //  Create MediaInfo Layer
-    // /////////////////////////////
-    //
-    // const mediaInfoVersion = '23.10';
-    // const url = `https://mediaarea.net/download/binary/mediainfo/${version}/MediaInfo_CLI_${version}_Lambda_x86_64.zip`;
-    //
-    // const response = await fetch(url);
-    // const reader = response.body.getReader();
-    //
-    // reader
-    //   .pipe(unzipper.Parse())
-    //   .pipe(new Transform({
-    //     objectMode: true,
-    //     transform: (entry, e, cb) => {
-    //       const fileName = entry.path;
-    //       const type = entry.type; // 'Directory' or 'File'
-    //       if (fileName === 'bin/mediainfo') {
-    //         entry.pipe(fs.createWriteStream(out)).on('finish', cb);
-    //       } else {
-    //         entry.autodrain();
-    //         cb();
-    //       }
-    //     },
-    //   }));
-
-    const mediaInfoBin = path.join(__dirname, '..', 'cdk.out', 'mediainfo');
-    const mediaInfoLayer = new lambda.LayerVersion(this, 'MediaInfoLayer', {
-      code: lambda.Code.fromAsset(mediaInfoBin),
-      // compatibleRuntimes: [lambdaCommon.runtime],
-      description: 'MediaInfo Layer',
+    const mediaDocker = lambda.Code.fromDockerBuild(path.join(__dirname, '..', 'docker', 'medialayer'), {
+      buildArgs: {
+        MEDIAINFO_VERSION: '23.11',
+        LIBZEN_VERSION: '0.4.41',
+        BWF_METAEDIT_VERSION: '23.04',
+      },
+    });
+    const mediaLayer = new lambda.LayerVersion(this, 'MediaLayer', {
+      code: mediaDocker,
+      description: 'Media Layer',
     });
 
     const paragestStepDefaults: Partial<tasks.LambdaInvokeProps> = { resultPath: sfn.JsonPath.DISCARD };
@@ -113,82 +92,12 @@ export class ParagestStack extends cdk.Stack {
       },
     });
 
+    // /////////////////////////////
+    // Common Steps
+    // /////////////////////////////
     const startState = new sfn.Pass(this, 'StartState');
     const successState = new sfn.Succeed(this, 'SuccessState');
     const failureState = new sfn.Fail(this, 'FailureState');
-    // const choice = new sfn.Choice(this, 'Did it work?');
-
-    const rejectEmptyFilesStep = paragestStep('RejectEmptyFiles', 'src/rejectEmptyFiles.ts');
-    const checkItemIdentifierLengthStep = paragestStep('CheckItemIdentifierLength', 'src/checkItemIdentifierLength.ts');
-    const checkCatalogForItemStep = paragestStep('CheckCatalogForItem', 'src/checkCatalogForItem.ts', {
-      taskProps: {
-        resultPath: sfn.JsonPath.stringAt('$.details'),
-        resultSelector: {
-          collectionIdentifier: sfn.JsonPath.stringAt('$.Payload.collectionIdentifier'),
-          itemIdentifier: sfn.JsonPath.stringAt('$.Payload.itemIdentifier'),
-          filename: sfn.JsonPath.stringAt('$.Payload.filename'),
-          extension: sfn.JsonPath.stringAt('$.Payload.extension'),
-        },
-      },
-      grantFunc: (lambdaFunc) => nabuOauthSecret.grantRead(lambdaFunc),
-    });
-    const checkIfPDSCStep = paragestStep('CheckIfPDSC', 'src/checkIfPDSC.ts', {
-      taskProps: {
-        resultPath: sfn.JsonPath.stringAt('$.pdscCheck'),
-        resultSelector: {
-          isPDSCFile: sfn.JsonPath.stringAt('$.Payload'),
-        },
-      },
-    });
-    const addToCatalogStep = paragestStep('AddToCatalog', 'src/addToCatalog.ts', {
-      lambdaProps: { ...lambdaCommon, timeout: cdk.Duration.minutes(5) },
-      grantFunc: (lambdaFunc) => {
-        ingestBucket.grantRead(lambdaFunc);
-        ingestBucket.grantDelete(lambdaFunc);
-        catalogBucket.grantPut(lambdaFunc);
-      },
-    });
-
-    const addMediaMetadataStep = paragestStep('AddMediaMetadata', 'src/addMediaMetadata.ts', {
-      taskProps: {
-        resultPath: sfn.JsonPath.stringAt('$.mediaType'),
-        resultSelector: {
-          mediaType: sfn.JsonPath.stringAt('$.Payload'),
-        },
-      },
-      lambdaProps: { layers: [mediaInfoLayer] },
-      grantFunc: (lambdaFunc) => {
-        ingestBucket.grantRead(lambdaFunc);
-        nabuOauthSecret.grantRead(lambdaFunc);
-      },
-    });
-
-    const checkMetadataReadyStep = paragestStep('CheckMetadataReady', 'src/checkMetadataReady.ts', {
-      grantFunc: (lambdaFunc) => {
-        nabuOauthSecret.grantRead(lambdaFunc);
-      },
-    });
-
-    const processAudioStep = paragestStep('ProcessAudio', 'src/processAudio.ts', {
-      grantFunc: (lambdaFunc) => {
-        ingestBucket.grantRead(lambdaFunc);
-        // nabuOauthSecret.grantRead(lambdaFunc);
-      },
-    });
-
-    const processVideoStep = paragestStep('ProcessVideo', 'src/processVideo.ts', {
-      grantFunc: (lambdaFunc) => {
-        ingestBucket.grantRead(lambdaFunc);
-        // nabuOauthSecret.grantRead(lambdaFunc);
-      },
-    });
-
-    const processOtherStep = paragestStep('ProcessOther', 'src/processOther.ts', {
-      grantFunc: (lambdaFunc) => {
-        ingestBucket.grantRead(lambdaFunc);
-        // nabuOauthSecret.grantRead(lambdaFunc);
-      },
-    });
 
     const processFailureStep = paragestStep('ProcessFailure', 'src/processFailure.ts', {
       grantFunc: (lambdaFunc) => {
@@ -216,11 +125,96 @@ export class ParagestStack extends cdk.Stack {
       },
     });
 
-    const parallel = new sfn.Parallel(this, 'ParallelErrorCatcher');
+    const rejectEmptyFilesStep = paragestStep('RejectEmptyFiles', 'src/rejectEmptyFiles.ts');
+    const checkItemIdentifierLengthStep = paragestStep('CheckItemIdentifierLength', 'src/checkItemIdentifierLength.ts');
+    const checkCatalogForItemStep = paragestStep('CheckCatalogForItem', 'src/checkCatalogForItem.ts', {
+      taskProps: {
+        resultPath: sfn.JsonPath.stringAt('$.details'),
+        resultSelector: {
+          collectionIdentifier: sfn.JsonPath.stringAt('$.Payload.collectionIdentifier'),
+          itemIdentifier: sfn.JsonPath.stringAt('$.Payload.itemIdentifier'),
+          filename: sfn.JsonPath.stringAt('$.Payload.filename'),
+          extension: sfn.JsonPath.stringAt('$.Payload.extension'),
+        },
+      },
+      grantFunc: (lambdaFunc) => nabuOauthSecret.grantRead(lambdaFunc),
+    });
+    const checkIfPDSCStep = paragestStep('CheckIfPDSC', 'src/checkIfPDSC.ts', {
+      taskProps: {
+        resultPath: sfn.JsonPath.stringAt('$.pdscCheck'),
+        resultSelector: {
+          isPDSCFile: sfn.JsonPath.stringAt('$.Payload'),
+        },
+      },
+    });
+
+    // /////////////////////////////
+    // Add to Catalog Steps
+    // /////////////////////////////
+    const addToCatalogStep = paragestStep('AddToCatalog', 'src/addToCatalog.ts', {
+      lambdaProps: { ...lambdaCommon, timeout: cdk.Duration.minutes(5) },
+      grantFunc: (lambdaFunc) => {
+        ingestBucket.grantRead(lambdaFunc);
+        ingestBucket.grantDelete(lambdaFunc);
+        catalogBucket.grantPut(lambdaFunc);
+      },
+    });
 
     const addToCatalogFlow = sfn.Chain.start(addToCatalogStep).next(processSuccessStep);
 
-    const processAudioFlow = sfn.Chain.start(processAudioStep).next(addToCatalogFlow);
+    const addMediaMetadataStep = paragestStep('AddMediaMetadata', 'src/addMediaMetadata.ts', {
+      taskProps: {
+        resultPath: sfn.JsonPath.stringAt('$.mediaType'),
+        resultSelector: {
+          mediaType: sfn.JsonPath.stringAt('$.Payload'),
+        },
+      },
+      lambdaProps: { layers: [mediaLayer] },
+      grantFunc: (lambdaFunc) => {
+        ingestBucket.grantRead(lambdaFunc);
+        nabuOauthSecret.grantRead(lambdaFunc);
+      },
+    });
+
+    const checkMetadataReadyStep = paragestStep('CheckMetadataReady', 'src/checkMetadataReady.ts', {
+      grantFunc: (lambdaFunc) => {
+        nabuOauthSecret.grantRead(lambdaFunc);
+      },
+    });
+
+    // /////////////////////////////
+    // Audio Flow Steps
+    // /////////////////////////////
+    const convertAudioStep = paragestStep('convertAudio', 'src/audio/convert.ts', {
+      grantFunc: (lambdaFunc) => ingestBucket.grantReadWrite(lambdaFunc),
+      lambdaProps: { layers: [mediaLayer] },
+    });
+    const createBWFStep = paragestStep('createBWF', 'src/audio/createBWF.ts', {
+      grantFunc: (lambdaFunc) => {
+        ingestBucket.grantReadWrite(lambdaFunc);
+        nabuOauthSecret.grantRead(lambdaFunc);
+      },
+      lambdaProps: { layers: [mediaLayer] },
+    });
+    const processAudioFlow = sfn.Chain.start(convertAudioStep).next(createBWFStep).next(addToCatalogFlow);
+
+    // /////////////////////////////
+    // Video Flow Steps
+    // /////////////////////////////
+    const processVideoStep = paragestStep('ProcessVideo', 'src/processVideo.ts', {
+      grantFunc: (lambdaFunc) => {
+        ingestBucket.grantRead(lambdaFunc);
+        // nabuOauthSecret.grantRead(lambdaFunc);
+      },
+    });
+
+    const processOtherStep = paragestStep('ProcessOther', 'src/processOther.ts', {
+      grantFunc: (lambdaFunc) => {
+        ingestBucket.grantRead(lambdaFunc);
+        // nabuOauthSecret.grantRead(lambdaFunc);
+      },
+    });
+
     const processVideoFlow = sfn.Chain.start(processVideoStep).next(addToCatalogFlow);
     const processOtherFlow = sfn.Chain.start(processOtherStep).next(addToCatalogFlow);
 
@@ -243,8 +237,8 @@ export class ParagestStack extends cdk.Stack {
           .when(sfn.Condition.booleanEquals('$.pdscCheck.isPDSCFile', false), mediaFlow),
       );
 
+    const parallel = new sfn.Parallel(this, 'ParallelErrorCatcher');
     parallel.branch(workflow);
-
     const failure = sfn.Chain.start(processFailureStep).next(failureState);
     parallel.addCatch(failure);
 

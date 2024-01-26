@@ -248,6 +248,16 @@ export type Item = {
   updated_at?: Maybe<Scalars['ISO8601DateTime']['output']>;
 };
 
+export type ItemBwfCsv = {
+  __typename?: 'ItemBwfCsv';
+  collectionIdentifier: Scalars['String']['output'];
+  createdAt?: Maybe<Scalars['ISO8601DateTime']['output']>;
+  csv: Scalars['String']['output'];
+  fullIdentifier: Scalars['String']['output'];
+  itemIdentifier: Scalars['String']['output'];
+  updatedAt?: Maybe<Scalars['ISO8601DateTime']['output']>;
+};
+
 export type ItemResult = {
   __typename?: 'ItemResult';
   next_page?: Maybe<Scalars['Int']['output']>;
@@ -304,6 +314,8 @@ export type Query = {
   essence?: Maybe<Essence>;
   /** Find an item by full identifier. e.g. NT1-009 */
   item?: Maybe<Item>;
+  /** Get the BWF XML for an item */
+  itemBwfCsv?: Maybe<ItemBwfCsv>;
   items?: Maybe<ItemResult>;
   /** Find a user by their unikey */
   userByUnikey?: Maybe<EmailUser>;
@@ -322,6 +334,12 @@ export type QueryEssenceArgs = {
 
 
 export type QueryItemArgs = {
+  fullIdentifier: Scalars['ID']['input'];
+};
+
+
+export type QueryItemBwfCsvArgs = {
+  filename: Scalars['String']['input'];
   fullIdentifier: Scalars['ID']['input'];
 };
 
@@ -409,6 +427,14 @@ export type GetItemQueryQueryVariables = Exact<{
 
 export type GetItemQueryQuery = { __typename?: 'Query', item?: { __typename?: 'Item', full_identifier: string, title?: string | null, metadata_exportable: boolean, created_at?: any | null, updated_at?: any | null } | null };
 
+export type GetItemBwfCsvQueryQueryVariables = Exact<{
+  fullIdentifier: Scalars['ID']['input'];
+  filename: Scalars['String']['input'];
+}>;
+
+
+export type GetItemBwfCsvQueryQuery = { __typename?: 'Query', itemBwfCsv?: { __typename?: 'ItemBwfCsv', csv: string } | null };
+
 export type GetUserByUnikeyQueryQueryVariables = Exact<{
   unikey: Scalars['String']['input'];
 }>;
@@ -421,4 +447,5 @@ export const GetEssenceQueryDocument = {"kind":"Document","definitions":[{"kind"
 export const EssenceCreateMutationDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"EssenceCreateMutation"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"input"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"EssenceCreateInput"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"essenceCreate"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"input"},"value":{"kind":"Variable","name":{"kind":"Name","value":"input"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"essence"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"EssenceItem"}}]}}]}}]}},{"kind":"FragmentDefinition","name":{"kind":"Name","value":"EssenceItem"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"Essence"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"filename"}},{"kind":"Field","name":{"kind":"Name","value":"size"}},{"kind":"Field","name":{"kind":"Name","value":"mimetype"}},{"kind":"Field","name":{"kind":"Name","value":"channels"}},{"kind":"Field","name":{"kind":"Name","value":"citation"}},{"kind":"Field","name":{"kind":"Name","value":"duration"}},{"kind":"Field","name":{"kind":"Name","value":"fps"}},{"kind":"Field","name":{"kind":"Name","value":"bitrate"}},{"kind":"Field","name":{"kind":"Name","value":"samplerate"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"updatedAt"}}]}}]} as unknown as DocumentNode<EssenceCreateMutationMutation, EssenceCreateMutationMutationVariables>;
 export const EssenceUpdateMutationDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"EssenceUpdateMutation"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"input"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"EssenceUpdateInput"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"essenceUpdate"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"input"},"value":{"kind":"Variable","name":{"kind":"Name","value":"input"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"essence"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"EssenceItem"}}]}}]}}]}},{"kind":"FragmentDefinition","name":{"kind":"Name","value":"EssenceItem"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"Essence"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"filename"}},{"kind":"Field","name":{"kind":"Name","value":"size"}},{"kind":"Field","name":{"kind":"Name","value":"mimetype"}},{"kind":"Field","name":{"kind":"Name","value":"channels"}},{"kind":"Field","name":{"kind":"Name","value":"citation"}},{"kind":"Field","name":{"kind":"Name","value":"duration"}},{"kind":"Field","name":{"kind":"Name","value":"fps"}},{"kind":"Field","name":{"kind":"Name","value":"bitrate"}},{"kind":"Field","name":{"kind":"Name","value":"samplerate"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"updatedAt"}}]}}]} as unknown as DocumentNode<EssenceUpdateMutationMutation, EssenceUpdateMutationMutationVariables>;
 export const GetItemQueryDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GetItemQuery"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"fullIdentifier"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"ID"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"item"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"fullIdentifier"},"value":{"kind":"Variable","name":{"kind":"Name","value":"fullIdentifier"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"full_identifier"}},{"kind":"Field","name":{"kind":"Name","value":"title"}},{"kind":"Field","name":{"kind":"Name","value":"metadata_exportable"}},{"kind":"Field","name":{"kind":"Name","value":"created_at"}},{"kind":"Field","name":{"kind":"Name","value":"updated_at"}}]}}]}}]} as unknown as DocumentNode<GetItemQueryQuery, GetItemQueryQueryVariables>;
+export const GetItemBwfCsvQueryDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GetItemBwfCsvQuery"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"fullIdentifier"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"ID"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"filename"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"itemBwfCsv"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"fullIdentifier"},"value":{"kind":"Variable","name":{"kind":"Name","value":"fullIdentifier"}}},{"kind":"Argument","name":{"kind":"Name","value":"filename"},"value":{"kind":"Variable","name":{"kind":"Name","value":"filename"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"csv"}}]}}]}}]} as unknown as DocumentNode<GetItemBwfCsvQueryQuery, GetItemBwfCsvQueryQueryVariables>;
 export const GetUserByUnikeyQueryDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GetUserByUnikeyQuery"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"unikey"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"userByUnikey"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"unikey"},"value":{"kind":"Variable","name":{"kind":"Name","value":"unikey"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"email"}},{"kind":"Field","name":{"kind":"Name","value":"firstName"}},{"kind":"Field","name":{"kind":"Name","value":"lastName"}}]}}]}}]} as unknown as DocumentNode<GetUserByUnikeyQueryQuery, GetUserByUnikeyQueryQueryVariables>;
