@@ -170,6 +170,10 @@ export class ParagestStack extends cdk.Stack {
       grantFunc: (lambdaFunc) => ingestBucket.grantReadWrite(lambdaFunc),
       lambdaProps: { layers: [mediaLayer] },
     });
+    const normaliseStep = paragestStep('normalise', 'src/audio/normalise.ts', {
+      grantFunc: (lambdaFunc) => ingestBucket.grantReadWrite(lambdaFunc),
+      lambdaProps: { layers: [mediaLayer] },
+    });
     const createBWFStep = paragestStep('createBWF', 'src/audio/createBWF.ts', {
       grantFunc: (lambdaFunc) => {
         ingestBucket.grantReadWrite(lambdaFunc);
@@ -177,7 +181,11 @@ export class ParagestStack extends cdk.Stack {
       },
       lambdaProps: { layers: [mediaLayer] },
     });
-    const processAudioFlow = sfn.Chain.start(convertAudioStep).next(fixSilenceStep).next(createBWFStep).next(addToCatalogFlow);
+    const processAudioFlow = sfn.Chain.start(convertAudioStep)
+      .next(fixSilenceStep)
+      .next(normaliseStep)
+      .next(createBWFStep)
+      .next(addToCatalogFlow);
 
     // /////////////////////////////
     // Video Flow Steps
