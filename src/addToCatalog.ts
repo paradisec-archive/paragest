@@ -7,6 +7,7 @@ import { S3Client, CopyObjectCommand, DeleteObjectCommand, ListObjectsV2Command 
 import './lib/sentry.js';
 
 type Event = {
+  notes: string[];
   bucketName: string;
   objectKey: string;
   details: {
@@ -28,8 +29,8 @@ const destBucket = `nabu-catalog-${env}`;
 export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event: Event) => {
   console.debug('Event:', JSON.stringify(event, null, 2));
   const {
+    notes,
     bucketName,
-    objectKey,
     details: { collectionIdentifier, itemIdentifier, filename },
   } = event;
 
@@ -52,6 +53,7 @@ export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event: Event
     const dest = `${collectionIdentifier}/${itemIdentifier}${object.Key.replace(prefix, '')}`;
 
     console.debug(`Copying ${source} to ${dest}`);
+    notes.push(`addToCatalog: Copying ${source} to catalog`);
     const copyCommand = new CopyObjectCommand({
       CopySource: `${bucketName}/${source}`,
       Bucket: destBucket,
@@ -69,13 +71,7 @@ export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event: Event
     await s3.send(deleteCommand);
   });
 
-  console.debug(`Deleting original ${objectKey}`);
-  const deleteCommand = new DeleteObjectCommand({
-    Bucket: bucketName,
-    Key: objectKey,
-  });
-
-  await s3.send(deleteCommand);
-
   await Promise.all(promises || []);
+
+  return event;
 });

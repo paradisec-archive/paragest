@@ -10,16 +10,17 @@ import { sendEmail } from './lib/email';
 import { EmailUser } from './gql/graphql';
 
 type Event = {
-  principalId: string,
-  bucketName: string,
-  objectKey: string,
-  objectSize: number
+  notes: string[];
+  principalId: string;
+  bucketName: string;
+  objectKey: string;
+  objectSize: number;
   details: {
-    itemIdentifier: string,
-    collectionIdentifier: string,
-    filename: string,
-    extension: string,
-  },
+    itemIdentifier: string;
+    collectionIdentifier: string;
+    filename: string;
+    extension: string;
+  };
 };
 
 const s3 = new S3Client();
@@ -28,11 +29,8 @@ export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event: Event
   console.debug('Error:', JSON.stringify(event, null, 2));
 
   const {
-    details: {
-      collectionIdentifier,
-      itemIdentifier,
-      filename,
-    },
+    notes,
+    details: { collectionIdentifier, itemIdentifier, filename },
     bucketName,
     objectKey,
     principalId,
@@ -46,10 +44,14 @@ export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event: Event
   await s3.send(deleteCommand);
 
   const subject = `Paraget Success: ${collectionIdentifier}/${itemIdentifier}/${filename}`;
-  const body = (admin: EmailUser | undefined | null, unikey: string) => `
+  const body = (admin: EmailUser | undefined | null, unikey: string) =>
+    `
     Hi,
-${!admin?.email ? `\nNOTE: The unikey ${unikey} doesn't exist in Nabu\n` : ''}
+    ${!admin?.email ? `\nNOTE: The unikey ${unikey} doesn't exist in Nabu\n` : ''}
     File has been processed and placed in the catalog.
+
+    ## Pipeline Notes
+    ${notes.join('\n')}
 
     Cheers,
     Your friendly Paraget engine.

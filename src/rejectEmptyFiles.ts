@@ -7,21 +7,22 @@ import './lib/sentry.js';
 import { StepError } from './lib/errors.js';
 
 type Event = {
-  objectKey: string,
-  objectSize: number
+  objectKey: string;
+  objectSize: number;
+  notes: string[];
 };
 
-const ALLOWED_ZERO_SIZE_EXTENSIONS = [
-  'annis',
-];
+const ALLOWED_ZERO_SIZE_EXTENSIONS = ['annis'];
 
 export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event: Event) => {
   console.debug('Event:', JSON.stringify(event, null, 2));
 
-  const { objectKey, objectSize } = event;
+  const { objectKey, objectSize, notes } = event;
 
   if (objectSize > 0) {
-    return;
+    notes.push(`rejectEmptyFiles: File ${objectKey} is not empty`);
+
+    return event;
   }
 
   const extension = objectKey.split('.').pop();
@@ -30,7 +31,9 @@ export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event: Event
   }
 
   if (ALLOWED_ZERO_SIZE_EXTENSIONS.includes(extension)) {
-    return;
+    notes.push(`rejectEmptyFiles: File ${objectKey} is has an allowed empty file extension`);
+
+    return event;
   }
 
   throw new StepError(`File ${objectKey} is empty and not in allowed extensions [${ALLOWED_ZERO_SIZE_EXTENSIONS.join(',')}]`, event, { objectKey });

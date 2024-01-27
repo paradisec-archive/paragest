@@ -37,10 +37,12 @@ export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event: Event
     throw new StepError(`File ${filename} is for collection: ${collectionIdentifier} item: ${itemIdentifier} but that is not in the database`, event, { objectKey });
   }
 
-  return {
+  const details = {
     collectionIdentifier,
     itemIdentifier,
     filename,
     extension,
   };
+
+  return { ...event, details };
 });

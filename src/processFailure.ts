@@ -13,6 +13,7 @@ type Event = {
   Cause: string;
 };
 type ErrorData = {
+  notes: string[];
   message: string;
   event: Record<string, string> & { principalId: string };
   data: Record<string, string>;
@@ -26,6 +27,7 @@ export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event: Event
   const { Cause } = event;
   const { errorMessage } = JSON.parse(Cause);
   const {
+    notes,
     message,
     event: { principalId, bucketName, objectKey },
     data,
@@ -82,6 +84,9 @@ export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event: Event
     The following data was provided:
 
       ${JSON.stringify(data, null, 2)}
+
+    ## Pipeline Notes
+    ${notes.join('\n')}
 
     Cheers,
     Your friendly Paraget engine.

@@ -8,6 +8,7 @@ import { StepError } from './lib/errors.js';
 import { getItem } from './models/item.js';
 
 type Event = {
+  notes: string[];
   bucketName: string;
   objectKey: string;
   details: {
@@ -35,4 +36,8 @@ export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event: Event
   if (!item.metadata_exportable) {
     throw new StepError(`The metadata for essence ${filename}  of item ${collectionIdentifier}0${itemIdentifier} has not been marked as exportable`, event, { objectKey });
   }
+
+  event.notes.push('checkIfPDSC: Item is exportable');
+
+  return event;
 });

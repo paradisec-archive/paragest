@@ -13,6 +13,7 @@ import '../lib/sentry.js';
 import { getItemBwfCsv } from '../models/item.js';
 
 type Event = {
+  notes: string[];
   principalId: string;
   bucketName: string;
   objectKey: string;
@@ -30,12 +31,8 @@ const s3 = new S3Client();
 export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event: Event) => {
   console.debug('Event: ', JSON.stringify(event, null, 2));
   const {
-    details: {
-      collectionIdentifier,
-      itemIdentifier,
-      filename,
-      extension,
-    },
+    notes,
+    details: { collectionIdentifier, itemIdentifier, filename, extension },
     bucketName,
     objectKey,
   } = event;
@@ -56,7 +53,7 @@ export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event: Event
     (Body as Readable).pipe(writeStream).on('error', reject).on('finish', resolve);
   });
 
-  execSync('bwfmetaedit --in-core=/tmp/core.csv /tmp/input.wav', { stdio: 'inherit', cwd: '/tmp' });
+  execSync('bwfmetaedit --in-core=p/core.csp/input.wav', { stdio: 'inherit', cwd: '/tmp' });
 
   const readStream = createReadStream('/tmp/input.wav');
 
@@ -69,4 +66,8 @@ export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event: Event
       ContentType: 'audio/wav',
     },
   }).done();
+
+  notes.push('createBWF: Created BWF file');
+
+  return event;
 });

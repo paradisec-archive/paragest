@@ -56,13 +56,12 @@ export class ParagestStack extends cdk.Stack {
       description: 'Media Layer',
     });
 
-    const paragestStepDefaults: Partial<tasks.LambdaInvokeProps> = { resultPath: sfn.JsonPath.DISCARD };
     type paragestStepOpts = {
       taskProps?: Partial<tasks.LambdaInvokeProps>;
       lambdaProps?: nodejs.NodejsFunctionProps;
       grantFunc?: (lamdaFunc: nodejs.NodejsFunction) => void; // eslint-disable-line no-unused-vars
     };
-    const paragestStep = (stepId: string, entry: string, { taskProps = paragestStepDefaults, lambdaProps, grantFunc }: paragestStepOpts = {}) => {
+    const paragestStep = (stepId: string, entry: string, { lambdaProps, grantFunc }: paragestStepOpts = {}) => {
       const lambdaFunction = new nodejs.NodejsFunction(this, `${stepId}Lambda`, {
         ...lambdaCommon,
         ...lambdaProps,
@@ -72,7 +71,7 @@ export class ParagestStack extends cdk.Stack {
 
       const task = new tasks.LambdaInvoke(this, `${stepId}Task`, {
         lambdaFunction,
-        ...taskProps,
+        outputPath: '$.Payload',
       });
 
       return task;
@@ -128,25 +127,9 @@ export class ParagestStack extends cdk.Stack {
     const rejectEmptyFilesStep = paragestStep('RejectEmptyFiles', 'src/rejectEmptyFiles.ts');
     const checkItemIdentifierLengthStep = paragestStep('CheckItemIdentifierLength', 'src/checkItemIdentifierLength.ts');
     const checkCatalogForItemStep = paragestStep('CheckCatalogForItem', 'src/checkCatalogForItem.ts', {
-      taskProps: {
-        resultPath: sfn.JsonPath.stringAt('$.details'),
-        resultSelector: {
-          collectionIdentifier: sfn.JsonPath.stringAt('$.Payload.collectionIdentifier'),
-          itemIdentifier: sfn.JsonPath.stringAt('$.Payload.itemIdentifier'),
-          filename: sfn.JsonPath.stringAt('$.Payload.filename'),
-          extension: sfn.JsonPath.stringAt('$.Payload.extension'),
-        },
-      },
       grantFunc: (lambdaFunc) => nabuOauthSecret.grantRead(lambdaFunc),
     });
-    const checkIfPDSCStep = paragestStep('CheckIfPDSC', 'src/checkIfPDSC.ts', {
-      taskProps: {
-        resultPath: sfn.JsonPath.stringAt('$.pdscCheck'),
-        resultSelector: {
-          isPDSCFile: sfn.JsonPath.stringAt('$.Payload'),
-        },
-      },
-    });
+    const checkIfPDSCStep = paragestStep('CheckIfPDSC', 'src/checkIfPDSC.ts');
 
     // /////////////////////////////
     // Add to Catalog Steps
@@ -163,12 +146,6 @@ export class ParagestStack extends cdk.Stack {
     const addToCatalogFlow = sfn.Chain.start(addToCatalogStep).next(processSuccessStep);
 
     const addMediaMetadataStep = paragestStep('AddMediaMetadata', 'src/addMediaMetadata.ts', {
-      taskProps: {
-        resultPath: sfn.JsonPath.stringAt('$.mediaType'),
-        resultSelector: {
-          mediaType: sfn.JsonPath.stringAt('$.Payload'),
-        },
-      },
       lambdaProps: { layers: [mediaLayer] },
       grantFunc: (lambdaFunc) => {
         ingestBucket.grantRead(lambdaFunc);
@@ -189,6 +166,10 @@ export class ParagestStack extends cdk.Stack {
       grantFunc: (lambdaFunc) => ingestBucket.grantReadWrite(lambdaFunc),
       lambdaProps: { layers: [mediaLayer] },
     });
+    const fixSilenceStep = paragestStep('fixSilence', 'src/audio/fixSilence.ts', {
+      grantFunc: (lambdaFunc) => ingestBucket.grantReadWrite(lambdaFunc),
+      lambdaProps: { layers: [mediaLayer] },
+    });
     const createBWFStep = paragestStep('createBWF', 'src/audio/createBWF.ts', {
       grantFunc: (lambdaFunc) => {
         ingestBucket.grantReadWrite(lambdaFunc);
@@ -196,7 +177,7 @@ export class ParagestStack extends cdk.Stack {
       },
       lambdaProps: { layers: [mediaLayer] },
     });
-    const processAudioFlow = sfn.Chain.start(convertAudioStep).next(createBWFStep).next(addToCatalogFlow);
+    const processAudioFlow = sfn.Chain.start(convertAudioStep).next(fixSilenceStep).next(createBWFStep).next(addToCatalogFlow);
 
     // /////////////////////////////
     // Video Flow Steps
@@ -222,9 +203,9 @@ export class ParagestStack extends cdk.Stack {
       .next(checkMetadataReadyStep)
       .next(
         new sfn.Choice(this, 'Media Type')
-          .when(sfn.Condition.stringEquals('$.mediaType.mediaType', 'audio'), processAudioFlow)
-          .when(sfn.Condition.stringEquals('$.mediaType.mediaType', 'video'), processVideoFlow)
-          .when(sfn.Condition.stringEquals('$.mediaType.mediaType', 'other'), processOtherFlow),
+          .when(sfn.Condition.stringEquals('$.mediaType', 'audio'), processAudioFlow)
+          .when(sfn.Condition.stringEquals('$.mediaType', 'video'), processVideoFlow)
+          .when(sfn.Condition.stringEquals('$.mediaType', 'other'), processOtherFlow),
       );
 
     const workflow = sfn.Chain.start(rejectEmptyFilesStep)
@@ -233,8 +214,8 @@ export class ParagestStack extends cdk.Stack {
       .next(checkIfPDSCStep)
       .next(
         new sfn.Choice(this, 'Is PDSC File?')
-          .when(sfn.Condition.booleanEquals('$.pdscCheck.isPDSCFile', true), addToCatalogFlow)
-          .when(sfn.Condition.booleanEquals('$.pdscCheck.isPDSCFile', false), mediaFlow),
+          .when(sfn.Condition.booleanEquals('$.isPDSCFile', true), addToCatalogFlow)
+          .when(sfn.Condition.booleanEquals('$.isPDSCFile', false), mediaFlow),
       );
 
     const parallel = new sfn.Parallel(this, 'ParallelErrorCatcher');

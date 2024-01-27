@@ -7,19 +7,24 @@ import './lib/sentry.js';
 import { StepError } from './lib/errors.js';
 
 type Event = {
-  principalId: string,
-  objectKey: string,
+  principalId: string;
+  objectKey: string;
   details: {
-    itemIdentifier: string,
-  },
+    itemIdentifier: string;
+  };
 };
 
 export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event: Event) => {
   console.debug('Event:', JSON.stringify(event, null, 2));
 
-  const { details: { itemIdentifier }, objectKey } = event;
+  const {
+    details: { itemIdentifier },
+    objectKey,
+  } = event;
 
   if (itemIdentifier.length > 30) {
     throw new StepError(`File ${objectKey}: Item id longer than 30 chars (OLAC incompatible)`, event, { objectKey, itemIdentifier });
   }
+
+  return event;
 });

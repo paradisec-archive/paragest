@@ -30,6 +30,7 @@ export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event: S3Eve
       objectKey,
       objectSize,
       principalId,
+      notes: [`processS3Event: ${objectKey} added to ${bucketName} by ${principalId} with size ${objectSize}`],
     });
 
     const params: StartExecutionCommandInput = { stateMachineArn, input };

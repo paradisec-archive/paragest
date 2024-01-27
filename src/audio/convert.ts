@@ -11,6 +11,7 @@ import type { Handler } from 'aws-lambda';
 import '../lib/sentry.js';
 
 type Event = {
+  notes: string[];
   principalId: string;
   bucketName: string;
   objectKey: string;
@@ -28,6 +29,7 @@ const s3 = new S3Client();
 export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event: Event) => {
   console.debug('Event: ', JSON.stringify(event, null, 2));
   const {
+    notes,
     details: { filename, extension },
     bucketName,
     objectKey,
@@ -44,7 +46,7 @@ export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event: Event
   });
 
   // Stereo, 96kHz, 24-bit
-  execSync('ffmpeg -i /tmp/input.wav -ac 2 -ar 96000 -c:a pcm_s24le output.wav', { stdio: 'inherit', cwd: '/tmp' });
+  execSync('ffmpeg -i input.wav -ac 2 -ar 96000 -c:a pcm_s24le output.wav', { stdio: 'inherit', cwd: '/tmp' });
 
   const readStream = createReadStream('/tmp/output.wav');
 
@@ -57,4 +59,8 @@ export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event: Event
       ContentType: 'audio/wav',
     },
   }).done();
+
+  notes.push('convert: Converted to WAV');
+
+  return event;
 });

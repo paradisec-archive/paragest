@@ -18,6 +18,7 @@ import './lib/sentry.js';
 import { getEssence, createEssence, updateEssence } from './models/essence.js';
 
 type Event = {
+  notes: string[];
   principalId: string;
   bucketName: string;
   objectKey: string;
@@ -261,6 +262,7 @@ export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event: Event
   console.debug('Event:', JSON.stringify(event, null, 2));
 
   const {
+    notes,
     details: { collectionIdentifier, itemIdentifier, filename, extension },
     bucketName,
     objectKey,
@@ -290,6 +292,8 @@ export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event: Event
     }
   }
 
+  notes.push(`addMediaMetadata: Detected mimetype as ${mimetype}`);
+
   const essence = await getEssence(collectionIdentifier, itemIdentifier, filename);
 
   const attributes = {
@@ -313,6 +317,7 @@ export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event: Event
     default:
       mediaType = 'other';
   }
+  notes.push(`addMediaMetadata: Identified media type as ${mediaType}`);
 
   console.debug('Attributes:', JSON.stringify(attributes, null, 2));
 
@@ -321,12 +326,17 @@ export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event: Event
     if (!updatedEssence) {
       throw new StepError(`${filename}: Couldn't update essence`, event, { ...event, error, attributes });
     }
+    notes.push('addMediaMetadata: Updated essence');
   } else {
     const [createdEssence, error] = await createEssence(collectionIdentifier, itemIdentifier, filename, attributes);
     if (!createdEssence) {
       throw new StepError(`${filename}: Couldn't create essence`, event, { ...event, error, attributes });
     }
+    notes.push('addMediaMetadata: Created essence');
   }
 
-  return mediaType;
+  return {
+    ...event,
+    mediaType,
+  };
 });
