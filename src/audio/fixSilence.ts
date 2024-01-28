@@ -75,12 +75,18 @@ export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event: Event
     (Body as Readable).pipe(writeStream).on('error', reject).on('finish', resolve);
   });
 
-  execSync('ffmpeg -i input.wav -map_channel 0.0.0 left.wav', { stdio: 'inherit', cwd: '/tmp' });
-  execSync('ffmpeg -i input.wav -map_channel 0.0.1 right.wav', { stdio: 'inherit', cwd: '/tmp' });
-  const left = execSync('ffmpeg -i left.wav -filter:a volumedetect -f null /dev/null 2>&1 | grep volumedetect | sed "s/^.*] //"', { cwd: '/tmp' });
+  execSync('ffmpeg -y -i input.wav -map_channel 0.0.0 left.wav', { stdio: 'inherit', cwd: '/tmp' });
+  execSync('ffmpeg -y -i input.wav -map_channel 0.0.1 right.wav', { stdio: 'inherit', cwd: '/tmp' });
+  const left = execSync(
+    'ffmpeg -y -i left.wav -filter:a volumedetect -f null /dev/null 2>&1 | grep volumedetect | sed "s/^.*] //"',
+    { cwd: '/tmp' },
+  );
   console.debug('Left:', left.toString());
   const leftSilent = checkSilence(left.toString(), event);
-  const right = execSync('ffmpeg -i right.wav -filter:a volumedetect -f null /dev/null 2>&1 | grep volumedetect | sed "s/^.*] //"', { cwd: '/tmp' });
+  const right = execSync(
+    'ffmpeg -y -i right.wav -filter:a volumedetect -f null /dev/null 2>&1 | grep volumedetect | sed "s/^.*] //"',
+    { cwd: '/tmp' },
+  );
   console.debug('Right:', right.toString());
   const rightSilent = checkSilence(right.toString(), event);
 
@@ -98,7 +104,7 @@ export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event: Event
   console.debug(`Only ${file} channel has audio, copying to output.wav`);
   notes.push(`Only ${file} channel has audio, copying to silent channel`);
 
-  execSync(`ffmpeg -i ${file}.wav -ac 2 output.wav`, { stdio: 'inherit', cwd: '/tmp' });
+  execSync(`ffmpeg -y -i ${file}.wav -ac 2 output.wav`, { stdio: 'inherit', cwd: '/tmp' });
 
   const readStream = createReadStream('/tmp/output.wav');
 

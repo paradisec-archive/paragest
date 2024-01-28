@@ -53,7 +53,7 @@ export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event: Event
     (Body as Readable).pipe(writeStream).on('error', reject).on('finish', resolve);
   });
 
-  execSync('bwfmetaedit --in-core=p/core.csp/input.wav', { stdio: 'inherit', cwd: '/tmp' });
+  execSync('bwfmetaedit --in-core=core.csv input.wav', { stdio: 'inherit', cwd: '/tmp' });
 
   const readStream = createReadStream('/tmp/input.wav');
 

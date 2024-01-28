@@ -181,10 +181,18 @@ export class ParagestStack extends cdk.Stack {
       },
       lambdaProps: { layers: [mediaLayer] },
     });
+    const createPresentationStep = paragestStep('createPresentationStep', 'src/audio/createPresentation.ts', {
+      grantFunc: (lambdaFunc) => {
+        ingestBucket.grantReadWrite(lambdaFunc);
+        nabuOauthSecret.grantRead(lambdaFunc);
+      },
+      lambdaProps: { layers: [mediaLayer] },
+    });
     const processAudioFlow = sfn.Chain.start(convertAudioStep)
       .next(fixSilenceStep)
       .next(normaliseStep)
       .next(createBWFStep)
+      .next(createPresentationStep)
       .next(addToCatalogFlow);
 
     // /////////////////////////////

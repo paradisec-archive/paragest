@@ -80,7 +80,7 @@ export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event: Event
   }
 
   notes.push(`fixVolume: Adjusting by ${diff} dB`);
-  execSync(`ffmpeg -i input.wav -af "volume=${diff}dB" output.wav`, { stdio: 'inherit', cwd: '/tmp' });
+  execSync(`ffmpeg -y -i input.wav -af "volume=${diff}dB" output.wav`, { stdio: 'inherit', cwd: '/tmp' });
 
   const readStream = createReadStream('/tmp/output.wav');
 

@@ -33,8 +33,26 @@ export const getItemBwfCsv = async (collectionIdentifier: string, itemIdentifier
     }
   `);
 
-  const response = await gqlClient.query(ItemBwfCsvQuery, { fullIdentifier: `${collectionIdentifier}-${itemIdentifier}`, filename });
+  const response = await gqlClient.query(ItemBwfCsvQuery, {
+    fullIdentifier: `${collectionIdentifier}-${itemIdentifier}`,
+    filename,
+  });
   console.debug('Response:', JSON.stringify(response, null, 2));
 
   return response.data?.itemBwfCsv?.csv;
+};
+
+export const getItemId3 = async (collectionIdentifier: string, itemIdentifier: string) => {
+  const query = graphql(/* GraphQL */ `
+    query GetItemId3Query($fullIdentifier: ID!) {
+      itemId3(fullIdentifier: $fullIdentifier) {
+        txt
+      }
+    }
+  `);
+
+  const response = await gqlClient.query(query, { fullIdentifier: `${collectionIdentifier}-${itemIdentifier}` });
+  console.debug('Response:', JSON.stringify(response, null, 2));
+
+  return response.data?.itemId3?.txt;
 };
