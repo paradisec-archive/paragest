@@ -9,6 +9,7 @@
     "deploy": "cdk deploy",
     "codegen": "graphql-codegen",
     "file:wav": "aws s3 cp samples/VD1-krd20140214_wordlist-101_tidak.wav s3://paragest-ingest-stage/incoming/VD1-krd20140214_wordlist-101_tidak.wav",
+    "file:badAlignment": "aws s3 cp samples/bad-alignment.wav s3://paragest-ingest-stage/incoming/VD1-krd20140214_wordlist-101_tidak.wav",
     "file:mono": "aws s3 cp samples/mono.wav s3://paragest-ingest-stage/incoming/VD1-krd20140214_wordlist-101_tidak.wav",
     "file:left_silent": "aws s3 cp samples/left_silent.wav s3://paragest-ingest-stage/incoming/VD1-krd20140214_wordlist-101_tidak.wav",
     "file:WAV": "aws s3 cp samples/VD1-krd20140214_wordlist-101_tidak.wav s3://paragest-ingest-stage/incoming/VD1-krd20140214_wordlist-101_tidak.WAV",

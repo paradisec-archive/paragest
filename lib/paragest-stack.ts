@@ -77,6 +77,24 @@ export class ParagestStack extends cdk.Stack {
       return task;
     };
 
+    const paragestContainerStep = (stepId: string, { lambdaProps, grantFunc }: paragestStepOpts = {}) => {
+      const lambdaFunction = new lambda.DockerImageFunction(this, `${stepId}Lambda`, {
+        code: lambda.DockerImageCode.fromImageAsset(path.join(__dirname, '..'), {
+          file: `docker/${stepId}/Dockerfile`,
+        }),
+        ...lambdaCommon,
+        ...lambdaProps,
+      });
+      grantFunc?.(lambdaFunction);
+
+      const task = new tasks.LambdaInvoke(this, `${stepId}Task`, {
+        lambdaFunction,
+        outputPath: '$.Payload',
+      });
+
+      return task;
+    };
+
     const ingestBucket = new s3.Bucket(this, 'IngestBucket', {
       bucketName: `paragest-ingest-${env}`,
     });
@@ -170,6 +188,9 @@ export class ParagestStack extends cdk.Stack {
       grantFunc: (lambdaFunc) => ingestBucket.grantReadWrite(lambdaFunc),
       lambdaProps: { layers: [mediaLayer] },
     });
+    const fixAlignmentStep = paragestContainerStep('fixAlignment', {
+      grantFunc: (lambdaFunc) => ingestBucket.grantReadWrite(lambdaFunc),
+    });
     const normaliseStep = paragestStep('normalise', 'src/audio/normalise.ts', {
       grantFunc: (lambdaFunc) => ingestBucket.grantReadWrite(lambdaFunc),
       lambdaProps: { layers: [mediaLayer] },
@@ -190,6 +211,7 @@ export class ParagestStack extends cdk.Stack {
     });
     const processAudioFlow = sfn.Chain.start(convertAudioStep)
       .next(fixSilenceStep)
+      .next(fixAlignmentStep)
       .next(normaliseStep)
       .next(createBWFStep)
       .next(createPresentationStep)
