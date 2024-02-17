@@ -191,7 +191,7 @@ export class ParagestStack extends cdk.Stack {
     const fixAlignmentStep = paragestContainerStep('fixAlignment', {
       grantFunc: (lambdaFunc) => ingestBucket.grantReadWrite(lambdaFunc),
     });
-    const normaliseStep = paragestStep('normalise', 'src/audio/normalise.ts', {
+    const setMaxVolumeStep = paragestStep('setMaxVolume', 'src/audio/setMaxVolume.ts', {
       grantFunc: (lambdaFunc) => ingestBucket.grantReadWrite(lambdaFunc),
       lambdaProps: { layers: [mediaLayer] },
     });
@@ -212,7 +212,7 @@ export class ParagestStack extends cdk.Stack {
     const processAudioFlow = sfn.Chain.start(convertAudioStep)
       .next(fixSilenceStep)
       .next(fixAlignmentStep)
-      .next(normaliseStep)
+      .next(setMaxVolumeStep)
       .next(createBWFStep)
       .next(createPresentationStep)
       .next(addToCatalogFlow);

@@ -70,16 +70,15 @@ export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event: Event
     'ffmpeg -i input.wav -filter:a volumedetect -f null /dev/null 2>&1 | grep volumedetect | sed "s/^.*] //"',
     { cwd: '/tmp' },
   );
-  console.debug('Analysis:', analysis.toString());
   const maxVolume = getVolume(analysis.toString(), event);
 
-  notes.push(`fixVolume: Volume is at ${maxVolume} dB`);
+  notes.push(`setMaxVolume: Volume is at ${maxVolume} dB`);
   const diff = (-6 - maxVolume).toFixed(1);
   if (diff === '0.0') {
     return event;
   }
 
-  notes.push(`fixVolume: Adjusting by ${diff} dB`);
+  notes.push(`setMaxVolume: Adjusting by ${diff} dB`);
   execSync(`ffmpeg -y -i input.wav -af "volume=${diff}dB" output.wav`, { stdio: 'inherit', cwd: '/tmp' });
 
   const readStream = createReadStream('/tmp/output.wav');
