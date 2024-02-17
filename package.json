@@ -61,6 +61,7 @@
     "@urql/core": "^4.2.2",
     "aws-cdk-lib": "2.121.1",
     "constructs": "^10.3.0",
+    "eslint-config-biome": "^1.5.3",
     "file-type": "^19.0.0",
     "graphql": "^16.8.1",
     "source-map-support": "^0.5.21",

@@ -5989,6 +5989,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"eslint-config-biome@npm:^1.5.3":
+  version: 1.5.3
+  resolution: "eslint-config-biome@npm:1.5.3"
+  checksum: 5ec95d527365be9c762ad3742343c7f9b0ca0b90ffb9be9b1aa6882da03c2785f9ca4872c099f8a0a09ef59e57d1ef44786985d9588904dd0de67d2937ae9e68
+  languageName: node
+  linkType: hard
+
 "eslint-import-resolver-node@npm:^0.3.9":
   version: 0.3.9
   resolution: "eslint-import-resolver-node@npm:0.3.9"
@@ -8766,6 +8773,7 @@ __metadata:
     esbuild: "npm:0.19.11"
     eslint: "npm:^8.56.0"
     eslint-config-airbnb-base: "npm:15.0.0"
+    eslint-config-biome: "npm:^1.5.3"
     eslint-import-resolver-node: "npm:^0.3.9"
     eslint-plugin-import: "npm:^2.29.1"
     file-type: "npm:^19.0.0"
