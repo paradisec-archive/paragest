@@ -52,8 +52,13 @@ export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event: Event
   await new Promise((resolve, reject) => {
     (Body as Readable).pipe(writeStream).on('error', reject).on('finish', resolve);
   });
-
-  execSync('ffmpeg -y -i input.wav -i id3.txt -map_metadata 1 -codec:a libmp3lame -b:a 128k -write_id3v2 1 output.mp3', { stdio: 'inherit', cwd: '/tmp' });
+  // NOTE: we convert to MP3 and also set max volume to 0dB
+  // We assume we are already at -6dB from previous step in pipeline
+  // Due to lossy nature we don't get exactly 0dB
+  execSync(
+    'ffmpeg -y -i input.wav -af "volume=6dB" -i id3.txt -map_metadata 1 -codec:a libmp3lame -b:a 128k -write_id3v2 1 output.mp3',
+    { stdio: 'inherit', cwd: '/tmp' },
+  );
 
   const readStream = createReadStream('/tmp/output.mp3');
 
