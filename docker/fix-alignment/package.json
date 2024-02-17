@@ -1,5 +1,5 @@
 {
-  "name": "fixalignment",
+  "name": "fix-alignment",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -10,9 +10,9 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.504.0",
-    "@aws-sdk/lib-storage": "^3.504.0",
-    "@sentry/serverless": "^7.99.0",
+    "@aws-sdk/client-s3": "^3.515.0",
+    "@aws-sdk/lib-storage": "^3.515.0",
+    "@sentry/serverless": "^7.101.1",
     "@types/aws-lambda": "^8.10.133"
   },
   "devDependencies": {

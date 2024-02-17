@@ -15,16 +15,17 @@ RUN apt-get update && \
   rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p ${FUNCTION_DIR}/src ${FUNCTION_DIR}/lib
-COPY src/audio/fixAlignment.ts ${FUNCTION_DIR}/src/
+COPY src/audio/fix-alignment.ts ${FUNCTION_DIR}/src/
 COPY src/lib/*.ts ${FUNCTION_DIR}/lib/
-COPY docker/fixAlignment/package.json ${FUNCTION_DIR}
+COPY docker/fix-alignment/package.json ${FUNCTION_DIR}
+COPY docker/fix-alignment/yarn.lock ${FUNCTION_DIR}
 
 WORKDIR ${FUNCTION_DIR}
 
-RUN npm install
+RUN yarn --immutable
 
 RUN ./node_modules/.bin/esbuild \
-  --bundle src/fixAlignment.ts \
+  --bundle src/fix-alignment.ts \
   --target=esnext \
   --platform=node \
   --format=esm \

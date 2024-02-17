@@ -77,10 +77,13 @@ export class ParagestStack extends cdk.Stack {
       return task;
     };
 
+    const toSnakeCase = (str: string) =>
+      `${str.charAt(0).toLowerCase()}${str.slice(1)}`.replace(/([A-Z])/g, '-$1').toLowerCase();
+
     const paragestContainerStep = (stepId: string, { lambdaProps, grantFunc }: paragestStepOpts = {}) => {
       const lambdaFunction = new lambda.DockerImageFunction(this, `${stepId}Lambda`, {
         code: lambda.DockerImageCode.fromImageAsset(path.join(__dirname, '..'), {
-          file: `docker/${stepId}/Dockerfile`,
+          file: `docker/${toSnakeCase(stepId)}/Dockerfile`,
         }),
         ...lambdaCommon,
         ...lambdaProps,
@@ -116,7 +119,7 @@ export class ParagestStack extends cdk.Stack {
     const successState = new sfn.Succeed(this, 'SuccessState');
     const failureState = new sfn.Fail(this, 'FailureState');
 
-    const processFailureStep = paragestStep('ProcessFailure', 'src/processFailure.ts', {
+    const processFailureStep = paragestStep('ProcessFailure', 'src/process-failure.ts', {
       grantFunc: (lambdaFunc) => {
         lambdaFunc.addToRolePolicy(
           new iam.PolicyStatement({
@@ -129,7 +132,7 @@ export class ParagestStack extends cdk.Stack {
       },
     });
 
-    const processSuccessStep = paragestStep('ProcessSuccess', 'src/processSuccess.ts', {
+    const processSuccessStep = paragestStep('ProcessSuccess', 'src/process-success.ts', {
       grantFunc: (lambdaFunc) => {
         lambdaFunc.addToRolePolicy(
           new iam.PolicyStatement({
@@ -142,17 +145,20 @@ export class ParagestStack extends cdk.Stack {
       },
     });
 
-    const rejectEmptyFilesStep = paragestStep('RejectEmptyFiles', 'src/rejectEmptyFiles.ts');
-    const checkItemIdentifierLengthStep = paragestStep('CheckItemIdentifierLength', 'src/checkItemIdentifierLength.ts');
-    const checkCatalogForItemStep = paragestStep('CheckCatalogForItem', 'src/checkCatalogForItem.ts', {
+    const rejectEmptyFilesStep = paragestStep('RejectEmptyFiles', 'src/reject-empty-files.ts');
+    const checkItemIdentifierLengthStep = paragestStep(
+      'CheckItemIdentifierLength',
+      'src/check-item-identifier-length.ts',
+    );
+    const checkCatalogForItemStep = paragestStep('CheckCatalogForItem', 'src/check-catalog-for-item.ts', {
       grantFunc: (lambdaFunc) => nabuOauthSecret.grantRead(lambdaFunc),
     });
-    const checkIfPDSCStep = paragestStep('CheckIfPDSC', 'src/checkIfPDSC.ts');
+    const checkIfPDSCStep = paragestStep('CheckIfPDSC', 'src/check-if-pdsc.ts');
 
     // /////////////////////////////
     // Add to Catalog Steps
     // /////////////////////////////
-    const addToCatalogStep = paragestStep('AddToCatalog', 'src/addToCatalog.ts', {
+    const addToCatalogStep = paragestStep('AddToCatalog', 'src/add-to-catalog.ts', {
       lambdaProps: { ...lambdaCommon, timeout: cdk.Duration.minutes(5) },
       grantFunc: (lambdaFunc) => {
         ingestBucket.grantRead(lambdaFunc);
@@ -163,7 +169,7 @@ export class ParagestStack extends cdk.Stack {
 
     const addToCatalogFlow = sfn.Chain.start(addToCatalogStep).next(processSuccessStep);
 
-    const addMediaMetadataStep = paragestStep('AddMediaMetadata', 'src/addMediaMetadata.ts', {
+    const addMediaMetadataStep = paragestStep('AddMediaMetadata', 'src/add-media-metadata.ts', {
       lambdaProps: { layers: [mediaLayer] },
       grantFunc: (lambdaFunc) => {
         ingestBucket.grantRead(lambdaFunc);
@@ -171,7 +177,7 @@ export class ParagestStack extends cdk.Stack {
       },
     });
 
-    const checkMetadataReadyStep = paragestStep('CheckMetadataReady', 'src/checkMetadataReady.ts', {
+    const checkMetadataReadyStep = paragestStep('CheckMetadataReady', 'src/check-metadata-ready.ts', {
       grantFunc: (lambdaFunc) => {
         nabuOauthSecret.grantRead(lambdaFunc);
       },
@@ -184,25 +190,25 @@ export class ParagestStack extends cdk.Stack {
       grantFunc: (lambdaFunc) => ingestBucket.grantReadWrite(lambdaFunc),
       lambdaProps: { layers: [mediaLayer] },
     });
-    const fixSilenceStep = paragestStep('FixSilence', 'src/audio/fixSilence.ts', {
+    const fixSilenceStep = paragestStep('FixSilence', 'src/audio/fix-silence.ts', {
       grantFunc: (lambdaFunc) => ingestBucket.grantReadWrite(lambdaFunc),
       lambdaProps: { layers: [mediaLayer] },
     });
     const fixAlignmentStep = paragestContainerStep('FixAlignment', {
       grantFunc: (lambdaFunc) => ingestBucket.grantReadWrite(lambdaFunc),
     });
-    const setMaxVolumeStep = paragestStep('SetMaxVolume', 'src/audio/setMaxVolume.ts', {
+    const setMaxVolumeStep = paragestStep('SetMaxVolume', 'src/audio/set-max-volume.ts', {
       grantFunc: (lambdaFunc) => ingestBucket.grantReadWrite(lambdaFunc),
       lambdaProps: { layers: [mediaLayer] },
     });
-    const createBWFStep = paragestStep('CreateBWF', 'src/audio/createBWF.ts', {
+    const createBWFStep = paragestStep('CreateBWF', 'src/audio/create-bwf.ts', {
       grantFunc: (lambdaFunc) => {
         ingestBucket.grantReadWrite(lambdaFunc);
         nabuOauthSecret.grantRead(lambdaFunc);
       },
       lambdaProps: { layers: [mediaLayer] },
     });
-    const createPresentationStep = paragestStep('CreatePresentationStep', 'src/audio/createPresentation.ts', {
+    const createPresentationStep = paragestStep('CreatePresentationStep', 'src/audio/create-presentation.ts', {
       grantFunc: (lambdaFunc) => {
         ingestBucket.grantReadWrite(lambdaFunc);
         nabuOauthSecret.grantRead(lambdaFunc);
@@ -220,14 +226,14 @@ export class ParagestStack extends cdk.Stack {
     // /////////////////////////////
     // Video Flow Steps
     // /////////////////////////////
-    const processVideoStep = paragestStep('ProcessVideo', 'src/processVideo.ts', {
+    const processVideoStep = paragestStep('ProcessVideo', 'src/process-video.ts', {
       grantFunc: (lambdaFunc) => {
         ingestBucket.grantRead(lambdaFunc);
         // nabuOauthSecret.grantRead(lambdaFunc);
       },
     });
 
-    const processOtherStep = paragestStep('ProcessOther', 'src/processOther.ts', {
+    const processOtherStep = paragestStep('ProcessOther', 'src/process-other.ts', {
       grantFunc: (lambdaFunc) => {
         ingestBucket.grantRead(lambdaFunc);
         // nabuOauthSecret.grantRead(lambdaFunc);
@@ -270,7 +276,7 @@ export class ParagestStack extends cdk.Stack {
     });
 
     const processS3Event = new nodejs.NodejsFunction(this, 'ProcessS3EventLambda', {
-      entry: 'src/processS3Event.ts',
+      entry: 'src/process-s3-event.ts',
       ...lambdaCommon,
       environment: {
         ...lambdaCommon.environment,
