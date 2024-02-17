@@ -13,9 +13,8 @@ type Event = {
   Cause: string;
 };
 type ErrorData = {
-  notes: string[];
   message: string;
-  event: Record<string, string> & { principalId: string };
+  event: Record<string, string> & { principalId: string; notes: string[] };
   data: Record<string, string>;
 };
 
@@ -27,9 +26,8 @@ export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event: Event
   const { Cause } = event;
   const { errorMessage } = JSON.parse(Cause);
   const {
-    notes,
     message,
-    event: { principalId, bucketName, objectKey },
+    event: { principalId, bucketName, objectKey, notes },
     data,
   } = JSON.parse(errorMessage) as ErrorData;
   console.debug({ message, principalId, data });

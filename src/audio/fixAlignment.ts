@@ -27,30 +27,6 @@ type Event = {
 
 const s3 = new S3Client();
 
-const checkSilence = (stats: string, event: Event) => {
-  const lines = stats.split('\n');
-  const statsObject: Record<string, number> = {};
-
-  lines.forEach((line) => {
-    const [key, value] = line.replace(' dB', '').split(': ');
-    if (!key || !value) {
-      return;
-    }
-
-    statsObject[key] = Number(value);
-  });
-
-  if (!statsObject.max_volume || !statsObject.mean_volume) {
-    throw new StepError("Couldn't get silence stats", event, { statsObject, rawStats: lines });
-  }
-
-  if (statsObject.max_volume < -50 && statsObject.mean_volume < -50) {
-    return true;
-  }
-
-  return false;
-};
-
 export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event: Event) => {
   console.debug('Event: ', JSON.stringify(event, null, 2));
   const {
@@ -77,11 +53,11 @@ export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event: Event
   });
   const result = JSON.parse(resultJSON.toString()) as { time_offset: number; standard_score: number };
 
-  const { time_offset: offset, standard_score: score } = result;
-
-  if (!offset || !score) {
+  if (!('time_offset' in result && 'standard_score' in result)) {
     throw new StepError('Audio offset finder failed', event, { result });
   }
+
+  const { time_offset: offset, standard_score: score } = result;
 
   if (score < 10) {
     notes.push(`fixAlignment: low deviation, not fixing ${resultJSON.toString()}`);
@@ -90,9 +66,16 @@ export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event: Event
     return event;
   }
 
-  if (offset > 2) {
+  if (offset > 0.05) {
     notes.push(`fixAlignment: offset ${offset} is too big, ignoring (score ${score})`);
     console.debug(`fixAlignment: offset ${offset} is too big, ignoring (score ${score})`);
+
+    return event;
+  }
+
+  if (offset === 0) {
+    notes.push(`fixAlignment: no offset, ignoring (score ${score})`);
+    console.debug(`fixAlignment: no offset, ignoring (score ${score})`);
 
     return event;
   }

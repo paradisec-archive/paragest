@@ -46,7 +46,7 @@ const checkSilence = (stats: string, event: Event) => {
     statsObject[key] = Number(value);
   });
 
-  if (!statsObject.max_volume || !statsObject.mean_volume) {
+  if (!('max_volume' in statsObject && 'mean_volume' in statsObject)) {
     throw new StepError("Couldn't get silence stats", event, { statsObject, rawStats: lines });
   }
 

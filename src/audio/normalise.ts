@@ -41,8 +41,8 @@ const getVolume = (stats: string, event: Event) => {
     statsObject[key] = Number(value);
   });
 
-  if (!statsObject.max_volume) {
-    throw new StepError("Couldn't get colume stat", event, { statsObject, rawStats: lines });
+  if (!('max_volume' in statsObject)) {
+    throw new StepError("Couldn't get volume stat", event, { statsObject, rawStats: lines });
   }
 
   return statsObject.max_volume;
