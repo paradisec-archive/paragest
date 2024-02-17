@@ -180,29 +180,29 @@ export class ParagestStack extends cdk.Stack {
     // /////////////////////////////
     // Audio Flow Steps
     // /////////////////////////////
-    const convertAudioStep = paragestStep('convertAudio', 'src/audio/convert.ts', {
+    const convertAudioStep = paragestStep('ConvertAudio', 'src/audio/convert.ts', {
       grantFunc: (lambdaFunc) => ingestBucket.grantReadWrite(lambdaFunc),
       lambdaProps: { layers: [mediaLayer] },
     });
-    const fixSilenceStep = paragestStep('fixSilence', 'src/audio/fixSilence.ts', {
+    const fixSilenceStep = paragestStep('FixSilence', 'src/audio/fixSilence.ts', {
       grantFunc: (lambdaFunc) => ingestBucket.grantReadWrite(lambdaFunc),
       lambdaProps: { layers: [mediaLayer] },
     });
-    const fixAlignmentStep = paragestContainerStep('fixAlignment', {
+    const fixAlignmentStep = paragestContainerStep('FixAlignment', {
       grantFunc: (lambdaFunc) => ingestBucket.grantReadWrite(lambdaFunc),
     });
-    const setMaxVolumeStep = paragestStep('setMaxVolume', 'src/audio/setMaxVolume.ts', {
+    const setMaxVolumeStep = paragestStep('SetMaxVolume', 'src/audio/setMaxVolume.ts', {
       grantFunc: (lambdaFunc) => ingestBucket.grantReadWrite(lambdaFunc),
       lambdaProps: { layers: [mediaLayer] },
     });
-    const createBWFStep = paragestStep('createBWF', 'src/audio/createBWF.ts', {
+    const createBWFStep = paragestStep('CreateBWF', 'src/audio/createBWF.ts', {
       grantFunc: (lambdaFunc) => {
         ingestBucket.grantReadWrite(lambdaFunc);
         nabuOauthSecret.grantRead(lambdaFunc);
       },
       lambdaProps: { layers: [mediaLayer] },
     });
-    const createPresentationStep = paragestStep('createPresentationStep', 'src/audio/createPresentation.ts', {
+    const createPresentationStep = paragestStep('CreatePresentationStep', 'src/audio/createPresentation.ts', {
       grantFunc: (lambdaFunc) => {
         ingestBucket.grantReadWrite(lambdaFunc);
         nabuOauthSecret.grantRead(lambdaFunc);
