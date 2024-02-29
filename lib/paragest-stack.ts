@@ -159,7 +159,7 @@ export class ParagestStack extends cdk.Stack {
     // Add to Catalog Steps
     // /////////////////////////////
     const addToCatalogStep = paragestStep('AddToCatalog', 'src/add-to-catalog.ts', {
-      lambdaProps: { ...lambdaCommon, timeout: cdk.Duration.minutes(5) },
+      lambdaProps: { timeout: cdk.Duration.minutes(5) },
       grantFunc: (lambdaFunc) => {
         ingestBucket.grantRead(lambdaFunc);
         ingestBucket.grantDelete(lambdaFunc);
@@ -226,13 +226,32 @@ export class ParagestStack extends cdk.Stack {
     // /////////////////////////////
     // Video Flow Steps
     // /////////////////////////////
-    const processVideoStep = paragestStep('ProcessVideo', 'src/process-video.ts', {
+    const createVideoArchivalStep = paragestStep('CreateVideoArchival', 'src/video/create-archival.ts', {
       grantFunc: (lambdaFunc) => {
-        ingestBucket.grantRead(lambdaFunc);
-        // nabuOauthSecret.grantRead(lambdaFunc);
+        ingestBucket.grantReadWrite(lambdaFunc);
+        nabuOauthSecret.grantRead(lambdaFunc);
       },
+      lambdaProps: { layers: [mediaLayer], timeout: cdk.Duration.minutes(15), memorySize: 10240 },
     });
 
+    const createVideoPresentationStep = paragestStep(
+      'CreateVideoPresentationStep',
+      'src/video/create-presentation.ts',
+      {
+        grantFunc: (lambdaFunc) => {
+          ingestBucket.grantReadWrite(lambdaFunc);
+          nabuOauthSecret.grantRead(lambdaFunc);
+        },
+        lambdaProps: { layers: [mediaLayer], timeout: cdk.Duration.minutes(15), memorySize: 10240 },
+      },
+    );
+    const processVideoFlow = sfn.Chain.start(createVideoArchivalStep)
+      .next(createVideoPresentationStep)
+      .next(addToCatalogFlow);
+
+    // /////////////////////////////
+    // Other Flow Steps
+    // /////////////////////////////
     const processOtherStep = paragestStep('ProcessOther', 'src/process-other.ts', {
       grantFunc: (lambdaFunc) => {
         ingestBucket.grantRead(lambdaFunc);
@@ -240,7 +259,6 @@ export class ParagestStack extends cdk.Stack {
       },
     });
 
-    const processVideoFlow = sfn.Chain.start(processVideoStep).next(addToCatalogFlow);
     const processOtherFlow = sfn.Chain.start(processOtherStep).next(addToCatalogFlow);
 
     const mediaFlow = sfn.Chain.start(addMediaMetadataStep)

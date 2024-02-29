@@ -43,7 +43,7 @@ const GeneralTrack = z.object({
   OverallBitRate: z.coerce.number(),
   FrameRate: z.coerce.number().optional(),
   FrameCount: z.coerce.number().optional(),
-  StreamSize: z.coerce.number(),
+  StreamSize: z.coerce.number().optional(),
   IsStreamable: z
     .string()
     .transform((value) => value === 'Yes')
@@ -163,6 +163,7 @@ const getMediaMetadata = async (bucketName: string, objectKey: string) => {
     samplerate: audio?.SamplingRate,
     bitrate: general.OverallBitRate,
     fps: video?.FrameRate,
+    videoBitDepth: video?.BitDepth,
   };
 };
 
@@ -258,6 +259,15 @@ const lookupMimetypeFromExtension = (extension: string) => {
   }
 };
 
+const allowedException = (detected: string, actual: string) => {
+  switch (true) {
+    case detected === 'mp4' && actual === '3gp':
+      return true;
+    default:
+      return false;
+  }
+};
+
 export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event: Event) => {
   console.debug('Event:', JSON.stringify(event, null, 2));
 
@@ -274,7 +284,7 @@ export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event: Event
     throw new StepError(`${filename}: Couldn't determine filetype`, event, event);
   }
 
-  if (filetype.ext !== extension) {
+  if (filetype.ext !== extension && !allowedException(filetype.ext, extension)) {
     throw new StepError(`${filename}: File extension doesn't match detected filetype ${filetype.ext}`, event, event);
   }
 
@@ -288,7 +298,11 @@ export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event: Event
       case filetype.mime === 'audio/wav' && mimetype === 'audio/vnd.wave':
         break;
       default:
-        throw new StepError(`${filename}: File mimetype doesn't match detected filetype ${mimetype} vs ${filetype.mime}`, event, { ...event, filetype });
+        throw new StepError(
+          `${filename}: File mimetype doesn't match detected filetype ${mimetype} vs ${filetype.mime}`,
+          event,
+          { ...event, filetype },
+        );
     }
   }
 
@@ -300,9 +314,12 @@ export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event: Event
     mimetype,
     size: objectSize,
   };
+  let videoBitDepth: number | undefined;
 
   if (mimetype.startsWith('audio') || mimetype.startsWith('video')) {
     const mediaAttributes = await getMediaMetadata(bucketName, objectKey);
+    videoBitDepth = mediaAttributes.videoBitDepth;
+    mediaAttributes.videoBitDepth = undefined;
     Object.assign(attributes, mediaAttributes);
   }
 
@@ -312,7 +329,7 @@ export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event: Event
       mediaType = 'audio';
       break;
     case mimetype.startsWith('video'):
-      mediaType = 'audio';
+      mediaType = 'video';
       break;
     default:
       mediaType = 'other';
@@ -338,5 +355,6 @@ export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event: Event
   return {
     ...event,
     mediaType,
+    videoBitDepth,
   };
 });
