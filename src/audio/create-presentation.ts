@@ -56,7 +56,7 @@ export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event: Event
   // We assume we are already at -6dB from previous step in pipeline
   // Due to lossy nature we don't get exactly 0dB
   execSync(
-    'ffmpeg -y -i input.wav -af "volume=6dB" -i id3.txt -map_metadata 1 -codec:a libmp3lame -b:a 128k -write_id3v2 1 output.mp3',
+    'ffmpeg -y -i input.wav -i id3.txt -map_metadata 1 -write_id3v2 1 -filter:a "volume=6dB" -codec:a libmp3lame -b:a 128k output.mp3',
     { stdio: 'inherit', cwd: '/tmp' },
   );
 

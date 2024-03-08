@@ -159,21 +159,21 @@ export class ParagestStack extends cdk.Stack {
     // Add to Catalog Steps
     // /////////////////////////////
     const addToCatalogStep = paragestStep('AddToCatalog', 'src/add-to-catalog.ts', {
-      lambdaProps: { timeout: cdk.Duration.minutes(5) },
+      lambdaProps: { timeout: cdk.Duration.minutes(5), layers: [mediaLayer] },
       grantFunc: (lambdaFunc) => {
         ingestBucket.grantRead(lambdaFunc);
         ingestBucket.grantDelete(lambdaFunc);
         catalogBucket.grantPut(lambdaFunc);
+        catalogBucket.grantRead(lambdaFunc);
+        nabuOauthSecret.grantRead(lambdaFunc);
       },
     });
 
     const addToCatalogFlow = sfn.Chain.start(addToCatalogStep).next(processSuccessStep);
 
-    const addMediaMetadataStep = paragestStep('AddMediaMetadata', 'src/add-media-metadata.ts', {
-      lambdaProps: { layers: [mediaLayer] },
+    const detectAndValidateMediaStep = paragestStep('detectAndValidateMedia', 'src/detect-and-validate-media.ts', {
       grantFunc: (lambdaFunc) => {
         ingestBucket.grantRead(lambdaFunc);
-        nabuOauthSecret.grantRead(lambdaFunc);
       },
     });
 
@@ -261,7 +261,7 @@ export class ParagestStack extends cdk.Stack {
 
     const processOtherFlow = sfn.Chain.start(processOtherStep).next(addToCatalogFlow);
 
-    const mediaFlow = sfn.Chain.start(addMediaMetadataStep)
+    const mediaFlow = sfn.Chain.start(detectAndValidateMediaStep)
       .next(checkMetadataReadyStep)
       .next(
         new sfn.Choice(this, 'Media Type')
