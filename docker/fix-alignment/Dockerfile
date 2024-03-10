@@ -54,14 +54,14 @@ WORKDIR ${FUNCTION_DIR}
 
 # INstall the needed tools
 RUN apt update && \
-  apt-get install -y --no-install-recommends wget python3 python3-pip xz-utils && \
+  apt-get install -y --no-install-recommends wget python3 python3-pip xz-utils ca-certificates && \
   apt-get clean && \
   rm -rf /var/lib/apt/lists/*
 
 ARG ffmpegURL=https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz
-RUN wget --no-check-certificate -O ffmpeg.tar.xz ${ffmpegURL}
+RUN wget -O ffmpeg.tar.xz ${ffmpegURL}
 RUN tar xf ffmpeg.tar.xz
-RUN mv ffmpeg*/ffprobe ffmpeg*/ffmpeg /usr/local/bin
+RUN mv ffmpeg*/ffmpeg /usr/local/bin
 
 RUN pip3 install --break-system-packages audio-offset-finder
 

@@ -23,7 +23,8 @@
     "file:empty": "aws s3 cp samples/empty.txt s3://paragest-ingest-stage/incoming/empty.txt",
     "file:emptyAnnis": "aws s3 cp samples/empty.txt s3://paragest-ingest-stage/incoming/JFTEST-001-emptyAnnis.annis",
     "file:PDSC": "aws s3 cp samples/bad-name.txt s3://paragest-ingest-stage/incoming/JFTEST-001-CAT-PDSC_ADMIN.xml",
-    "file:notexportable": "aws s3 cp samples/sample.wav s3://paragest-ingest-stage/incoming/JFTEST-002-notExportable.wav"
+    "file:notexportable": "aws s3 cp samples/sample.wav s3://paragest-ingest-stage/incoming/JFTEST-002-notExportable.wav",
+    "file:webp": "aws s3 cp samples/sample.webp s3://paragest-ingest-stage/incoming/JFTEST-001-webp.webp"
   },
   "devDependencies": {
     "@graphql-codegen/cli": "^5.0.2",

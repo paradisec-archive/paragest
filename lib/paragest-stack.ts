@@ -27,7 +27,7 @@ export class ParagestStack extends cdk.Stack {
         SENTRY_DSN: 'https://e36e8aa3d034861a3803d2edbd4773ff@o4504801902985216.ingest.sentry.io/4506375864254464',
         NODE_OPTIONS: '--enable-source-maps',
       },
-      runtime: lambda.Runtime.NODEJS_LATEST,
+      runtime: lambda.Runtime.NODEJS_20_X,
       memorySize: 2048,
       timeout: cdk.Duration.seconds(120),
       bundling: {
@@ -54,6 +54,12 @@ export class ParagestStack extends cdk.Stack {
     const mediaLayer = new lambda.LayerVersion(this, 'MediaLayer', {
       code: mediaDocker,
       description: 'Media Layer',
+    });
+
+    const imageDocker = lambda.Code.fromDockerBuild(path.join(__dirname, '..', 'docker', 'imagelayer'));
+    const imageLayer = new lambda.LayerVersion(this, 'ImageLayer', {
+      code: imageDocker,
+      description: 'Image Layer',
     });
 
     type paragestStepOpts = {
@@ -250,12 +256,38 @@ export class ParagestStack extends cdk.Stack {
       .next(addToCatalogFlow);
 
     // /////////////////////////////
+    // Image Flow Steps
+    // /////////////////////////////
+    const createImageArchivalStep = paragestStep('CreateImageArchival', 'src/image/create-archival.ts', {
+      grantFunc: (lambdaFunc) => {
+        ingestBucket.grantReadWrite(lambdaFunc);
+        nabuOauthSecret.grantRead(lambdaFunc);
+      },
+      lambdaProps: { layers: [imageLayer], timeout: cdk.Duration.minutes(15), memorySize: 10240 },
+    });
+
+    const createImagePresentationStep = paragestStep(
+      'CreateImagePresentationStep',
+      'src/image/create-presentation.ts',
+      {
+        grantFunc: (lambdaFunc) => {
+          ingestBucket.grantReadWrite(lambdaFunc);
+          nabuOauthSecret.grantRead(lambdaFunc);
+        },
+        lambdaProps: { layers: [imageLayer], timeout: cdk.Duration.minutes(15), memorySize: 10240 },
+      },
+    );
+    const processImageFlow = sfn.Chain.start(createImageArchivalStep)
+      .next(createImagePresentationStep)
+      .next(addToCatalogFlow);
+
+
+    // /////////////////////////////
     // Other Flow Steps
     // /////////////////////////////
     const processOtherStep = paragestStep('ProcessOther', 'src/process-other.ts', {
       grantFunc: (lambdaFunc) => {
         ingestBucket.grantRead(lambdaFunc);
-        // nabuOauthSecret.grantRead(lambdaFunc);
       },
     });
 
@@ -267,6 +299,7 @@ export class ParagestStack extends cdk.Stack {
         new sfn.Choice(this, 'Media Type')
           .when(sfn.Condition.stringEquals('$.mediaType', 'audio'), processAudioFlow)
           .when(sfn.Condition.stringEquals('$.mediaType', 'video'), processVideoFlow)
+          .when(sfn.Condition.stringEquals('$.mediaType', 'image'), processImageFlow)
           .when(sfn.Condition.stringEquals('$.mediaType', 'other'), processOtherFlow),
       );
 
