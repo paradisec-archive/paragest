@@ -121,6 +121,9 @@ export const lookupMimetypeFromExtension = (extension: string) => {
     case 'avi':
       return 'video/x-msvideo';
 
+    // We aren't going to accept these
+    // case '3gp':
+
     ///////////////////
     // Images
     ///////////////////
@@ -138,9 +141,6 @@ export const lookupMimetypeFromExtension = (extension: string) => {
     ///////////////////
     case 'pdf':
       return 'application/pdf';
-
-    default:
-      return null;
 
     ///////////////////
     // Here for later as we deal with these
@@ -176,9 +176,9 @@ export const lookupMimetypeFromExtension = (extension: string) => {
     // case 'xhtml':
     //   return 'application/xhtml+xml';
     //
-    // case 'csv':
-    //   return 'text/csv';
-    // case 'xlsx':
+    case 'csv':
+      return 'text/csv';
+
     //   return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
     // case 'ods':
     //   return 'application/vnd.oasis.opendocument.spreadsheet';
@@ -198,7 +198,9 @@ export const lookupMimetypeFromExtension = (extension: string) => {
     //   return 'application/x-iso9660-image';
     // case 'zip':
     //   return 'application/zip';
-    //
+
+    default:
+      return null;
   }
 };
 

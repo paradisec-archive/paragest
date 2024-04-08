@@ -1,7 +1,7 @@
 import * as path from 'node:path';
 
 import * as cdk from 'aws-cdk-lib';
-import { Construct } from 'constructs';
+import type { Construct } from 'constructs';
 
 import * as eventsources from 'aws-cdk-lib/aws-lambda-event-sources';
 import * as iam from 'aws-cdk-lib/aws-iam';
@@ -44,6 +44,32 @@ export class ParagestStack extends cdk.Stack {
       },
     };
 
+    type paragestStepOpts = {
+      taskProps?: Partial<tasks.LambdaInvokeProps>;
+      lambdaProps?: nodejs.NodejsFunctionProps & { nodeModules?: string[] };
+      grantFunc?: (lamdaFunc: nodejs.NodejsFunction) => void; // eslint-disable-line no-unused-vars
+    };
+    const paragestStep = (stepId: string, entry: string, { lambdaProps, grantFunc }: paragestStepOpts = {}) => {
+      const { nodeModules, ...lambdaPropsRest } = lambdaProps ?? {};
+      const lambdaFunction = new nodejs.NodejsFunction(this, `${stepId}Lambda`, {
+        ...lambdaCommon,
+        ...lambdaPropsRest,
+        bundling: {
+          ...lambdaCommon.bundling,
+          nodeModules: nodeModules,
+        },
+        entry,
+      });
+      grantFunc?.(lambdaFunction);
+
+      const task = new tasks.LambdaInvoke(this, `${stepId}Task`, {
+        lambdaFunction,
+        outputPath: '$.Payload',
+      });
+
+      return task;
+    };
+
     const mediaDocker = lambda.Code.fromDockerBuild(path.join(__dirname, '..', 'docker', 'medialayer'), {
       buildArgs: {
         MEDIAINFO_VERSION: '23.11',
@@ -61,27 +87,6 @@ export class ParagestStack extends cdk.Stack {
       code: imageDocker,
       description: 'Image Layer',
     });
-
-    type paragestStepOpts = {
-      taskProps?: Partial<tasks.LambdaInvokeProps>;
-      lambdaProps?: nodejs.NodejsFunctionProps;
-      grantFunc?: (lamdaFunc: nodejs.NodejsFunction) => void; // eslint-disable-line no-unused-vars
-    };
-    const paragestStep = (stepId: string, entry: string, { lambdaProps, grantFunc }: paragestStepOpts = {}) => {
-      const lambdaFunction = new nodejs.NodejsFunction(this, `${stepId}Lambda`, {
-        ...lambdaCommon,
-        ...lambdaProps,
-        entry,
-      });
-      grantFunc?.(lambdaFunction);
-
-      const task = new tasks.LambdaInvoke(this, `${stepId}Task`, {
-        lambdaFunction,
-        outputPath: '$.Payload',
-      });
-
-      return task;
-    };
 
     const toSnakeCase = (str: string) =>
       `${str.charAt(0).toLowerCase()}${str.slice(1)}`.replace(/([A-Z])/g, '-$1').toLowerCase();
@@ -181,6 +186,7 @@ export class ParagestStack extends cdk.Stack {
       grantFunc: (lambdaFunc) => {
         ingestBucket.grantRead(lambdaFunc);
       },
+      lambdaProps: { nodeModules: ['@npcz/magic'] },
     });
 
     const checkMetadataReadyStep = paragestStep('CheckMetadataReady', 'src/check-metadata-ready.ts', {
@@ -281,17 +287,21 @@ export class ParagestStack extends cdk.Stack {
       .next(createImagePresentationStep)
       .next(addToCatalogFlow);
 
-
     // /////////////////////////////
     // Other Flow Steps
     // /////////////////////////////
-    const processOtherStep = paragestStep('ProcessOther', 'src/process-other.ts', {
+    const createOtherArchivalStep = paragestStep('CreateOtherArchival', 'src/other/create-archival.ts', {
       grantFunc: (lambdaFunc) => {
-        ingestBucket.grantRead(lambdaFunc);
+        ingestBucket.grantReadWrite(lambdaFunc);
+        nabuOauthSecret.grantRead(lambdaFunc);
       },
     });
 
-    const processOtherFlow = sfn.Chain.start(processOtherStep).next(addToCatalogFlow);
+    const processOtherFlow = sfn.Chain.start(createOtherArchivalStep).next(addToCatalogFlow);
+
+    // /////////////////////////////
+    // MediaFlow
+    // /////////////////////////////
 
     const mediaFlow = sfn.Chain.start(detectAndValidateMediaStep)
       .next(checkMetadataReadyStep)

@@ -1,9 +1,13 @@
+import { createWriteStream } from 'node:fs';
+import type { Readable } from 'node:stream';
+
 import * as Sentry from '@sentry/serverless';
 
 import type { Handler } from 'aws-lambda';
+import { FileMagic } from '@npcz/magic';
 import { fileTypeFromTokenizer } from 'file-type/core';
 import { makeTokenizer } from '@tokenizer/s3';
-import { S3Client } from '@aws-sdk/client-s3';
+import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
 
 import './lib/sentry.js';
 import { StepError } from './lib/errors.js';
@@ -24,6 +28,8 @@ type Event = {
 };
 
 const s3 = new S3Client();
+
+FileMagic.magicFile = require.resolve('@npcz/magic/dist/magic.mgc');
 
 const getFiletype = async (bucketName: string, objectKey: string) => {
   const s3Tokenizer = await makeTokenizer(s3, {
@@ -52,13 +58,31 @@ const getFiletype = async (bucketName: string, objectKey: string) => {
   };
 };
 
-const allowedException = (detected: string, actual: string) => {
-  switch (true) {
-    case detected === 'mp4' && actual === '3gp':
-      return true;
-    default:
-      return false;
+const getMagic = async (bucketName: string, objectKey: string) => {
+  const getCommand = new GetObjectCommand({
+    Bucket: bucketName,
+    Key: objectKey,
+    Range: 'bytes=0-20479',
+  });
+  const { Body } = await s3.send(getCommand);
+  const writeStream = createWriteStream('/tmp/input');
+  await new Promise((resolve, reject) => {
+    (Body as Readable).pipe(writeStream).on('error', reject).on('finish', resolve);
+  });
+
+
+  const magic = await FileMagic.getInstance();
+  const mimetype = magic.detectMimeType('/tmp/input');
+
+  const ext = objectKey.split('.').pop();
+  if (!ext) {
+    throw new Error('Why no extension');
   }
+
+  return {
+    mimetype,
+    ext,
+  };
 };
 
 export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event: Event) => {
@@ -71,12 +95,12 @@ export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event: Event
     objectKey,
   } = event;
 
-  const detected = await getFiletype(bucketName, objectKey);
+  const detected = await getFiletype(bucketName, objectKey) || await getMagic(bucketName, objectKey);
   if (!detected) {
     throw new StepError(`${filename}: Couldn't determine filetype`, event, event);
   }
 
-  if (detected.ext !== extension && !allowedException(detected.ext, extension)) {
+  if (detected.ext !== extension) {
     throw new StepError(`${filename}: File extension doesn't match detected filetype ${detected.ext}`, event, event);
   }
 
