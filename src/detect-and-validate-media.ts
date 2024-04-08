@@ -76,11 +76,15 @@ export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event: Event
   }
 
   if (detected.mimetype !== mimetype) {
-    throw new StepError(
-      `${filename}: File mimetype doesn't match detected filetype ${mimetype} vs ${detected.mimetype}`,
-      event,
-      { detected },
-    );
+    if (detected.mimetype === 'audio/x-m4a' && mimetype === 'audio/mp4') {
+      // This is an allowed exception
+    } else {
+      throw new StepError(
+        `${filename}: File mimetype doesn't match detected filetype ${mimetype} vs ${detected.mimetype}`,
+        event,
+        { detected },
+      );
+    }
   }
 
   notes.push(`detectAndValidateMedia: Detected mimetype as ${mimetype}`);
