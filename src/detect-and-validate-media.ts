@@ -36,8 +36,18 @@ const getFiletype = async (bucketName: string, objectKey: string) => {
     return undefined;
   }
 
+  let mimetype: string = fileType.mime;
+  switch (mimetype) {
+    case 'audio/x-m4a':
+      mimetype = 'audio/mp4';
+      break;
+    case 'audio/wav':
+      mimetype = 'audio/vnd.wav';
+      break;
+  }
+
   return {
-    mimetype: fileType.mime === 'audio/wav' ? 'audio/vnd.wave' : fileType.mime,
+    mimetype,
     ext: fileType.ext,
   };
 };
@@ -76,15 +86,11 @@ export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event: Event
   }
 
   if (detected.mimetype !== mimetype) {
-    if (detected.mimetype === 'audio/x-m4a' && mimetype === 'audio/mp4') {
-      // This is an allowed exception
-    } else {
-      throw new StepError(
-        `${filename}: File mimetype doesn't match detected filetype ${mimetype} vs ${detected.mimetype}`,
-        event,
-        { detected },
-      );
-    }
+    throw new StepError(
+      `${filename}: File mimetype doesn't match detected filetype ${mimetype} vs ${detected.mimetype}`,
+      event,
+      { detected },
+    );
   }
 
   notes.push(`detectAndValidateMedia: Detected mimetype as ${mimetype}`);
