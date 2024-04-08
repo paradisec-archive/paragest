@@ -90,6 +90,8 @@ export const lookupMimetypeFromExtension = (extension: string) => {
     ///////////////////
     // Audio
     ///////////////////
+    case 'm4a':
+      return 'audio/mp4';
     case 'mp3':
       return 'audio/mpeg';
     case 'wav':
