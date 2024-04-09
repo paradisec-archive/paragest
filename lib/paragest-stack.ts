@@ -29,6 +29,7 @@ export class ParagestStack extends cdk.Stack {
       },
       runtime: lambda.Runtime.NODEJS_20_X,
       memorySize: 2048,
+      ephemeralStorageSize: cdk.Size.gibibytes(10),
       timeout: cdk.Duration.seconds(120),
       bundling: {
         format: nodejs.OutputFormat.ESM,

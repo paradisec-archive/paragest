@@ -4,7 +4,7 @@ import * as Sentry from '@sentry/serverless';
 
 // import { RewriteFrames } from '@sentry/integrations';
 
-import type { StackFrame } from '@sentry/types';
+// import type { StackFrame } from '@sentry/types';
 
 // const transformStacktrace = (frame: StackFrame) => {
 //   if (!frame.filename) return frame;
@@ -43,4 +43,13 @@ Sentry.AWSLambda.init({
   tracesSampleRate: 1.0,
   // Set sampling rate for profiling - this is relative to tracesSampleRate
   profilesSampleRate: 1.0,
+  beforeSend: (event, hint) => {
+    const error = hint?.originalException;
+    if (error instanceof Error && error.name === 'StepError') {
+      // Ignore StepErrors as they are expected
+      return null;
+    }
+
+    return event;
+  },
 });
