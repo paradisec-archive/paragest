@@ -95,7 +95,7 @@ const allowedExtensionException = (detected: string, actual: string) => {
 
 const allowedMimetypeException = (detected: string, actual: string) => {
   switch (true) {
-    case detected === 'application/eaf+xml' && actual === 'application/xml':
+    case detected === 'application/xml' && actual === 'application/eaf+xml':
       return true;
     default:
       return false;
