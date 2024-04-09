@@ -14,7 +14,7 @@ const GeneralTrack = z.object({
   Duration: z.coerce.number(),
   OverallBitRate_Mode: z.string().optional(),
   OverallBitRate: z.coerce.number(),
-  FrameRate: z.coerce.number().optional(),
+  FrameRate: z.coerce.number().transform((val) => Math.round(val)).optional(),
   FrameCount: z.coerce.number().optional(),
   StreamSize: z.coerce.number().optional(),
   IsStreamable: z

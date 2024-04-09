@@ -40,13 +40,13 @@ export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event: Event
     Key: objectKey,
   });
   const { Body } = await s3.send(getCommand);
-  const writeStream = createWriteStream('/tmp/input.wav');
+  const writeStream = createWriteStream('/tmp/input');
   await new Promise((resolve, reject) => {
     (Body as Readable).pipe(writeStream).on('error', reject).on('finish', resolve);
   });
 
   // Stereo, 96kHz, 24-bit
-  execSync('ffmpeg -y -i input.wav -ac 2 -ar 96000 -c:a pcm_s24le output.wav', { stdio: 'inherit', cwd: '/tmp' });
+  execSync('ffmpeg -y -i input -ac 2 -ar 96000 -c:a pcm_s24le output.wav', { stdio: 'inherit', cwd: '/tmp' });
 
   const readStream = createReadStream('/tmp/output.wav');
 
