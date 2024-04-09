@@ -137,10 +137,12 @@ export const lookupMimetypeFromExtension = (extension: string) => {
       return 'image/webp';
 
     ///////////////////
-    // PDF
+    // Other
     ///////////////////
     case 'pdf':
       return 'application/pdf';
+    case 'eaf':
+      return 'application/eaf+xml';
 
     ///////////////////
     // Here for later as we deal with these
@@ -156,8 +158,6 @@ export const lookupMimetypeFromExtension = (extension: string) => {
     // case 'srt':
     //   return 'application/x-subrip';
     //
-    // case 'eaf':
-    //   return 'application/eaf+xml';
     // case 'flextext':
     //   return 'application/flextext+xml';
     // case 'kml':

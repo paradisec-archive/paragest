@@ -85,6 +85,15 @@ const getMagic = async (bucketName: string, objectKey: string) => {
   };
 };
 
+const allowedException = (detected: string, actual: string) => {
+  switch (true) {
+    case detected === 'text/xml' && actual === 'application/eaf+xml':
+      return true;
+    default:
+      return false;
+  }
+};
+
 export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event: Event) => {
   console.debug('Event:', JSON.stringify(event, null, 2));
 
@@ -109,7 +118,7 @@ export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event: Event
     throw new StepError(`${filename}: Unsupported file extension`, event, { detected });
   }
 
-  if (detected.mimetype !== mimetype) {
+  if (detected.mimetype !== mimetype && !allowedException(detected.mimetype, mimetype)) {
     throw new StepError(
       `${filename}: File mimetype doesn't match detected filetype ${mimetype} vs ${detected.mimetype}`,
       event,
