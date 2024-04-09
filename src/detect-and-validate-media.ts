@@ -70,7 +70,6 @@ const getMagic = async (bucketName: string, objectKey: string) => {
     (Body as Readable).pipe(writeStream).on('error', reject).on('finish', resolve);
   });
 
-
   const magic = await FileMagic.getInstance();
   const mimetype = magic.detectMimeType('/tmp/input');
 
@@ -85,9 +84,18 @@ const getMagic = async (bucketName: string, objectKey: string) => {
   };
 };
 
-const allowedException = (detected: string, actual: string) => {
+const allowedExtensionException = (detected: string, actual: string) => {
   switch (true) {
-    case detected === 'text/xml' && actual === 'application/eaf+xml':
+    case detected === 'xml' && actual === 'eaf':
+      return true;
+    default:
+      return false;
+  }
+};
+
+const allowedMimetypeException = (detected: string, actual: string) => {
+  switch (true) {
+    case detected === 'application/eaf+xml' && actual === 'application/xml':
       return true;
     default:
       return false;
@@ -104,12 +112,12 @@ export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event: Event
     objectKey,
   } = event;
 
-  const detected = await getFiletype(bucketName, objectKey) || await getMagic(bucketName, objectKey);
+  const detected = (await getFiletype(bucketName, objectKey)) || (await getMagic(bucketName, objectKey));
   if (!detected) {
     throw new StepError(`${filename}: Couldn't determine filetype`, event, event);
   }
 
-  if (detected.ext !== extension) {
+  if (detected.ext !== extension && !allowedExtensionException(detected.ext, extension)) {
     throw new StepError(`${filename}: File extension doesn't match detected filetype ${detected.ext}`, event, event);
   }
 
@@ -118,11 +126,11 @@ export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event: Event
     throw new StepError(`${filename}: Unsupported file extension`, event, { detected });
   }
 
-  if (detected.mimetype !== mimetype && !allowedException(detected.mimetype, mimetype)) {
+  if (detected.mimetype !== mimetype && !allowedMimetypeException(detected.mimetype, mimetype)) {
     throw new StepError(
-      `${filename}: File mimetype doesn't match detected filetype ${mimetype} vs ${detected.mimetype}`,
+      `${filename}: File mimetype doesn't match detected filetype ${detected.mimetype} ${mimetype}`,
       event,
-      { detected },
+      { detected, extension, mimetype },
     );
   }
 
