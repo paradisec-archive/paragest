@@ -1,6 +1,6 @@
 import { execSync } from 'node:child_process';
 import { createReadStream, createWriteStream, writeFileSync } from 'node:fs';
-import { Readable } from 'node:stream';
+import type { Readable } from 'node:stream';
 
 import * as Sentry from '@sentry/serverless';
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
@@ -56,7 +56,7 @@ export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event: Event
   // We assume we are already at -6dB from previous step in pipeline
   // Due to lossy nature we don't get exactly 0dB
   execSync(
-    'ffmpeg -y -i input.wav -i id3.txt -map_metadata 1 -write_id3v2 1 -filter:a "volume=6dB" -codec:a libmp3lame -b:a 128k output.mp3',
+    'ffmpeg -y -i input.wav -i id3.txt -map_metadata 1 -write_id3v2 1 -filter:a "volume=6dB" -codec:a libmp3lame -ar 44100 -b:a 128k output.mp3',
     { stdio: 'inherit', cwd: '/tmp' },
   );
 
