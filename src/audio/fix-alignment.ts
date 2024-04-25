@@ -85,7 +85,7 @@ export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event: Event
 
   const misalignmentMs = offset * 1000;
   const delay = misalignmentMs > 0 ? `${misalignmentMs.toFixed(0)}|0` : `0|${(misalignmentMs * -1).toFixed(0)}`;
-  execSync(`ffmpeg -i input.wav -af "adelay=${delay}" -ac 2 output.wav`, { stdio: 'inherit', cwd: '/tmp' });
+  execSync(`ffmpeg -i input.wav -af "adelay=${delay}" -ac 2 -ar 96000 -c:a pcm_s24le output.wav`, { stdio: 'inherit', cwd: '/tmp' });
 
   const readStream = createReadStream('/tmp/output.wav');
 

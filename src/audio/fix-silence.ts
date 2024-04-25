@@ -104,7 +104,7 @@ export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event: Event
   console.debug(`Only ${file} channel has audio, copying to output.wav`);
   notes.push(`Only ${file} channel has audio, copying to silent channel`);
 
-  execSync(`ffmpeg -y -i ${file}.wav -ac 2 output.wav`, { stdio: 'inherit', cwd: '/tmp' });
+  execSync(`ffmpeg -y -i ${file}.wav -ac 2 -ar 96000 -c:a pcm_s24le output.wav`, { stdio: 'inherit', cwd: '/tmp' });
 
   const readStream = createReadStream('/tmp/output.wav');
 
