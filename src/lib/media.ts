@@ -143,6 +143,18 @@ export const lookupMimetypeFromExtension = (extension: string) => {
       return 'application/pdf';
     case 'eaf':
       return 'application/eaf+xml';
+    case 'csv':
+      return 'text/csv';
+    case 'docx':
+      return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    case 'xlsx':
+      return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+    case 'rtf':
+      return 'text/rtf';
+    case 'txt':
+      return 'text/plain';
+    case 'zip':
+      return 'application/zip';
 
     ///////////////////
     // Here for later as we deal with these
@@ -151,7 +163,6 @@ export const lookupMimetypeFromExtension = (extension: string) => {
     // case 'TextGrid':
     // case 'lbl':
     // case 'tab':
-    // case 'txt':
     // case 'version':
     //   return 'text/plain';
     //
@@ -176,19 +187,12 @@ export const lookupMimetypeFromExtension = (extension: string) => {
     // case 'xhtml':
     //   return 'application/xhtml+xml';
     //
-    case 'csv':
-      return 'text/csv';
 
-    //   return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
     // case 'ods':
     //   return 'application/vnd.oasis.opendocument.spreadsheet';
     //
-    // case 'docx':
-    //   return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
     // case 'odt':
     //   return 'application/vnd.oasis.opendocument.text';
-    // case 'rtf':
-    //   return 'text/rtf';
     // case 'tex':
     //   return 'text/x-tex';
     //
@@ -196,8 +200,6 @@ export const lookupMimetypeFromExtension = (extension: string) => {
     //
     // case 'iso':
     //   return 'application/x-iso9660-image';
-    // case 'zip':
-    //   return 'application/zip';
 
     default:
       return null;
