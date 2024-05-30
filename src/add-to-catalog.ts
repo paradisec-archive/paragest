@@ -1,6 +1,6 @@
 import type { Handler } from 'aws-lambda';
 
-import * as Sentry from '@sentry/serverless';
+import * as Sentry from '@sentry/aws-serverless';
 
 import { S3Client, CopyObjectCommand, DeleteObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
 
@@ -94,7 +94,7 @@ const upsertEssence = async (
   return true;
 };
 
-export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event: Event) => {
+export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
   console.debug('Event:', JSON.stringify(event, null, 2));
   const {
     notes,

@@ -1,7 +1,7 @@
 import type { S3Event, Handler } from 'aws-lambda';
 import { SFN, type StartExecutionCommandInput } from '@aws-sdk/client-sfn';
 
-import * as Sentry from '@sentry/serverless';
+import * as Sentry from '@sentry/aws-serverless';
 
 import './lib/sentry.js';
 
@@ -12,7 +12,7 @@ if (!stateMachineArn) {
 
 const sfn = new SFN({});
 
-export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event: S3Event) => {
+export const handler: Handler = Sentry.wrapHandler(async (event: S3Event) => {
   console.debug('S3 event:', JSON.stringify(event, null, 2));
 
   const promises = event.Records.map((record) => {

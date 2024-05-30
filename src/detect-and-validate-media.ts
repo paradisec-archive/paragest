@@ -1,7 +1,7 @@
 import { createWriteStream } from 'node:fs';
 import type { Readable } from 'node:stream';
 
-import * as Sentry from '@sentry/serverless';
+import * as Sentry from '@sentry/aws-serverless';
 
 import type { Handler } from 'aws-lambda';
 import { FileMagic } from '@npcz/magic';
@@ -102,7 +102,7 @@ const allowedMimetypeException = (detected: string, actual: string) => {
   }
 };
 
-export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event: Event) => {
+export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
   console.debug('Event:', JSON.stringify(event, null, 2));
 
   const {

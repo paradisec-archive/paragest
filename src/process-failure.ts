@@ -1,6 +1,6 @@
 import type { Handler } from 'aws-lambda';
 
-import * as Sentry from '@sentry/serverless';
+import * as Sentry from '@sentry/aws-serverless';
 
 import { S3Client, CopyObjectCommand, DeleteObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
 
@@ -20,7 +20,7 @@ type ErrorData = {
 
 const s3 = new S3Client();
 
-export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event: Event) => {
+export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
   console.debug('Error:', JSON.stringify(event, null, 2));
 
   const { Cause } = event;

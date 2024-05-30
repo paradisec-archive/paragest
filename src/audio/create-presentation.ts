@@ -2,7 +2,7 @@ import { execSync } from 'node:child_process';
 import { createReadStream, createWriteStream, writeFileSync } from 'node:fs';
 import type { Readable } from 'node:stream';
 
-import * as Sentry from '@sentry/serverless';
+import * as Sentry from '@sentry/aws-serverless';
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 import { Upload } from '@aws-sdk/lib-storage';
 
@@ -28,7 +28,7 @@ type Event = {
 
 const s3 = new S3Client();
 
-export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event: Event) => {
+export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
   console.debug('Event: ', JSON.stringify(event, null, 2));
   const {
     notes,
