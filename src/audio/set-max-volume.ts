@@ -27,7 +27,6 @@ type Event = {
 
 const s3 = new S3Client();
 
-// max_volume: -1.8 dB
 const getVolume = (stats: string, event: Event) => {
   const lines = stats.split('\n');
   const statsObject: Record<string, number> = {};
