@@ -1,6 +1,6 @@
 import { execSync } from 'node:child_process';
 import { createReadStream, createWriteStream } from 'node:fs';
-import { Readable } from 'node:stream';
+import type { Readable } from 'node:stream';
 
 import * as Sentry from '@sentry/aws-serverless';
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
@@ -75,8 +75,8 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
     (Body as Readable).pipe(writeStream).on('error', reject).on('finish', resolve);
   });
 
-  execSync('ffmpeg -y -i input.wav -map_channel 0.0.0 left.wav', { stdio: 'inherit', cwd: '/tmp' });
-  execSync('ffmpeg -y -i input.wav -map_channel 0.0.1 right.wav', { stdio: 'inherit', cwd: '/tmp' });
+  execSync('ffmpeg -y -i input.wav -af "pan=mono|c0=FL" left.wav', { stdio: 'inherit', cwd: '/tmp' });
+  execSync('ffmpeg -y -i input.wav -af "pan=mono|c0=FR" right.wav', { stdio: 'inherit', cwd: '/tmp' });
   const left = execSync(
     'ffmpeg -y -i left.wav -filter:a volumedetect -f null /dev/null 2>&1 | grep volumedetect | sed "s/^.*] //"',
     { cwd: '/tmp' },
