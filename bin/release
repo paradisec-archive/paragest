@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+
+set -e
+
+ENV=$1
+if [ -z "$ENV" ]; then
+  echo "Usage: bin/release <stage|prod>"
+  exit 1
+fi
+
+git push
+git switch $ENV
+git merge --ff-only main
+git push
+
+AWS_PROFILE=nabu-${ENV} yarn cdk deploy
+
+RELEASE_NAME=$(date +'%Y%m%d%H%M%S')-$(git rev-parse --short HEAD)
+
+COMMON="--org nabu-d0 --project paragest"
+yarn sentry-cli releases $COMMON new $RELEASE_NAME
+yarn sentry-cli releases $COMMON set-commits --auto $RELEASE_NAME
+yarn sentry-cli releases $COMMON finalize $RELEASE_NAME
+
+echo "Sentry release $RELEASE_NAME created."
+
+git switch main
