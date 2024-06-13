@@ -7,7 +7,7 @@ import { S3Client, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import './lib/sentry.js';
 
 import { sendEmail } from './lib/email';
-import { EmailUser } from './gql/graphql';
+import type { EmailUser } from './gql/graphql';
 
 type Event = {
   notes: string[];
@@ -43,7 +43,7 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
   console.debug('Deleting object from incoming bucket');
   await s3.send(deleteCommand);
 
-  const subject = `Paraget Success: ${collectionIdentifier}/${itemIdentifier}/${filename}`;
+  const subject = `${process.env.PARAGEST_ENV === 'stage' ? '[STAGE]' : ''}Success: ${collectionIdentifier}/${itemIdentifier}/${filename}`;
   const body = (admin: EmailUser | undefined | null, unikey: string) =>
     `
     Hi,
@@ -54,7 +54,7 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
     ${notes.join('\n')}
 
     Cheers,
-    Your friendly Paraget engine.
+    Your friendly Paragest engine.
   `.replace(/^ {4}/gm, '');
 
   await sendEmail(principalId, subject, body);

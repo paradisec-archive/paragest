@@ -68,7 +68,7 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
     );
   });
 
-  const subject = `Paraget Error: ${message}`;
+  const subject = `${process.env.PARAGEST_ENV === 'stage' ? '[STAGE]' : ''}Paragest Error: ${message}`;
   const body = (admin: EmailUser | undefined | null, unikey: string) =>
     `
     Hi,
@@ -87,7 +87,7 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
     ${notes.join('\n')}
 
     Cheers,
-    Your friendly Paraget engine.
+    Your friendly Paragest engine.
   `.replace(/^ {4}/gm, '');
 
   await sendEmail(principalId, subject, body);

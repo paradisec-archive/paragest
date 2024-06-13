@@ -1,7 +1,7 @@
 import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses';
 
 import { getUserByUnikey } from '../models/user.js';
-import { EmailUser } from '../gql/graphql.js';
+import type { EmailUser } from '../gql/graphql.js';
 
 const ses = new SESClient();
 
