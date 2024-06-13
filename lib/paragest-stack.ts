@@ -201,29 +201,29 @@ export class ParagestStack extends cdk.Stack {
     // /////////////////////////////
     const convertAudioStep = paragestStep('ConvertAudio', 'src/audio/convert.ts', {
       grantFunc: (lambdaFunc) => ingestBucket.grantReadWrite(lambdaFunc),
-      lambdaProps: { layers: [mediaLayer] },
+      lambdaProps: { memorySize: 10240, timeout: cdk.Duration.minutes(15), layers: [mediaLayer] },
     });
     const fixSilenceStep = paragestStep('FixSilence', 'src/audio/fix-silence.ts', {
       grantFunc: (lambdaFunc) => ingestBucket.grantReadWrite(lambdaFunc),
-      lambdaProps: { layers: [mediaLayer] },
+      lambdaProps: { memorySize: 10240, timeout: cdk.Duration.minutes(15), layers: [mediaLayer] },
     });
     const setMaxVolumeStep = paragestStep('SetMaxVolume', 'src/audio/set-max-volume.ts', {
       grantFunc: (lambdaFunc) => ingestBucket.grantReadWrite(lambdaFunc),
-      lambdaProps: { layers: [mediaLayer] },
+      lambdaProps: { memorySize: 10240, timeout: cdk.Duration.minutes(15), layers: [mediaLayer] },
     });
     const createBWFStep = paragestStep('CreateBWF', 'src/audio/create-bwf.ts', {
       grantFunc: (lambdaFunc) => {
         ingestBucket.grantReadWrite(lambdaFunc);
         nabuOauthSecret.grantRead(lambdaFunc);
       },
-      lambdaProps: { layers: [mediaLayer] },
+      lambdaProps: { memorySize: 10240, timeout: cdk.Duration.minutes(15), layers: [mediaLayer] },
     });
     const createPresentationStep = paragestStep('CreatePresentationStep', 'src/audio/create-presentation.ts', {
       grantFunc: (lambdaFunc) => {
         ingestBucket.grantReadWrite(lambdaFunc);
         nabuOauthSecret.grantRead(lambdaFunc);
       },
-      lambdaProps: { layers: [mediaLayer] },
+      lambdaProps: { memorySize: 10240, timeout: cdk.Duration.minutes(15), layers: [mediaLayer] },
     });
     const processAudioFlow = sfn.Chain.start(convertAudioStep)
       .next(fixSilenceStep)
@@ -240,7 +240,7 @@ export class ParagestStack extends cdk.Stack {
         ingestBucket.grantReadWrite(lambdaFunc);
         nabuOauthSecret.grantRead(lambdaFunc);
       },
-      lambdaProps: { layers: [mediaLayer], timeout: cdk.Duration.minutes(15), memorySize: 10240 },
+      lambdaProps: { memorySize: 10240, timeout: cdk.Duration.minutes(15), layers: [mediaLayer] },
     });
 
     const createVideoPresentationStep = paragestStep(
@@ -251,7 +251,7 @@ export class ParagestStack extends cdk.Stack {
           ingestBucket.grantReadWrite(lambdaFunc);
           nabuOauthSecret.grantRead(lambdaFunc);
         },
-        lambdaProps: { layers: [mediaLayer], timeout: cdk.Duration.minutes(15), memorySize: 10240 },
+        lambdaProps: { memorySize: 10240, timeout: cdk.Duration.minutes(15), layers: [mediaLayer] },
       },
     );
     const processVideoFlow = sfn.Chain.start(createVideoArchivalStep)
