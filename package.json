@@ -24,12 +24,13 @@
     "file:emptyAnnis": "AWS_PROFILE=nabu-$ENV aws s3 cp samples/empty.txt s3://paragest-ingest-$ENV/incoming/JFTEST-001-emptyAnnis.annis",
     "file:PDSC": "AWS_PROFILE=nabu-$ENV aws s3 cp samples/bad-name.txt s3://paragest-ingest-$ENV/incoming/JFTEST-001-CAT-PDSC_ADMIN.xml",
     "file:notexportable": "AWS_PROFILE=nabu-$ENV aws s3 cp samples/sample.wav s3://paragest-ingest-$ENV/incoming/JFTEST-002-notExportable.wav",
-    "file:webp": "AWS_PROFILE=nabu-$ENV aws s3 cp samples/sample.webp s3://paragest-ingest-$ENV/incoming/JFTEST-001-webp.webp"
+    "file:webp": "AWS_PROFILE=nabu-$ENV aws s3 cp samples/sample.webp s3://paragest-ingest-$ENV/incoming/JFTEST-001-webp.webp",
+    "knip": "knip"
   },
   "devDependencies": {
     "@biomejs/biome": "1.8.1",
     "@graphql-codegen/cli": "^5.0.2",
-    "@graphql-codegen/client-preset": "^4.2.6",
+    "@graphql-codegen/client-preset": "^4.3.0",
     "@parcel/watcher": "^2.4.1",
     "@sentry/cli": "^2.32.1",
     "@tsconfig/node-lts": "^20.1.3",
@@ -39,36 +40,41 @@
     "@types/node": "^20.14.2",
     "@typescript-eslint/eslint-plugin": "^7.13.0",
     "@typescript-eslint/parser": "^7.13.0",
-    "aws-cdk": "2.145.0",
+    "aws-cdk": "2.146.0",
     "esbuild": "0.21.5",
     "eslint": "^8.57.0",
     "eslint-config-airbnb-base": "15.0.0",
     "eslint-import-resolver-node": "^0.3.9",
     "eslint-plugin-import": "^2.29.1",
     "jest": "^29.7.0",
+    "knip": "^5.19.0",
     "ts-jest": "^29.1.4",
     "ts-node": "^10.9.2",
     "typescript": "^5.4.5"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.592.0",
-    "@aws-sdk/client-secrets-manager": "^3.592.0",
-    "@aws-sdk/client-ses": "^3.592.0",
-    "@aws-sdk/client-sfn": "^3.592.0",
-    "@aws-sdk/lib-storage": "^3.592.0",
-    "@aws-sdk/s3-request-presigner": "^3.592.0",
+    "@aws-sdk/client-s3": "^3.596.0",
+    "@aws-sdk/client-secrets-manager": "^3.596.0",
+    "@aws-sdk/client-ses": "^3.596.0",
+    "@aws-sdk/client-sfn": "^3.596.0",
+    "@aws-sdk/lib-storage": "^3.596.0",
+    "@aws-sdk/s3-request-presigner": "^3.596.0",
     "@npcz/magic": "^1.3.16",
-    "@sentry/aws-serverless": "^8.8.0",
+    "@sentry/aws-serverless": "^8.9.2",
     "@tokenizer/s3": "^0.2.3",
     "@types/source-map-support": "^0.5.10",
     "@urql/core": "^5.0.4",
-    "aws-cdk-lib": "2.145.0",
+    "aws-cdk-lib": "2.146.0",
     "constructs": "^10.3.0",
     "eslint-config-biome": "^1.7.3",
     "file-type": "^19.0.0",
-    "graphql": "^16.8.1",
+    "graphql": "^16.8.2",
     "source-map-support": "^0.5.21",
     "zod": "^3.23.8"
   },
-  "packageManager": "yarn@4.2.2"
+  "packageManager": "yarn@4.2.2",
+  "knip": {
+    "entry": ["bin/paragest.ts", "src/*.ts", "src/audio/*.ts", "src/image/*.ts", "src/video/*.ts", "src/other/*.ts"],
+    "ignore": ["src/gql/*.ts"]
+  }
 }
