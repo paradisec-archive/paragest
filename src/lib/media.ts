@@ -21,7 +21,7 @@ const GeneralTrack = z.object({
     .string()
     .transform((value) => value === 'Yes')
     .optional(),
-  CodecID: z.string(),
+  CodecID: z.string().optional(),
 });
 
 const VideoTrack = z.object({
@@ -32,14 +32,14 @@ const VideoTrack = z.object({
   CodecID: z.string(),
   Duration: z.coerce.number(),
   BitRate_Mode: z.string().optional(),
-  BitRate: z.coerce.number(),
+  BitRate: z.coerce.number().optional(),
   Width: z.coerce.number(),
   Height: z.coerce.number(),
-  Sampled_Width: z.coerce.number(),
-  Sampled_Height: z.coerce.number(),
+  Sampled_Width: z.coerce.number().optional(),
+  Sampled_Height: z.coerce.number().optional(),
   PixelAspectRatio: z.coerce.number(),
   DisplayAspectRatio: z.coerce.number(),
-  Rotation: z.coerce.number(),
+  Rotation: z.coerce.number().optional(),
   FrameRate_Mode: z.string(),
   FrameRate: z.coerce.number(),
   FrameRate_Num: z.coerce.number(),
@@ -49,7 +49,7 @@ const VideoTrack = z.object({
   BitDepth: z.coerce.number(),
   ScanType: z.string(),
   Compression_Mode: z.string().optional(),
-  StreamSize: z.coerce.number(),
+  StreamSize: z.coerce.number().optional(),
 });
 
 const AudioTrack = z.object({
@@ -62,14 +62,14 @@ const AudioTrack = z.object({
   CodecID: z.string().optional(),
   Duration: z.coerce.number(),
   BitRate_Mode: z.string(),
-  BitRate: z.coerce.number(),
+  BitRate: z.coerce.number().optional(),
   Channels: z.coerce.number(),
   ChannelPositions: z.string().optional(),
   ChannelLayout: z.string().optional(),
   SamplingRate: z.coerce.number(),
   SamplingCount: z.coerce.number(),
   BitDepth: z.coerce.number().optional(),
-  StreamSize: z.coerce.number(),
+  StreamSize: z.coerce.number().optional(),
 });
 
 const MediaTrack = z.discriminatedUnion('@type', [GeneralTrack, VideoTrack, AudioTrack]);
