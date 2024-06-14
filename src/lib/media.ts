@@ -88,9 +88,9 @@ export const MediaInfoSchema = z.object({
 
 export const lookupMimetypeFromExtension = (extension: string) => {
   switch (extension) {
-    ///////////////////
+    // /////////////////
     // Audio
-    ///////////////////
+    // /////////////////
     case 'm4a':
       return 'audio/mp4';
     case 'mp3':
@@ -98,9 +98,9 @@ export const lookupMimetypeFromExtension = (extension: string) => {
     case 'wav':
       return 'audio/vnd.wav';
 
-    ///////////////////
+    // /////////////////
     // Video
-    ///////////////////
+    // /////////////////
 
     case 'mp4':
     case 'm4v':
@@ -125,9 +125,9 @@ export const lookupMimetypeFromExtension = (extension: string) => {
     // We aren't going to accept these
     // case '3gp':
 
-    ///////////////////
+    // /////////////////
     // Images
-    ///////////////////
+    // /////////////////
     case 'jpg':
       return 'image/jpeg';
     case 'png':
@@ -137,9 +137,9 @@ export const lookupMimetypeFromExtension = (extension: string) => {
     case 'webp':
       return 'image/webp';
 
-    ///////////////////
+    // /////////////////
     // Other
-    ///////////////////
+    // /////////////////
     case 'pdf':
       return 'application/pdf';
     case 'eaf':
@@ -157,7 +157,7 @@ export const lookupMimetypeFromExtension = (extension: string) => {
     case 'zip':
       return 'application/zip';
 
-    ///////////////////
+    // /////////////////
     // Here for later as we deal with these
     // case 'annis':
     // case 'cha':

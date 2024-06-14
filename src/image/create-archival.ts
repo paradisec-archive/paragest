@@ -1,6 +1,6 @@
 import { execSync } from 'node:child_process';
 import { createReadStream, createWriteStream } from 'node:fs';
-import { Readable } from 'node:stream';
+import type { Readable } from 'node:stream';
 
 import * as Sentry from '@sentry/aws-serverless';
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';

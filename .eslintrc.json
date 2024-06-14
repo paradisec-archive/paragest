@@ -1,7 +1,8 @@
 {
   "env": {
     "browser": true,
-    "es2021": true
+    "es2021": true,
+    "jest": true
   },
   "extends": [
     "eslint:recommended",
@@ -12,15 +13,8 @@
   ],
   "overrides": [
     {
-      "files": [
-        "*.ts",
-        "*.js",
-        "*.tsx",
-        "*.jsx"
-      ],
-      "extends": [
-        "biome"
-      ]
+      "files": ["*.ts", "*.js", "*.tsx", "*.jsx"],
+      "extends": ["biome"]
     }
   ],
   "parser": "@typescript-eslint/parser",
@@ -28,9 +22,7 @@
     "ecmaVersion": "latest",
     "sourceType": "module"
   },
-  "plugins": [
-    "@typescript-eslint"
-  ],
+  "plugins": ["@typescript-eslint"],
   "root": true,
   "rules": {
     "import/no-unresolved": "off",
@@ -51,13 +43,8 @@
     "no-console": [
       "warn",
       {
-        "allow": [
-          "debug",
-          "error",
-          "time",
-          "timeEnd"
-        ]
+        "allow": ["debug", "error", "time", "timeEnd"]
       }
     ]
-  },
+  }
 }

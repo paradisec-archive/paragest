@@ -57,7 +57,7 @@ export class ParagestStack extends cdk.Stack {
         ...lambdaPropsRest,
         bundling: {
           ...lambdaCommon.bundling,
-          nodeModules: nodeModules,
+          nodeModules,
         },
         entry,
       });

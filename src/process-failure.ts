@@ -7,7 +7,7 @@ import { S3Client, CopyObjectCommand, DeleteObjectCommand, ListObjectsV2Command 
 import './lib/sentry.js';
 
 import { sendEmail } from './lib/email';
-import { EmailUser } from './gql/graphql';
+import type { EmailUser } from './gql/graphql';
 
 type Event = {
   Cause: string;

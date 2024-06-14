@@ -8,6 +8,7 @@
     "cdk": "cdk",
     "deploy": "cdk deploy",
     "codegen": "graphql-codegen",
+    "lint": "biome lint . && eslint .",
     "file:wav": "AWS_PROFILE=nabu-$ENV aws s3 cp samples/sample.wav s3://paragest-ingest-$ENV/incoming/JFTEST-001-wav.wav",
     "file:mono": "AWS_PROFILE=nabu-$ENV aws s3 cp samples/mono.wav s3://paragest-ingest-$ENV/incoming/JFTEST-001-mono.wav",
     "file:left_silent": "AWS_PROFILE=nabu-$ENV aws s3 cp samples/left_silent.wav s3://paragest-ingest-$ENV/incoming/JFTEST-001-leftSilent.wav",
@@ -26,6 +27,7 @@
     "file:webp": "AWS_PROFILE=nabu-$ENV aws s3 cp samples/sample.webp s3://paragest-ingest-$ENV/incoming/JFTEST-001-webp.webp"
   },
   "devDependencies": {
+    "@biomejs/biome": "1.8.1",
     "@graphql-codegen/cli": "^5.0.2",
     "@graphql-codegen/client-preset": "^4.2.6",
     "@parcel/watcher": "^2.4.1",

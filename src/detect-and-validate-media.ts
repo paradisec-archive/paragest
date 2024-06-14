@@ -50,6 +50,7 @@ const getFiletype = async (bucketName: string, objectKey: string) => {
     case 'audio/wav':
       mimetype = 'audio/vnd.wav';
       break;
+    default:
   }
 
   return {
