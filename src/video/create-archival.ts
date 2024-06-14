@@ -1,6 +1,6 @@
 import { execSync } from 'node:child_process';
 import { createReadStream, createWriteStream } from 'node:fs';
-import { Readable } from 'node:stream';
+import type { Readable } from 'node:stream';
 
 import * as Sentry from '@sentry/aws-serverless';
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
@@ -9,6 +9,7 @@ import { Upload } from '@aws-sdk/lib-storage';
 import type { Handler } from 'aws-lambda';
 
 import '../lib/sentry.js';
+import { getMediaMetadata } from '../lib/media.js';
 
 type Event = {
   notes: string[];
@@ -46,28 +47,43 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
     (Body as Readable).pipe(writeStream).on('error', reject).on('finish', resolve);
   });
 
-  const is10Bit = event.videoBitDepth === 10;
-  const fmt = is10Bit ? 'yuv422p10be' : 'yuv422p';
+  // TODO maybe refactor later as this accesses via S3 and we've already downloaded
+  const {
+    other: { bitDepth, scanType, generalFormat, audioCodecId, videoCodecId },
+  } = await getMediaMetadata(bucketName, objectKey);
+
+  const is10Bit = bitDepth === 10;
+  const isInterlaced = scanType === 'Interlaced';
+  const isAcceptablePresentationInput =
+    generalFormat === 'Matroska' && audioCodecId === 'A_FLAC' && videoCodecId === 'V_MS/VFW/FOURCC / FFV1';
+
   notes.push(`create-archival: Is 10-bit: ${is10Bit}`);
+  notes.push(`create-archival: Is interlaced: ${isInterlaced}`);
+  notes.push(`create-archival: Codecs (G/A/V): ${generalFormat}/${audioCodecId}/${videoCodecId}`);
+  notes.push(`create-archival: Is acceptable presentation format: ${isAcceptablePresentationInput}`);
 
-  execSync(
-    `ffmpeg -y -hide_banner -i input -t 10 -c:v libopenjpeg -pix_fmt ${fmt} -compression_level 0 -ac 2 -ar 48000 -c:a pcm_s24le output.mxf`,
-    { stdio: 'inherit', cwd: '/tmp' },
-  );
+  if (isAcceptablePresentationInput) {
+    execSync('mv input output.mkv', { stdio: 'inherit', cwd: '/tmp' });
+    notes.push('create-archival: Copied MKV file');
+  } else {
+    execSync(
+      'ffmpeg -y -hide_banner -i input -map 0 -dn -c:v ffv1 -level 3 -g 1 -slicecrc 1 -slices 16 -c:a flac output.mkv',
+      { stdio: 'inherit', cwd: '/tmp' },
+    );
+    notes.push('create-archival: Created MKV file');
+  }
 
-  const readStream = createReadStream('/tmp/output.mxf');
+  const readStream = createReadStream('/tmp/output.mkv');
 
   await new Upload({
     client: s3,
     params: {
       Bucket: bucketName,
-      Key: `output/${filename}/${filename.replace(new RegExp(`.${extension}$`), '.mxf')}`,
+      Key: `output/${filename}/${filename.replace(new RegExp(`.${extension}$`), '.mkv')}`,
       Body: readStream,
-      ContentType: 'application/mxf',
+      ContentType: 'application/mkv',
     },
   }).done();
-
-  notes.push('create-archival: created MXF');
 
   return event;
 });

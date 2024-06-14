@@ -21,6 +21,7 @@ const GeneralTrack = z.object({
     .string()
     .transform((value) => value === 'Yes')
     .optional(),
+  CodecID: z.string(),
 });
 
 const VideoTrack = z.object({
@@ -246,5 +247,13 @@ export const getMediaMetadata = async (bucketName: string, objectKey: string) =>
     samplerate: audio?.SamplingRate,
     bitrate: general.OverallBitRate,
     fps: video?.FrameRate,
+    other: {
+      bitDepth: video?.BitDepth,
+      scanType: video?.ScanType,
+      generalFormat: general.Format,
+      generalCodecId: general.CodecID,
+      videoCodecId: video?.CodecID,
+      audioCodecId: audio?.CodecID,
+    }
   };
 };

@@ -1,6 +1,6 @@
 import { execSync } from 'node:child_process';
 import { createReadStream, createWriteStream } from 'node:fs';
-import { Readable } from 'node:stream';
+import type { Readable } from 'node:stream';
 
 import * as Sentry from '@sentry/aws-serverless';
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
@@ -9,6 +9,7 @@ import { Upload } from '@aws-sdk/lib-storage';
 import type { Handler } from 'aws-lambda';
 
 import '../lib/sentry.js';
+import { getMediaMetadata } from '../lib/media.js';
 
 type Event = {
   notes: string[];
@@ -44,7 +45,30 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
     (Body as Readable).pipe(writeStream).on('error', reject).on('finish', resolve);
   });
 
-  execSync('ffmpeg -y -hide_banner -i input -c:v libx264 output.mp4', { stdio: 'inherit', cwd: '/tmp' });
+  // TODO maybe refactor later as this accesses via S3 and we've already downloaded
+  const {
+    other: { bitDepth, scanType, generalCodecId, audioCodecId, videoCodecId },
+  } = await getMediaMetadata(bucketName, objectKey);
+
+  const is10Bit = bitDepth === 10;
+  const isInterlaced = scanType === 'Interlaced';
+  const isAcceptablePresentationInput = generalCodecId.startsWith('isom') && audioCodecId === 'AAC LC' && videoCodecId === 'AVC';
+
+  notes.push(`create-presentation: Is 10-bit: ${is10Bit}`);
+  notes.push(`create-presentation: Is interlaced: ${isInterlaced}`);
+  notes.push(`create-presentation: Codecs (G/A/V): ${generalCodecId}/${audioCodecId}/${videoCodecId}`);
+  notes.push(`create-presentation: Is acceptable presentation format: ${isAcceptablePresentationInput}`);
+
+  if (isAcceptablePresentationInput) {
+    execSync('mv input output.mp4', { stdio: 'inherit', cwd: '/tmp' });
+    notes.push('create-presentation: Copied MP4 file');
+  } else {
+    execSync(
+      `ffmpeg -y -hide_banner -i input -c:v libx264 -pix_fmt yuv420p ${isInterlaced ? '-vf yadif' : ''} -preset slower -crf 15 -c:a aac output.mp4`,
+      { stdio: 'inherit', cwd: '/tmp' },
+    );
+    notes.push('create-presentation: Created MP4 file');
+  }
 
   const readStream = createReadStream('/tmp/output.mp4');
 
@@ -58,7 +82,6 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
     },
   }).done();
 
-  notes.push('createPresentation: Created MP4 file');
 
   return event;
 });

@@ -72,7 +72,7 @@ const upsertEssence = async (
 
   if (mimetype.startsWith('audio') || mimetype.startsWith('video')) {
     console.debug('Getting media metadata', destBucket, fileKey);
-    const mediaAttributes = await getMediaMetadata(destBucket, fileKey);
+    const { other, ...mediaAttributes } = await getMediaMetadata(destBucket, fileKey);
     Object.assign(attributes, mediaAttributes);
   }
 
