@@ -62,14 +62,23 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
   notes.push(`create-archival: Codecs (G/A/V): ${generalFormat}/${audioCodecId}/${videoCodecId}`);
   notes.push(`create-archival: Is acceptable presentation format: ${isAcceptablePresentationInput}`);
 
+  execSync('df -h', { stdio: 'inherit', cwd: '/tmp' });
+  execSync('ls -alh /tmp', { stdio: 'inherit', cwd: '/tmp' });
   if (isAcceptablePresentationInput) {
     execSync('mv input output.mkv', { stdio: 'inherit', cwd: '/tmp' });
     notes.push('create-archival: Copied MKV file');
   } else {
-    execSync(
-      'ffmpeg -y -hide_banner -i input -map 0 -dn -c:v ffv1 -level 3 -g 1 -slicecrc 1 -slices 16 -c:a flac output.mkv',
-      { stdio: 'inherit', cwd: '/tmp' },
-    );
+    try {
+      execSync(
+        'ffmpeg -y -hide_banner -i input -map 0 -dn -c:v ffv1 -level 3 -g 1 -slicecrc 1 -slices 16 -c:a flac output.mkv',
+        { stdio: 'inherit', cwd: '/tmp' },
+      );
+    } catch (error) {
+      execSync('ls -alh /tmp', { stdio: 'inherit', cwd: '/tmp' });
+      execSync('df -h', { stdio: 'inherit', cwd: '/tmp' });
+      console.error('Error: ', error);
+      throw error;
+    }
     notes.push('create-archival: Created MKV file');
   }
 

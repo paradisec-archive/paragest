@@ -1,15 +1,24 @@
 #!/usr/bin/bash
 
-KEY=$1
-if [ -z "$KEY" ]; then
-  echo "Usage: $0 <key>"
+ENV=$1
+if [ -z "$ENV" ]; then
+  echo "Usage: $0 <env> <key>"
   exit 1
 fi
 
-SIZE=$(aws s3api head-object \
-  --bucket paragest-ingest-stage \
-  --key incoming/${KEY} \
-  | jq -r .ContentLength
+KEY=$2
+if [ -z "$KEY" ]; then
+  echo "Usage: $2 <key>"
+  exit 1
+fi
+
+AWS_PROFILE=nabu-$ENV
+
+SIZE=$(
+  aws s3api head-object \
+    --bucket paragest-ingest-${ENV} \
+    --key incoming/${KEY} |
+    jq -r .ContentLength
 )
 
 if [ -z "$SIZE" ]; then
@@ -19,7 +28,8 @@ fi
 
 FUNC_NAME=$(aws lambda list-functions | jq -r '.Functions[] | select(.FunctionName | startswith("ParagestStack-ProcessS3EventLambda")) | .FunctionName')
 
-EVENT=$(cat <<EOF
+EVENT=$(
+  cat <<EOF
 {
   "Records": [{
     "userIdentity": {
@@ -27,7 +37,7 @@ EVENT=$(cat <<EOF
     },
     "s3": {
       "bucket": {
-        "name": "paragest-ingest-stage"
+        "name": "paragest-ingest-${ENV}"
       },
       "object": {
         "key": "incoming/${KEY}",
