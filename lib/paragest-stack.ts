@@ -3,6 +3,10 @@ import * as path from 'node:path';
 import * as cdk from 'aws-cdk-lib';
 import type { Construct } from 'constructs';
 
+import * as batch from 'aws-cdk-lib/aws-batch';
+import * as ec2 from 'aws-cdk-lib/aws-ec2';
+import * as ecs from 'aws-cdk-lib/aws-ecs';
+import * as ecrAssets from 'aws-cdk-lib/aws-ecr-assets';
 import * as eventsources from 'aws-cdk-lib/aws-lambda-event-sources';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
@@ -10,8 +14,10 @@ import * as nodejs from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import * as sfn from 'aws-cdk-lib/aws-stepfunctions';
+import * as ssm from 'aws-cdk-lib/aws-ssm';
 import * as tasks from 'aws-cdk-lib/aws-stepfunctions-tasks';
 import { SecretValue } from 'aws-cdk-lib';
+import type { IRole } from 'aws-cdk-lib/aws-iam';
 
 // TODO: Be more specific on where functions can read and write
 
@@ -89,8 +95,8 @@ export class ParagestStack extends cdk.Stack {
       description: 'Image Layer',
     });
 
-    // const toSnakeCase = (str: string) =>
-    //   `${str.charAt(0).toLowerCase()}${str.slice(1)}`.replace(/([A-Z])/g, '-$1').toLowerCase();
+    const toSnakeCase = (str: string) =>
+      `${str.charAt(0).toLowerCase()}${str.slice(1)}`.replace(/([A-Z])/g, '-$1').toLowerCase();
 
     // const paragestContainerStep = (stepId: string, { lambdaProps, grantFunc }: paragestStepOpts = {}) => {
     //   const lambdaFunction = new lambda.DockerImageFunction(this, `${stepId}Lambda`, {
@@ -123,6 +129,84 @@ export class ParagestStack extends cdk.Stack {
         clientSecret: SecretValue.unsafePlainText('FIXME'),
       },
     });
+
+    // /////////////////////////////
+    // Batch
+    // /////////////////////////////
+
+    const vpc = ec2.Vpc.fromLookup(this, 'FargateVPC', {
+      vpcId: ssm.StringParameter.valueFromLookup(this, '/usyd/resources/vpc-id'),
+    });
+    const dataSubnets = ['a', 'b', 'c'].map((az, index) => {
+      const subnetId = ssm.StringParameter.valueForStringParameter(
+        this,
+        `/usyd/resources/subnets/isolated/apse2${az}-id`,
+      );
+      const availabilityZone = `ap-southeast-2${az}`;
+      const subnet = ec2.Subnet.fromSubnetAttributes(this, `DataSubnet${index}`, { subnetId, availabilityZone });
+      cdk.Annotations.of(subnet).acknowledgeWarning('@aws-cdk/aws-ec2:noSubnetRouteTableId');
+
+      return subnet;
+    });
+
+    const batchEnv = new batch.FargateComputeEnvironment(this, 'FargateComputeEnv', {
+      vpc,
+      vpcSubnets: {
+        subnets: dataSubnets,
+      },
+      updateToLatestImageVersion: true,
+      // spot: true,
+    });
+    const jobQueue = new batch.JobQueue(this, 'BatchQueue', {
+      priority: 1,
+      jobStateTimeLimitActions: [
+        {
+          action: batch.JobStateTimeLimitActionsAction.CANCEL,
+          maxTime: cdk.Duration.minutes(30),
+          reason: batch.JobStateTimeLimitActionsReason.INSUFFICIENT_INSTANCE_CAPACITY,
+          state: batch.JobStateTimeLimitActionsState.RUNNABLE,
+        },
+      ],
+    });
+    jobQueue.addComputeEnvironment(batchEnv, 1);
+
+    type ParagestFargateOpts = {
+      grantFunc?: (role: IRole) => void; // eslint-disable-line no-unused-vars
+    };
+    const paragestFargateStep = (stepId: string, { grantFunc }: ParagestFargateOpts = {}) => { // eslint-disable-line no-unused-vars
+      const image = new ecrAssets.DockerImageAsset(this, `${stepId}DockerImage`, {
+        directory: path.join(__dirname, '..'),
+        file: `docker/${toSnakeCase(stepId)}/Dockerfile`,
+      });
+
+      const jobDef = new batch.EcsJobDefinition(this, `${stepId}JobDef`, {
+        container: new batch.EcsFargateContainerDefinition(this, `${stepId}FargateContainer`, {
+          image: ecs.ContainerImage.fromDockerImageAsset(image),
+          memory: cdk.Size.mebibytes(4096),
+          cpu: 1024,
+          ephemeralStorageSize: cdk.Size.gibibytes(200),
+          fargateCpuArchitecture: ecs.CpuArchitecture.X86_64,
+          fargateOperatingSystemFamily: ecs.OperatingSystemFamily.LINUX,
+        }),
+      });
+
+
+      const task = new tasks.BatchSubmitJob(this, `${stepId}SubmitJob`, {
+        jobDefinitionArn: jobDef.jobDefinitionArn,
+        jobQueueArn: jobQueue.jobQueueArn,
+        jobName: `${stepId}Job`,
+        containerOverrides: {
+          environment: {
+            SFN_INPUT: sfn.JsonPath.stringAt('$.Payload'),
+          },
+        },
+        outputPath: '$.Payload',
+      });
+
+      grantFunc?.(jobDef.container.executionRole);
+
+      return task;
+    };
 
     // /////////////////////////////
     // Common Steps
@@ -235,12 +319,11 @@ export class ParagestStack extends cdk.Stack {
     // /////////////////////////////
     // Video Flow Steps
     // /////////////////////////////
-    const createVideoArchivalStep = paragestStep('CreateVideoArchival', 'src/video/create-archival.ts', {
-      grantFunc: (lambdaFunc) => {
-        ingestBucket.grantReadWrite(lambdaFunc);
-        nabuOauthSecret.grantRead(lambdaFunc);
+    const createVideoArchivalStep = paragestFargateStep('CreateVideoArchival', {
+      grantFunc: (container) => {
+        ingestBucket.grantReadWrite(container);
+        nabuOauthSecret.grantRead(container);
       },
-      lambdaProps: { memorySize: 10240, timeout: cdk.Duration.minutes(15), layers: [mediaLayer] },
     });
 
     const createVideoPresentationStep = paragestStep(
