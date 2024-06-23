@@ -11,7 +11,6 @@ import {
   CreateMultipartUploadCommand,
   UploadPartCopyCommand,
   CompleteMultipartUploadCommand,
-  type CompletedPart
 } from '@aws-sdk/client-s3';
 
 import './lib/sentry.js';
@@ -41,9 +40,7 @@ const destBucket = `nabu-catalog-${env}`;
 
 const bigCopy = async (bucketName: string, source: string, dest: string, objectSize: number) => {
   const partSize = 5 * 1024 * 1024 * 1024;
-  let partNumber = 1;
   let uploadId: string | undefined;
-  const copyResults: CompletedPart[] = [];
 
   const createMultipartUploadResult = await s3.send(
     new CreateMultipartUploadCommand({
@@ -53,39 +50,37 @@ const bigCopy = async (bucketName: string, source: string, dest: string, objectS
   );
   uploadId = createMultipartUploadResult.UploadId;
 
-  let start = 0;
+  const numParts = Math.ceil(objectSize / partSize);
 
-  while (true) {
-    const end = Math.min(start + partSize - 1, objectSize - 1);
+  const promises = [];
+  for (let partNumber = 1; partNumber <= numParts; partNumber += 1) {
+    const start = (partNumber - 1) * partSize;
+    const end = partNumber * partSize - 1;
     const copySourceRange = `bytes=${start}-${end}`;
 
-    const uploadPartCopyResult = await s3.send( // eslint-disable-line no-await-in-loop
-      new UploadPartCopyCommand({
-        Bucket: bucketName,
-        CopySource: `${bucketName}/${source}`,
-        CopySourceRange: copySourceRange,
-        Key: dest,
-        PartNumber: partNumber,
-        UploadId: uploadId,
-      }),
-    );
-
-    if (!uploadPartCopyResult.CopyPartResult?.ChecksumSHA256) {
-      throw new Error('Checksum missing');
-    }
-
-    copyResults.push({
-      ChecksumSHA256: uploadPartCopyResult.CopyPartResult?.ChecksumSHA256,
+    const cmd = new UploadPartCopyCommand({
+      Bucket: bucketName,
+      CopySource: `${bucketName}/${source}`,
+      CopySourceRange: copySourceRange,
+      Key: dest,
       PartNumber: partNumber,
+      UploadId: uploadId,
     });
 
-    partNumber += 1;
-    start += partSize;
+    const promise = s3.send(cmd).then((result) => {
+      if (!result.CopyPartResult?.ChecksumSHA256) {
+        throw new Error('Checksum missing');
+      }
+      return {
+        ChecksumSHA256: result.CopyPartResult?.ChecksumSHA256,
+        PartNumber: partNumber,
+      };
+    });
 
-    if (start > objectSize - 1) {
-      break;
-    }
+    promises.push(promise);
   }
+
+  const copyResults = await Promise.all(promises);
 
   await s3.send(
     new CompleteMultipartUploadCommand({
