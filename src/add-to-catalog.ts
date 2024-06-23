@@ -38,14 +38,14 @@ const env = process.env.PARAGEST_ENV;
 
 const destBucket = `nabu-catalog-${env}`;
 
-const bigCopy = async (bucketName: string, source: string, dest: string, objectSize: number) => {
+const bigCopy = async (srcBucket: string, dstBucket: string, src: string, dst: string, objectSize: number) => {
   const partSize = 5 * 1024 * 1024 * 1024;
   let uploadId: string | undefined;
 
   const createMultipartUploadResult = await s3.send(
     new CreateMultipartUploadCommand({
-      Bucket: bucketName,
-      Key: dest,
+      Bucket: dstBucket,
+      Key: dst,
     }),
   );
   uploadId = createMultipartUploadResult.UploadId;
@@ -56,13 +56,13 @@ const bigCopy = async (bucketName: string, source: string, dest: string, objectS
   for (let partNumber = 1; partNumber <= numParts; partNumber += 1) {
     const start = (partNumber - 1) * partSize;
     const end = partNumber * partSize - 1;
-    const copySourceRange = `bytes=${start}-${end}`;
+    const copySourceRange = `bytes=${start}-${end > objectSize ? objectSize : end}`;
 
     const cmd = new UploadPartCopyCommand({
-      Bucket: bucketName,
-      CopySource: `${bucketName}/${source}`,
+      Bucket: dstBucket,
+      CopySource: `${srcBucket}/${src}`,
       CopySourceRange: copySourceRange,
-      Key: dest,
+      Key: dst,
       PartNumber: partNumber,
       UploadId: uploadId,
     });
@@ -84,8 +84,8 @@ const bigCopy = async (bucketName: string, source: string, dest: string, objectS
 
   await s3.send(
     new CompleteMultipartUploadCommand({
-      Bucket: bucketName,
-      Key: dest,
+      Bucket: dstBucket,
+      Key: dst,
       UploadId: uploadId,
       MultipartUpload: {
         Parts: copyResults,
@@ -116,7 +116,7 @@ const moveFiles = async (bucketName: string, source: string, dest: string) => {
     await s3.send(copyCommand);
   } else {
     console.debug(`Big Copying ${source} to ${dest}`);
-    await bigCopy(bucketName, source, dest, objectSize);
+    await bigCopy(bucketName, destBucket, source, dest, objectSize);
   }
 
   console.debug(`Deleting output ${source}`);
