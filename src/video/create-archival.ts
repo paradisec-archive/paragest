@@ -63,23 +63,14 @@ export const handler = async (event: Event) => {
   notes.push(`create-archival: Codecs (G/A/V): ${generalFormat}/${audioCodecId}/${videoCodecId}`);
   notes.push(`create-archival: Is acceptable presentation format: ${isAcceptablePresentationInput}`);
 
-  execSync('df -h', { stdio: 'inherit', cwd: '/tmp' });
-  execSync('ls -alh /tmp', { stdio: 'inherit', cwd: '/tmp' });
   if (isAcceptablePresentationInput) {
     execSync('mv input output.mkv', { stdio: 'inherit', cwd: '/tmp' });
     notes.push('create-archival: Copied MKV file');
   } else {
-    try {
-      execSync(
-        'ffmpeg -y -hide_banner -i input -map 0 -dn -c:v ffv1 -level 3 -g 1 -slicecrc 1 -slices 16 -c:a flac output.mkv',
-        { stdio: 'inherit', cwd: '/tmp' },
-      );
-    } catch (error) {
-      execSync('ls -alh /tmp', { stdio: 'inherit', cwd: '/tmp' });
-      execSync('df -h', { stdio: 'inherit', cwd: '/tmp' });
-      console.error('Error: ', error);
-      throw error;
-    }
+    execSync(
+      'ffmpeg -y -hide_banner -i input -map 0 -dn -c:v ffv1 -level 3 -g 1 -slicecrc 1 -slices 16 -c:a flac output.mkv',
+      { stdio: 'inherit', cwd: '/tmp' },
+    );
     notes.push('create-archival: Created MKV file');
   }
 
@@ -96,8 +87,8 @@ export const handler = async (event: Event) => {
   }).done();
 
   const successCommand = new SendTaskSuccessCommand({
-  taskToken: event.taskToken,
-  output: JSON.stringify({ event }),
+    taskToken: process.env.SFN_TASK_TOKEN,
+    output: JSON.stringify(event),
   });
   await sfn.send(successCommand);
 };

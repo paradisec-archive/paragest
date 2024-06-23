@@ -173,23 +173,27 @@ export class ParagestStack extends cdk.Stack {
     type ParagestFargateOpts = {
       grantFunc?: (role: IRole) => void; // eslint-disable-line no-unused-vars
     };
-    const paragestFargateStep = (stepId: string, { grantFunc }: ParagestFargateOpts = {}) => { // eslint-disable-line no-unused-vars
+    const paragestFargateStep = (stepId: string, { grantFunc }: ParagestFargateOpts = {}) => {
+      // eslint-disable-line no-unused-vars
       const image = new ecrAssets.DockerImageAsset(this, `${stepId}DockerImage`, {
         directory: path.join(__dirname, '..'),
         file: `docker/${toSnakeCase(stepId)}/Dockerfile`,
+      });
+      const jobRole = new iam.Role(this, `${stepId}JobRole`, {
+        assumedBy: new iam.ServicePrincipal('ecs-tasks.amazonaws.com'),
       });
 
       const jobDef = new batch.EcsJobDefinition(this, `${stepId}JobDef`, {
         container: new batch.EcsFargateContainerDefinition(this, `${stepId}FargateContainer`, {
           image: ecs.ContainerImage.fromDockerImageAsset(image),
-          memory: cdk.Size.mebibytes(4096),
-          cpu: 1024,
+          memory: cdk.Size.gibibytes(8),
+          cpu: 4,
           ephemeralStorageSize: cdk.Size.gibibytes(200),
           fargateCpuArchitecture: ecs.CpuArchitecture.X86_64,
           fargateOperatingSystemFamily: ecs.OperatingSystemFamily.LINUX,
+          jobRole,
         }),
       });
-
 
       const task = new tasks.BatchSubmitJob(this, `${stepId}SubmitJob`, {
         jobDefinitionArn: jobDef.jobDefinitionArn,
@@ -197,13 +201,24 @@ export class ParagestStack extends cdk.Stack {
         jobName: `${stepId}Job`,
         containerOverrides: {
           environment: {
-            SFN_INPUT: sfn.JsonPath.stringAt('$.Payload'),
+            SFN_INPUT: sfn.JsonPath.jsonToString(sfn.JsonPath.stringAt('$')),
+            SFN_TASK_TOKEN: sfn.JsonPath.taskToken,
+            PARAGEST_ENV: env,
+            SENTRY_DSN: 'https://e36e8aa3d034861a3803d2edbd4773ff@o4504801902985216.ingest.sentry.io/4506375864254464',
           },
         },
-        outputPath: '$.Payload',
+        outputPath: '$',
       });
 
-      grantFunc?.(jobDef.container.executionRole);
+      grantFunc?.(jobRole);
+
+      jobRole.addToPolicy(
+        new iam.PolicyStatement({
+          actions: ['states:SendTaskSuccess', 'states:SendTaskFailure', 'states:SendTaskHeartbeat'],
+          // TODO: Make this more specific
+          resources: ['*'],
+        }),
+      );
 
       return task;
     };

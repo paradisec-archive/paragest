@@ -21,20 +21,18 @@ COPY src/lib/*.ts ${FUNCTION_DIR}/lib/
 RUN echo  /
 RUN ls  /
 RUN echo  /function
-RUN ls  /function
+RUN ls node_modules
+RUN ls node_modules/@sentry
+RUN ls node_modules/@sentry/node
 
 RUN ./node_modules/.bin/esbuild \
   --bundle video/create-archival.ts \
-  --target=esnext \
+  --target=node20 \
   --platform=node \
-  --format=esm \
   --outfile=index.js \
   --minify \
   --sourcemap=external \
-  --sources-content=true \
-  --loader:.node=copy \
-  --banner:js="import { createRequire } from 'module';const require = createRequire(import.meta.url);" \
-  --main-fields=module,main
+  --sources-content=true
 
 FROM node:lts-alpine
 
@@ -51,10 +49,13 @@ RUN apk add --no-cache --virtual .build-deps-yarn wget \
   && rm -rf /tmp/ffmpeg \
   && apk del .build-deps-yarn
 
+RUN apk add mediainfo
+
 # Set working directory to function root directory
 WORKDIR ${FUNCTION_DIR}
 
 # Copy in the built dependencies
 COPY --from=build-image ${FUNCTION_DIR}/index.js ${FUNCTION_DIR}
+COPY --from=build-image ${FUNCTION_DIR}/index.js.map ${FUNCTION_DIR}
 
-CMD ["node", "index.js"]
+CMD ["node", "--enable-source-maps", "index.js"]
