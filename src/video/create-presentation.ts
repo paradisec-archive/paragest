@@ -1,14 +1,13 @@
+import '../lib/sentry-node.js';
+
 import { execSync } from 'node:child_process';
 import { createReadStream, createWriteStream } from 'node:fs';
 import type { Readable } from 'node:stream';
 
-import * as Sentry from '@sentry/aws-serverless';
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 import { Upload } from '@aws-sdk/lib-storage';
+import { SFNClient, SendTaskSuccessCommand } from '@aws-sdk/client-sfn';
 
-import type { Handler } from 'aws-lambda';
-
-import '../lib/sentry.js';
 import { getMediaMetadata } from '../lib/media.js';
 
 type Event = {
@@ -23,11 +22,13 @@ type Event = {
     filename: string;
     extension: string;
   };
+  taskToken: string;
 };
 
 const s3 = new S3Client();
+const sfn = new SFNClient();
 
-export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
+export const handler = (async (event: Event) => {
   console.debug('Event: ', JSON.stringify(event, null, 2));
   const {
     notes,
@@ -82,6 +83,17 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
     },
   }).done();
 
-
-  return event;
+  const successCommand = new SendTaskSuccessCommand({
+    taskToken: process.env.SFN_TASK_TOKEN,
+    output: JSON.stringify(event),
+  });
+  await sfn.send(successCommand);
 });
+
+
+const event = process.env.SFN_INPUT;
+if (!event) {
+  throw new Error('No event provided');
+}
+
+handler(JSON.parse(event));

@@ -95,27 +95,6 @@ export class ParagestStack extends cdk.Stack {
       description: 'Image Layer',
     });
 
-    const toSnakeCase = (str: string) =>
-      `${str.charAt(0).toLowerCase()}${str.slice(1)}`.replace(/([A-Z])/g, '-$1').toLowerCase();
-
-    // const paragestContainerStep = (stepId: string, { lambdaProps, grantFunc }: paragestStepOpts = {}) => {
-    //   const lambdaFunction = new lambda.DockerImageFunction(this, `${stepId}Lambda`, {
-    //     code: lambda.DockerImageCode.fromImageAsset(path.join(__dirname, '..'), {
-    //       file: `docker/${toSnakeCase(stepId)}/Dockerfile`,
-    //     }),
-    //     ...lambdaCommon,
-    //     ...lambdaProps,
-    //   });
-    //   grantFunc?.(lambdaFunction);
-    //
-    //   const task = new tasks.LambdaInvoke(this, `${stepId}Task`, {
-    //     lambdaFunction,
-    //     outputPath: '$.Payload',
-    //   });
-    //
-    //   return task;
-    // };
-
     const ingestBucket = new s3.Bucket(this, 'IngestBucket', {
       bucketName: `paragest-ingest-${env}`,
     });
@@ -173,11 +152,14 @@ export class ParagestStack extends cdk.Stack {
     type ParagestFargateOpts = {
       grantFunc?: (role: IRole) => void; // eslint-disable-line no-unused-vars
     };
-    const paragestFargateStep = (stepId: string, { grantFunc }: ParagestFargateOpts = {}) => {
+    const paragestFargateStep = (stepId: string, source: string, { grantFunc }: ParagestFargateOpts = {}) => {
       // eslint-disable-line no-unused-vars
       const image = new ecrAssets.DockerImageAsset(this, `${stepId}DockerImage`, {
         directory: path.join(__dirname, '..'),
-        file: `docker/${toSnakeCase(stepId)}/Dockerfile`,
+        file: 'docker/fargate/Dockerfile',
+        buildArgs: {
+          SOURCE_FILE: source,
+        },
       });
       const jobRole = new iam.Role(this, `${stepId}JobRole`, {
         assumedBy: new iam.ServicePrincipal('ecs-tasks.amazonaws.com'),
@@ -186,8 +168,8 @@ export class ParagestStack extends cdk.Stack {
       const jobDef = new batch.EcsJobDefinition(this, `${stepId}JobDef`, {
         container: new batch.EcsFargateContainerDefinition(this, `${stepId}FargateContainer`, {
           image: ecs.ContainerImage.fromDockerImageAsset(image),
-          memory: cdk.Size.gibibytes(8),
-          cpu: 4,
+          memory: cdk.Size.gibibytes(32),
+          cpu: 16,
           ephemeralStorageSize: cdk.Size.gibibytes(200),
           fargateCpuArchitecture: ecs.CpuArchitecture.X86_64,
           fargateOperatingSystemFamily: ecs.OperatingSystemFamily.LINUX,
@@ -334,24 +316,19 @@ export class ParagestStack extends cdk.Stack {
     // /////////////////////////////
     // Video Flow Steps
     // /////////////////////////////
-    const createVideoArchivalStep = paragestFargateStep('CreateVideoArchival', {
+    const createVideoArchivalStep = paragestFargateStep('CreateVideoArchival', 'video/create-archival.ts', {
       grantFunc: (container) => {
         ingestBucket.grantReadWrite(container);
         nabuOauthSecret.grantRead(container);
       },
     });
 
-    const createVideoPresentationStep = paragestStep(
-      'CreateVideoPresentationStep',
-      'src/video/create-presentation.ts',
-      {
-        grantFunc: (lambdaFunc) => {
-          ingestBucket.grantReadWrite(lambdaFunc);
-          nabuOauthSecret.grantRead(lambdaFunc);
-        },
-        lambdaProps: { memorySize: 10240, timeout: cdk.Duration.minutes(15), layers: [mediaLayer] },
+    const createVideoPresentationStep = paragestFargateStep('CreateVideoPresentationStep', 'video/create-presentation.ts', {
+      grantFunc: (lambdaFunc) => {
+        ingestBucket.grantReadWrite(lambdaFunc);
+        nabuOauthSecret.grantRead(lambdaFunc);
       },
-    );
+    });
     const processVideoFlow = sfn.Chain.start(createVideoArchivalStep)
       .next(createVideoPresentationStep)
       .next(addToCatalogFlow);

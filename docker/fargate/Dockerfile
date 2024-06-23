@@ -1,22 +1,23 @@
-ARG FUNCTION_DIR="/function"
-
 FROM node:lts-alpine as build-image
 
-ARG FUNCTION_DIR
-
-RUN mkdir -p ${FUNCTION_DIR}/video ${FUNCTION_DIR}/lib
-COPY .yarnrc.yml ${FUNCTION_DIR}
-COPY package.json ${FUNCTION_DIR}
-COPY yarn.lock ${FUNCTION_DIR}
+ARG SOURCE_FILE
 
 WORKDIR /function
+
+RUN mkdir -p /function/video /function/lib
+
+COPY .yarnrc.yml /function
+COPY package.json /function
+COPY yarn.lock /function
+
+
 RUN corepack enable
 RUN yarn --immutable
 
 RUN ls
 
-COPY src/video/create-archival.ts ${FUNCTION_DIR}/video/
-COPY src/lib/*.ts ${FUNCTION_DIR}/lib/
+COPY src/${SOURCE_FILE} /function/video/
+COPY src/lib/*.ts /function/lib/
 
 RUN echo  /
 RUN ls  /
@@ -26,7 +27,7 @@ RUN ls node_modules/@sentry
 RUN ls node_modules/@sentry/node
 
 RUN ./node_modules/.bin/esbuild \
-  --bundle video/create-archival.ts \
+  --bundle ${SOURCE_FILE} \
   --target=node20 \
   --platform=node \
   --outfile=index.js \
@@ -52,10 +53,10 @@ RUN apk add --no-cache --virtual .build-deps-yarn wget \
 RUN apk add mediainfo
 
 # Set working directory to function root directory
-WORKDIR ${FUNCTION_DIR}
+WORKDIR /function
 
 # Copy in the built dependencies
-COPY --from=build-image ${FUNCTION_DIR}/index.js ${FUNCTION_DIR}
-COPY --from=build-image ${FUNCTION_DIR}/index.js.map ${FUNCTION_DIR}
+COPY --from=build-image /function/index.js /function
+COPY --from=build-image /function/index.js.map /function
 
 CMD ["node", "--enable-source-maps", "index.js"]
