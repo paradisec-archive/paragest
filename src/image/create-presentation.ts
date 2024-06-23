@@ -55,6 +55,7 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
       Key: `output/${filename}/${filename.replace(new RegExp(`.${extension}$`), '.jpg')}`,
       Body: readStream,
       ContentType: 'image/jpeg',
+      ChecksumAlgorithm: 'SHA256',
     },
   }).done();
 

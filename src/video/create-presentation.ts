@@ -80,6 +80,7 @@ export const handler = (async (event: Event) => {
       Key: `output/${filename}/${filename.replace(new RegExp(`.${extension}$`), '.mp4')}`,
       Body: readStream,
       ContentType: 'video/mp4',
+      ChecksumAlgorithm: 'SHA256',
     },
   }).done();
 

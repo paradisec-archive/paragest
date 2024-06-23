@@ -83,6 +83,7 @@ export const handler = async (event: Event) => {
       Key: `output/${filename}/${filename.replace(new RegExp(`.${extension}$`), '.mkv')}`,
       Body: readStream,
       ContentType: 'application/mkv',
+      ChecksumAlgorithm: 'SHA256',
     },
   }).done();
 

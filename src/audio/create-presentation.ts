@@ -69,6 +69,7 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
       Key: `output/${filename}/${filename.replace(new RegExp(`.${extension}$`), '.mp3')}`,
       Body: readStream,
       ContentType: 'audio/mpeg',
+      ChecksumAlgorithm: 'SHA256',
     },
   }).done();
 
