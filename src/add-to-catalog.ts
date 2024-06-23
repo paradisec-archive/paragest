@@ -56,7 +56,8 @@ const bigCopy = async (srcBucket: string, dstBucket: string, src: string, dst: s
   for (let partNumber = 1; partNumber <= numParts; partNumber += 1) {
     const start = (partNumber - 1) * partSize;
     const end = partNumber * partSize - 1;
-    const copySourceRange = `bytes=${start}-${end > objectSize ? objectSize : end}`;
+    const copySourceRange = `bytes=${start}-${end > objectSize ? '' : end}`;
+    console.debug(`Copying part ${partNumber} with range ${copySourceRange}`);
 
     const cmd = new UploadPartCopyCommand({
       Bucket: dstBucket,
