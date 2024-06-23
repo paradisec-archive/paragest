@@ -2,7 +2,17 @@ import type { Handler } from 'aws-lambda';
 
 import * as Sentry from '@sentry/aws-serverless';
 
-import { S3Client, CopyObjectCommand, DeleteObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
+import {
+  S3Client,
+  CopyObjectCommand,
+  DeleteObjectCommand,
+  ListObjectsV2Command,
+  HeadObjectCommand,
+  CreateMultipartUploadCommand,
+  UploadPartCopyCommand,
+  CompleteMultipartUploadCommand,
+  type CompletedPart
+} from '@aws-sdk/client-s3';
 
 import './lib/sentry.js';
 import { getMediaMetadata, lookupMimetypeFromExtension } from './lib/media.js';
@@ -29,15 +39,90 @@ const env = process.env.PARAGEST_ENV;
 
 const destBucket = `nabu-catalog-${env}`;
 
+const bigCopy = async (bucketName: string, source: string, dest: string, objectSize: number) => {
+  const partSize = 5 * 1024 * 1024 * 1024;
+  let partNumber = 1;
+  let uploadId: string | undefined;
+  const copyResults: CompletedPart[] = [];
+
+  const createMultipartUploadResult = await s3.send(
+    new CreateMultipartUploadCommand({
+      Bucket: bucketName,
+      Key: dest,
+    }),
+  );
+  uploadId = createMultipartUploadResult.UploadId;
+
+  let start = 0;
+
+  while (true) {
+    const end = Math.min(start + partSize - 1, objectSize - 1);
+    const copySourceRange = `bytes=${start}-${end}`;
+
+    const uploadPartCopyResult = await s3.send( // eslint-disable-line no-await-in-loop
+      new UploadPartCopyCommand({
+        Bucket: bucketName,
+        CopySource: `${bucketName}/${source}`,
+        CopySourceRange: copySourceRange,
+        Key: dest,
+        PartNumber: partNumber,
+        UploadId: uploadId,
+      }),
+    );
+
+    if (!uploadPartCopyResult.CopyPartResult?.ChecksumSHA256) {
+      throw new Error('Checksum missing');
+    }
+
+    copyResults.push({
+      ChecksumSHA256: uploadPartCopyResult.CopyPartResult?.ChecksumSHA256,
+      PartNumber: partNumber,
+    });
+
+    partNumber += 1;
+    start += partSize;
+
+    if (start > objectSize - 1) {
+      break;
+    }
+  }
+
+  await s3.send(
+    new CompleteMultipartUploadCommand({
+      Bucket: bucketName,
+      Key: dest,
+      UploadId: uploadId,
+      MultipartUpload: {
+        Parts: copyResults,
+      },
+    }),
+  );
+};
+
 const moveFiles = async (bucketName: string, source: string, dest: string) => {
-  console.debug(`Copying ${source} to ${dest}`);
-  const copyCommand = new CopyObjectCommand({
-    CopySource: `${bucketName}/${source}`,
-    Bucket: destBucket,
-    Key: dest,
-    ChecksumAlgorithm: 'SHA256',
-  });
-  await s3.send(copyCommand);
+  const headObject = await s3.send(
+    new HeadObjectCommand({
+      Bucket: bucketName,
+      Key: source,
+    }),
+  );
+
+  const objectSize = headObject.ContentLength || 0;
+  const partSize = 5 * 1024 * 1024 * 1024;
+
+  if (objectSize < partSize) {
+    console.debug(`Small Copying ${source} to ${dest}`);
+    const copyCommand = new CopyObjectCommand({
+      CopySource: `${bucketName}/${source}`,
+      Bucket: destBucket,
+      Key: dest,
+      ChecksumAlgorithm: 'SHA256',
+    });
+    await s3.send(copyCommand);
+  } else {
+    console.debug(`Big Copying ${source} to ${dest}`);
+    await bigCopy(bucketName, source, dest, objectSize);
+  }
 
   console.debug(`Deleting output ${source}`);
   const deleteCommand = new DeleteObjectCommand({
