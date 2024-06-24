@@ -69,11 +69,13 @@ const bigCopy = async (srcBucket: string, dstBucket: string, src: string, dst: s
     });
 
     const promise = s3.send(cmd).then((result) => {
-      if (!result.CopyPartResult?.ChecksumSHA256) {
-        throw new Error('Checksum missing');
+      console.debug(result, partNumber);
+      if (!result.CopyPartResult?.ETag) {
+        throw new Error('Checksum missing MOO3');
       }
+
       return {
-        ChecksumSHA256: result.CopyPartResult?.ChecksumSHA256,
+        ETag: result.CopyPartResult?.ETag,
         PartNumber: partNumber,
       };
     });
