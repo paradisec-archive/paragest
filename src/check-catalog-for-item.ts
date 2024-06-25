@@ -28,6 +28,11 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
   }
   const extension = extensionOrig?.toLowerCase();
 
+  const hypenMatches = objectKey.match(/-/g);
+  if (hypenMatches && hypenMatches.length > 2) {
+    throw new StepError(`Object key ${objectKey} has more than two hyphens`, event, { objectKey });
+  }
+
   const filename = `${collectionIdentifier}-${itemIdentifier}-${rest}.${extension}`;
   console.debug('Filename:', filename);
 
