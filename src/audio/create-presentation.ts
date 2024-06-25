@@ -71,6 +71,7 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
       ContentType: 'audio/mpeg',
       ChecksumAlgorithm: 'SHA256',
     },
+    partSize: 100 * 1024 * 1024,
   }).done();
 
   notes.push('createPresentation: Created MP3 file');

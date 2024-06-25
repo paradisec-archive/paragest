@@ -66,6 +66,7 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
       ContentType: 'audio/wav',
       ChecksumAlgorithm: 'SHA256',
     },
+    partSize: 100 * 1024 * 1024,
   }).done();
 
   notes.push('createBWF: Created BWF file');

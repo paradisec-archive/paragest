@@ -39,7 +39,7 @@ const env = process.env.PARAGEST_ENV;
 const destBucket = `nabu-catalog-${env}`;
 
 const bigCopy = async (srcBucket: string, dstBucket: string, src: string, dst: string, objectSize: number) => {
-  const partSize = 5 * 1024 * 1024 * 1024;
+  const partSize = 100 * 1024 * 1024;
   let uploadId: string | undefined;
 
   const createMultipartUploadResult = await s3.send(

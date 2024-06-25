@@ -82,6 +82,7 @@ export const handler = (async (event: Event) => {
       ContentType: 'video/mp4',
       ChecksumAlgorithm: 'SHA256',
     },
+    partSize: 100 * 1024 * 1024,
   }).done();
 
   const successCommand = new SendTaskSuccessCommand({
