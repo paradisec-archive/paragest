@@ -72,13 +72,37 @@ const AudioTrack = z.object({
   StreamSize: z.coerce.number().optional(),
 });
 
-const OtherTrack = z.object({
-  '@type': z.literal('General'),
+const TextTrack = z.object({
+  '@type': z.literal('Text'),
   ID: z.coerce.number().optional(),
   Format: z.string(),
 });
 
-const MediaTrack = z.discriminatedUnion('@type', [GeneralTrack, VideoTrack, AudioTrack, OtherTrack]);
+const OtherTrack = z.object({
+  '@type': z.literal('Other'),
+  ID: z.coerce.number().optional(),
+  Format: z.string(),
+});
+
+const ImageTrack = z.object({
+  '@type': z.literal('Image'),
+  ID: z.coerce.number().optional(),
+  Format: z.string(),
+});
+
+const MenuTrack = z.object({
+  '@type': z.literal('Menu'),
+  ID: z.coerce.number().optional(),
+  Format: z.string(),
+});
+
+const MaxTrack = z.object({
+  '@type': z.literal('Max'),
+  ID: z.coerce.number().optional(),
+  Format: z.string(),
+});
+
+const MediaTrack = z.discriminatedUnion('@type', [GeneralTrack, VideoTrack, AudioTrack, OtherTrack, ImageTrack, TextTrack, MenuTrack, MaxTrack]);
 
 export const MediaInfoSchema = z.object({
   creatingLibrary: z.object({
