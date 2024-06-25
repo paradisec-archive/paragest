@@ -8,6 +8,12 @@ if [ -z "$ENV" ]; then
   exit 1
 fi
 
+# Check on main branch
+if [ $(git branch --show-current) != "main" ]; then
+  echo "You must be on the main branch to release."
+  exit 1
+fi
+
 git push
 git switch $ENV
 git merge --ff-only main
