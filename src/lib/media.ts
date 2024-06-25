@@ -72,7 +72,13 @@ const AudioTrack = z.object({
   StreamSize: z.coerce.number().optional(),
 });
 
-const MediaTrack = z.discriminatedUnion('@type', [GeneralTrack, VideoTrack, AudioTrack]);
+const OtherTrack = z.object({
+  '@type': z.literal('General'),
+  ID: z.coerce.number().optional(),
+  Format: z.string(),
+});
+
+const MediaTrack = z.discriminatedUnion('@type', [GeneralTrack, VideoTrack, AudioTrack, OtherTrack]);
 
 export const MediaInfoSchema = z.object({
   creatingLibrary: z.object({
