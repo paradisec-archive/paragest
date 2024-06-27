@@ -9,6 +9,7 @@ import { Upload } from '@aws-sdk/lib-storage';
 import type { Handler } from 'aws-lambda';
 
 import { StepError } from '../lib/errors.js';
+import { execute } from '../lib/command.js';
 import '../lib/sentry.js';
 import { getItemBwfCsv } from '../models/item.js';
 
@@ -53,7 +54,7 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
     (Body as Readable).pipe(writeStream).on('error', reject).on('finish', resolve);
   });
 
-  execSync('bwfmetaedit --in-core=core.csv input.wav', { stdio: 'inherit', cwd: '/tmp' });
+  execute('bwfmetaedit --in-core=core.csv input.wav', event);
 
   const readStream = createReadStream('/tmp/input.wav');
 
