@@ -21,7 +21,7 @@ git push
 
 AWS_PROFILE=nabu-${ENV} yarn cdk deploy
 
-RELEASE_NAME=$(date +'%Y%m%d')-$(git rev-parse --short HEAD)
+RELEASE_NAME=$(git rev-parse --short HEAD)
 
 COMMON="--org nabu-d0 --project paragest"
 yarn sentry-cli releases $COMMON new $RELEASE_NAME

@@ -22,16 +22,9 @@ import type { IRole } from 'aws-cdk-lib/aws-iam';
 
 // TODO: Be more specific on where functions can read and write
 
-function getGitSha(): string {
-  return execSync('git rev-parse --short HEAD').toString().trim();
-}
-
-function getCurrentDate(): string {
-  const date = new Date();
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}${month}${day}`;
+function getGitSha(file: string) {
+  // We want the SHA to change only when the file or deps change
+  return execSync(`git log -1 --format=format:%h -- ${file} src/lib`).toString().trim();
 }
 
 export class ParagestStack extends cdk.Stack {
@@ -61,9 +54,6 @@ export class ParagestStack extends cdk.Stack {
         },
         sourceMap: true,
         minify: true,
-        define: {
-          'process.env.SENTRY_RELEASE': JSON.stringify(`${getCurrentDate()}-${getGitSha()}`),
-        },
       },
     };
 
@@ -80,6 +70,9 @@ export class ParagestStack extends cdk.Stack {
         bundling: {
           ...lambdaCommon.bundling,
           nodeModules,
+          define: {
+            'process.env.SENTRY_RELEASE': JSON.stringify(getGitSha(entry)),
+          },
         },
         entry,
       });
@@ -341,12 +334,16 @@ export class ParagestStack extends cdk.Stack {
       },
     });
 
-    const createVideoPresentationStep = paragestFargateStep('CreateVideoPresentationStep', 'video/create-presentation.ts', {
-      grantFunc: (lambdaFunc) => {
-        ingestBucket.grantReadWrite(lambdaFunc);
-        nabuOauthSecret.grantRead(lambdaFunc);
+    const createVideoPresentationStep = paragestFargateStep(
+      'CreateVideoPresentationStep',
+      'video/create-presentation.ts',
+      {
+        grantFunc: (lambdaFunc) => {
+          ingestBucket.grantReadWrite(lambdaFunc);
+          nabuOauthSecret.grantRead(lambdaFunc);
+        },
       },
-    });
+    );
     const processVideoFlow = sfn.Chain.start(createVideoArchivalStep)
       .next(createVideoPresentationStep)
       .next(addToCatalogFlow);
