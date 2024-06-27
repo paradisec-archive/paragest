@@ -62,7 +62,7 @@ export class ParagestStack extends cdk.Stack {
         sourceMap: true,
         minify: true,
         define: {
-          'process.env.SENTRY_RELEASE': `${getCurrentDate}-${getGitSha()}`,
+          'process.env.SENTRY_RELEASE': JSON.stringify(`${getCurrentDate()}-${getGitSha()}`),
         },
       },
     };
