@@ -4,6 +4,10 @@ if (!process.env.SENTRY_DSN) {
   throw new Error('Missing SENTRY_DSN');
 }
 
+if (!process.env.SENTRY_RELEASE) {
+  throw new Error('Missing SENTRY_RELEASE');
+}
+
 if (!process.env.PARAGEST_ENV) {
   throw new Error('Missing PARAGEST_ENV');
 }
@@ -11,6 +15,7 @@ if (!process.env.PARAGEST_ENV) {
 Sentry.init({
   dsn: process.env.SENTRY_DSN,
   environment: process.env.PARAGEST_ENV,
+  release: process.env.SENTRY_RELEASE,
   tracesSampleRate: 1.0,
   profilesSampleRate: 1.0,
   beforeSend: (event, hint) => {
