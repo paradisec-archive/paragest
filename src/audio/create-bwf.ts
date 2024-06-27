@@ -1,4 +1,3 @@
-import { execSync } from 'node:child_process';
 import { createReadStream, createWriteStream, writeFileSync } from 'node:fs';
 import type { Readable } from 'node:stream';
 

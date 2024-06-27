@@ -1,6 +1,5 @@
 import '../lib/sentry-node.js';
 
-import { execSync } from 'node:child_process';
 import { createReadStream, createWriteStream } from 'node:fs';
 import type { Readable } from 'node:stream';
 
@@ -9,6 +8,7 @@ import { Upload } from '@aws-sdk/lib-storage';
 import { SFNClient, SendTaskSuccessCommand } from '@aws-sdk/client-sfn';
 
 import { getMediaMetadata } from '../lib/media.js';
+import { execute } from '../lib/command.js';
 
 type Event = {
   notes: string[];
@@ -51,7 +51,7 @@ export const handler = async (event: Event) => {
   // TODO maybe refactor later as this accesses via S3 and we've already downloaded
   const {
     other: { bitDepth, scanType, generalFormat, audioCodecId, videoCodecId },
-  } = await getMediaMetadata(bucketName, objectKey);
+  } = await getMediaMetadata(bucketName, objectKey, event);
 
   const is10Bit = bitDepth === 10;
   const isInterlaced = scanType === 'Interlaced';
@@ -64,12 +64,12 @@ export const handler = async (event: Event) => {
   notes.push(`create-archival: Is acceptable presentation format: ${isAcceptablePresentationInput}`);
 
   if (isAcceptablePresentationInput) {
-    execSync('mv input output.mkv', { stdio: 'inherit', cwd: '/tmp' });
+    execute('mv input output.mkv', event);
     notes.push('create-archival: Copied MKV file');
   } else {
-    execSync(
+    execute(
       'ffmpeg -y -hide_banner -i input -map 0 -dn -c:v ffv1 -level 3 -g 1 -slicecrc 1 -slices 16 -c:a flac output.mkv',
-      { stdio: 'inherit', cwd: '/tmp' },
+      event
     );
     notes.push('create-archival: Created MKV file');
   }

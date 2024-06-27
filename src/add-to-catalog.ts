@@ -155,7 +155,7 @@ const upsertEssence = async (
 
   if (mimetype.startsWith('audio') || mimetype.startsWith('video')) {
     console.debug('Getting media metadata', destBucket, fileKey);
-    const { other, ...mediaAttributes } = await getMediaMetadata(destBucket, fileKey); // eslint-disable-line @typescript-eslint/no-unused-vars
+    const { other, ...mediaAttributes } = await getMediaMetadata(destBucket, fileKey, event); // eslint-disable-line @typescript-eslint/no-unused-vars
     Object.assign(attributes, mediaAttributes);
   }
 

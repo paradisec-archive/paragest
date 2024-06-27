@@ -8,16 +8,15 @@ interface ExecSyncError extends Error {
   stdout?: Buffer;
 }
 
-export const execute = (command: string, event: Record<string, string | number | object | undefined>) => {
+export const execute = (command: string, event: Record<string, string | number | object>) => {
   try {
     const cmd = `${command} 2>&1`;
 
-    const output = execSync(cmd, { stdio: 'pipe', cwd: '/tmp' });
+    const output = execSync(cmd, { stdio: 'pipe', cwd: '/tmp', encoding: 'utf-8' });
 
     process.stdout.write(output);
 
-    // const outputString = output.toString();
-    // console.debug('Captured stdout:', outputString);
+    return output.toString();
   } catch (error) {
     const execError = error as ExecSyncError;
 
@@ -29,5 +28,7 @@ export const execute = (command: string, event: Record<string, string | number |
 
       throw new StepError("Unknown error - contact John if you don't understand the issue", event, { error: errorStdout });
     }
+
+    throw error;
   }
 };

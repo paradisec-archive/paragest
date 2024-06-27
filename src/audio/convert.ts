@@ -1,4 +1,3 @@
-import { execSync } from 'node:child_process';
 import { createReadStream, createWriteStream } from 'node:fs';
 import type { Readable } from 'node:stream';
 
@@ -9,6 +8,7 @@ import { Upload } from '@aws-sdk/lib-storage';
 import type { Handler } from 'aws-lambda';
 
 import '../lib/sentry.js';
+import { execute } from '../lib/command.js';
 
 type Event = {
   notes: string[];
@@ -46,7 +46,7 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
   });
 
   // Stereo, 96kHz, 24-bit
-  execSync('ffmpeg -y -i input -ac 2 -ar 96000 -c:a pcm_s24le output.wav', { stdio: 'inherit', cwd: '/tmp' });
+  execute('ffmpeg -y -i input -ac 2 -ar 96000 -c:a pcm_s24le output.wav', event);
 
   const readStream = createReadStream('/tmp/output.wav');
 

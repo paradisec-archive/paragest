@@ -1,4 +1,3 @@
-import { execSync } from 'node:child_process';
 import { createReadStream, createWriteStream } from 'node:fs';
 import type { Readable } from 'node:stream';
 
@@ -10,6 +9,7 @@ import type { Handler } from 'aws-lambda';
 
 import '../lib/sentry.js';
 import { StepError } from '../lib/errors.js';
+import { execute } from '../lib/command.js';
 
 type Event = {
   notes: string[];
@@ -75,19 +75,17 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
     (Body as Readable).pipe(writeStream).on('error', reject).on('finish', resolve);
   });
 
-  execSync('ffmpeg -y -i input.wav -af "pan=mono|c0=FL" left.wav', { stdio: 'inherit', cwd: '/tmp' });
-  execSync('ffmpeg -y -i input.wav -af "pan=mono|c0=FR" right.wav', { stdio: 'inherit', cwd: '/tmp' });
-  const left = execSync(
+  execute('ffmpeg -y -i input.wav -af "pan=mono|c0=FL" left.wav', event);
+  execute('ffmpeg -y -i input.wav -af "pan=mono|c0=FR" right.wav', event);
+  const left = execute(
     'ffmpeg -y -i left.wav -filter:a volumedetect -f null /dev/null 2>&1 | grep volumedetect | sed "s/^.*] //"',
-    { cwd: '/tmp' },
+    event
   );
-  console.debug('Left:', left.toString());
   const leftSilent = checkSilence(left.toString(), event);
-  const right = execSync(
+  const right = execute(
     'ffmpeg -y -i right.wav -filter:a volumedetect -f null /dev/null 2>&1 | grep volumedetect | sed "s/^.*] //"',
-    { cwd: '/tmp' },
+    event
   );
-  console.debug('Right:', right.toString());
   const rightSilent = checkSilence(right.toString(), event);
 
   if (leftSilent && rightSilent) {
@@ -104,7 +102,7 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
   console.debug(`Only ${file} channel has audio, copying to output.wav`);
   notes.push(`Only ${file} channel has audio, copying to silent channel`);
 
-  execSync(`ffmpeg -y -i ${file}.wav -ac 2 -ar 96000 -c:a pcm_s24le output.wav`, { stdio: 'inherit', cwd: '/tmp' });
+  execute(`ffmpeg -y -i ${file}.wav -ac 2 -ar 96000 -c:a pcm_s24le output.wav`, event);
 
   const readStream = createReadStream('/tmp/output.wav');
 

@@ -1,6 +1,5 @@
 import '../lib/sentry-node.js';
 
-import { execSync } from 'node:child_process';
 import { createReadStream, createWriteStream } from 'node:fs';
 import type { Readable } from 'node:stream';
 
@@ -9,6 +8,7 @@ import { Upload } from '@aws-sdk/lib-storage';
 import { SFNClient, SendTaskSuccessCommand } from '@aws-sdk/client-sfn';
 
 import { getMediaMetadata } from '../lib/media.js';
+import { execute } from '../lib/command.js';
 
 type Event = {
   notes: string[];
@@ -49,7 +49,7 @@ export const handler = (async (event: Event) => {
   // TODO maybe refactor later as this accesses via S3 and we've already downloaded
   const {
     other: { bitDepth, scanType, generalCodecId, audioCodecId, videoCodecId },
-  } = await getMediaMetadata(bucketName, objectKey);
+  } = await getMediaMetadata(bucketName, objectKey, event);
 
   const is10Bit = bitDepth === 10;
   const isInterlaced = scanType === 'Interlaced';
@@ -61,12 +61,12 @@ export const handler = (async (event: Event) => {
   notes.push(`create-presentation: Is acceptable presentation format: ${isAcceptablePresentationInput}`);
 
   if (isAcceptablePresentationInput) {
-    execSync('mv input output.mp4', { stdio: 'inherit', cwd: '/tmp' });
+    execute('mv input output.mp4', event);
     notes.push('create-presentation: Copied MP4 file');
   } else {
-    execSync(
+    execute(
       `ffmpeg -y -hide_banner -i input -c:v libx264 -pix_fmt yuv420p ${isInterlaced ? '-vf yadif' : ''} -preset slower -crf 15 -c:a aac output.mp4`,
-      { stdio: 'inherit', cwd: '/tmp' },
+      event
     );
     notes.push('create-presentation: Created MP4 file');
   }

@@ -1,4 +1,3 @@
-import { execSync } from 'node:child_process';
 import { createReadStream, createWriteStream, writeFileSync } from 'node:fs';
 import type { Readable } from 'node:stream';
 
@@ -11,6 +10,7 @@ import type { Handler } from 'aws-lambda';
 import { StepError } from '../lib/errors.js';
 import '../lib/sentry.js';
 import { getItemId3 } from '../models/item.js';
+import { execute } from '../lib/command.js';
 
 type Event = {
   notes: string[];
@@ -55,9 +55,9 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
   // NOTE: we convert to MP3 and also set max volume to 0dB
   // We assume we are already at -6dB from previous step in pipeline
   // Due to lossy nature we don't get exactly 0dB
-  execSync(
+  execute(
     'ffmpeg -y -i input.wav -i id3.txt -map_metadata 1 -write_id3v2 1 -filter:a "volume=6dB" -codec:a libmp3lame -ar 44100 -b:a 128k output.mp3',
-    { stdio: 'inherit', cwd: '/tmp' },
+    event
   );
 
   const readStream = createReadStream('/tmp/output.mp3');

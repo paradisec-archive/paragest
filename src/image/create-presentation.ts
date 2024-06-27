@@ -1,4 +1,3 @@
-import { execSync } from 'node:child_process';
 import { createReadStream, createWriteStream } from 'node:fs';
 import type { Readable } from 'node:stream';
 
@@ -9,6 +8,7 @@ import { Upload } from '@aws-sdk/lib-storage';
 import type { Handler } from 'aws-lambda';
 
 import '../lib/sentry.js';
+import { execute } from '../lib/command.js';
 
 type Event = {
   notes: string[];
@@ -44,7 +44,7 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
     (Body as Readable).pipe(writeStream).on('error', reject).on('finish', resolve);
   });
 
-  execSync('convert input -quality 85 output.jpg', { stdio: 'inherit', cwd: '/tmp' });
+  execute('convert input -quality 85 output.jpg', event);
 
   const readStream = createReadStream('/tmp/output.jpg');
 
