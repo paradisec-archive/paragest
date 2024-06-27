@@ -426,6 +426,12 @@ export class ParagestStack extends cdk.Stack {
     const processS3Event = new nodejs.NodejsFunction(this, 'ProcessS3EventLambda', {
       entry: 'src/process-s3-event.ts',
       ...lambdaCommon,
+      bundling: {
+        ...lambdaCommon.bundling,
+        define: {
+          'process.env.SENTRY_RELEASE': JSON.stringify(getGitSha('src/process-s3-event.ts')),
+        },
+      },
       environment: {
         ...lambdaCommon.environment,
         STATE_MACHINE_ARN: stateMachine.stateMachineArn,
