@@ -76,12 +76,14 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
   });
 
   execute('ffmpeg -y -i input.wav -af "pan=mono|c0=FL" left.wav', event);
-  execute('ffmpeg -y -i input.wav -af "pan=mono|c0=FR" right.wav', event);
   const left = execute(
     'ffmpeg -y -i left.wav -filter:a volumedetect -f null /dev/null 2>&1 | grep volumedetect | sed "s/^.*] //"',
     event
   );
+  execute('rm left.wav', event); // TODO: Preserve space
   const leftSilent = checkSilence(left.toString(), event);
+
+  execute('ffmpeg -y -i input.wav -af "pan=mono|c0=FR" right.wav', event);
   const right = execute(
     'ffmpeg -y -i right.wav -filter:a volumedetect -f null /dev/null 2>&1 | grep volumedetect | sed "s/^.*] //"',
     event
