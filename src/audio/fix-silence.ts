@@ -104,7 +104,7 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
   console.debug(`Only ${file} channel has audio, copying to output.wav`);
   notes.push(`Only ${file} channel has audio, copying to silent channel`);
 
-  execute(`ffmpeg -y -i ${file}.wav -ac 2 -ar 96000 -c:a pcm_s24le output.wav`, event);
+  execute(`ffmpeg -y -i ${file}.wav -ac 2 -ar 96000 -c:a pcm_s24le -rf64 auto output.wav`, event);
 
   const readStream = createReadStream('/tmp/output.wav');
 

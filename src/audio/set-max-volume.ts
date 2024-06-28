@@ -78,7 +78,7 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
   }
 
   notes.push(`setMaxVolume: Adjusting by ${diff} dB`);
-  execute(`ffmpeg -y -i input.wav -af "volume=${diff}dB" -ac 2 -ar 96000 -c:a pcm_s24le output.wav`, event);
+  execute(`ffmpeg -y -i input.wav -af "volume=${diff}dB" -ac 2 -ar 96000 -c:a pcm_s24le -rf64 auto output.wav`, event);
 
   const readStream = createReadStream('/tmp/output.wav');
 
