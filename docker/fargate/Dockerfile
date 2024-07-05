@@ -31,9 +31,9 @@ RUN ./node_modules/.bin/esbuild \
   --target=node20 \
   --platform=node \
   --outfile=index.js \
-  --minify \
   --sourcemap=external \
   --sources-content=true
+# --minify \
 
 FROM node:lts-alpine
 

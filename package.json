@@ -11,7 +11,7 @@
     "lint": "biome lint . && eslint .",
     "file:wav": "AWS_PROFILE=nabu-$ENV aws s3 cp samples/sample.wav s3://paragest-ingest-$ENV/incoming/JFTEST-001-wav.wav",
     "file:mono": "AWS_PROFILE=nabu-$ENV aws s3 cp samples/mono.wav s3://paragest-ingest-$ENV/incoming/JFTEST-001-mono.wav",
-    "file:left_silent": "AWS_PROFILE=nabu-$ENV aws s3 cp samples/left_silent.wav s3://paragest-ingest-$ENV/incoming/JFTEST-001-leftSilent.wav",
+    "file:left_silent": "AWS_PROFILE=nabu-$ENV aws s3 cp samples/left-silent.wav s3://paragest-ingest-$ENV/incoming/JFTEST-001-leftSilent.wav",
     "file:WAV": "AWS_PROFILE=nabu-$ENV aws s3 cp samples/sample.wav s3://paragest-ingest-$ENV/incoming/JFTEST-001-uppercase.WAV",
     "file:mp3": "AWS_PROFILE=nabu-$ENV aws s3 cp samples/sample.mp3 s3://paragest-ingest-$ENV/incoming/JFTEST-001-mp3.mp3",
     "file:mov": "AWS_PROFILE=nabu-$ENV aws s3 cp samples/sample.mov s3://paragest-ingest-$ENV/incoming/JFTEST-001-mov.mov",
