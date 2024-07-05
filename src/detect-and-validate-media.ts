@@ -105,6 +105,8 @@ const allowedMimetypeException = (detected: string, actual: string) => {
   switch (true) {
     case detected === 'application/xml' && actual === 'application/eaf+xml':
       return true;
+    case detected === 'video/mp4' && actual === 'audio/mp4':
+      return true;
     default:
       return false;
   }
