@@ -94,6 +94,8 @@ const allowedExtensionException = (detected: string, actual: string) => {
       return true;
     case detected === 'mpg' && actual === 'vob':
       return true;
+    case detected === 'mp4' && actual === 'm4a':
+      return true;
     default:
       return false;
   }
