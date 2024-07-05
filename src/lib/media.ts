@@ -147,7 +147,7 @@ export const lookupMimetypeFromExtension = (extension: string) => {
     case 'mxf':
       return 'application/mxf';
     case 'mts':
-      return 'video/mpt2';
+      return 'video/mp2t';
     case 'avi':
       return 'video/x-msvideo';
 
