@@ -92,6 +92,8 @@ const allowedExtensionException = (detected: string, actual: string) => {
   switch (true) {
     case detected === 'xml' && actual === 'eaf':
       return true;
+    case detected === 'mpg' && actual === 'vob':
+      return true;
     default:
       return false;
   }
@@ -122,17 +124,17 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
   }
 
   if (detected.ext !== extension && !allowedExtensionException(detected.ext, extension)) {
-    throw new StepError(`${filename}: File extension doesn't match detected filetype ${detected.ext}`, event, event);
+    throw new StepError(`${filename}: File extension doesn't match detected filetype ${detected.ext} != ${extension}`, event, event);
   }
 
   const mimetype = lookupMimetypeFromExtension(extension);
   if (!mimetype) {
-    throw new StepError(`${filename}: Unsupported file extension`, event, { detected });
+    throw new StepError(`${filename}: Unsupported file extension ${extension}`, event, { detected });
   }
 
   if (detected.mimetype !== mimetype && !allowedMimetypeException(detected.mimetype, mimetype)) {
     throw new StepError(
-      `${filename}: File mimetype doesn't match detected filetype ${detected.mimetype} ${mimetype}`,
+      `${filename}: File mimetype doesn't match detected filetype ${detected.mimetype} != ${mimetype}`,
       event,
       { detected, extension, mimetype },
     );
