@@ -17,7 +17,7 @@ export const handler: Handler = Sentry.wrapHandler(async (event: S3Event) => {
 
   const promises = event.Records.map((record) => {
     const bucketName = record.s3.bucket.name;
-    const objectKey = record.s3.object.key;
+    const objectKey = decodeURIComponent(record.s3.object.key.replace(/\+/g, ' '));
     const objectSize = record.s3.object.size;
     const { principalId } = record.userIdentity;
 
