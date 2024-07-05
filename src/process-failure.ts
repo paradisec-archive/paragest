@@ -2,23 +2,20 @@ import type { Handler } from 'aws-lambda';
 
 import * as Sentry from '@sentry/aws-serverless';
 
-import { S3Client, CopyObjectCommand, DeleteObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
-
 import './lib/sentry.js';
 
 import { sendEmail } from './lib/email';
 import type { EmailUser } from './gql/graphql';
+import { copy, destroy, list } from './lib/s3.js';
 
 type Event = {
   Cause: string;
 };
 type ErrorData = {
   message: string;
-  event: Record<string, string> & { principalId: string; notes: string[] };
+  event: Record<string, string> & { bucketName: string, objectKey: string, principalId: string; notes: string[] };
   data: Record<string, string>;
 };
-
-const s3 = new S3Client();
 
 export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
   console.debug('Error:', JSON.stringify(event, null, 2));
@@ -37,36 +34,16 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
   }
 
   console.debug('Copying object to rejected bucket');
-  const copyCommand = new CopyObjectCommand({
-    Bucket: bucketName,
-    CopySource: `${bucketName}/${objectKey}`,
-    Key: objectKey.replace(/^incoming/, 'rejected'),
-    ChecksumAlgorithm: 'SHA256',
-  });
-  await s3.send(copyCommand);
+  await copy(bucketName, objectKey, bucketName, objectKey.replace(/^incoming/, 'rejected'));
 
   console.debug('Deleting object from incoming bucket');
-  const deleteCommand = new DeleteObjectCommand({
-    Bucket: bucketName,
-    Key: objectKey,
-  });
-  await s3.send(deleteCommand);
+  await destroy(bucketName, objectKey);
 
   console.debug('Deleting any output files');
   const prefix = objectKey.replace(/^incoming/, 'output');
-  const listCommand = new ListObjectsV2Command({
-    Bucket: bucketName,
-    Prefix: prefix,
-  });
-  const response = await s3.send(listCommand);
-  response.Contents?.forEach(async (object) => {
-    await s3.send(
-      new DeleteObjectCommand({
-        Bucket: bucketName,
-        Key: object.Key,
-      }),
-    );
-  });
+  const objects = await list(bucketName, prefix);
+
+  await Promise.all(objects.map((object) => object.Key && destroy(bucketName, object.Key)));
 
   const subject = `${process.env.PARAGEST_ENV === 'stage' ? '[STAGE]' : ''}Paragest Error: ${message}`;
   const body = (admin: EmailUser | undefined | null, unikey: string) =>

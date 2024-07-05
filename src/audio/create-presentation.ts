@@ -1,16 +1,14 @@
-import { createReadStream, createWriteStream, writeFileSync } from 'node:fs';
-import type { Readable } from 'node:stream';
+import { writeFileSync } from 'node:fs';
 
 import * as Sentry from '@sentry/aws-serverless';
-import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
-import { Upload } from '@aws-sdk/lib-storage';
 
 import type { Handler } from 'aws-lambda';
 
-import { StepError } from '../lib/errors.js';
 import '../lib/sentry.js';
+import { StepError } from '../lib/errors.js';
 import { getItemId3 } from '../models/item.js';
 import { execute } from '../lib/command.js';
+import { download, upload } from '../lib/s3.js';
 
 type Event = {
   notes: string[];
@@ -25,8 +23,6 @@ type Event = {
     extension: string;
   };
 };
-
-const s3 = new S3Client();
 
 export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
   console.debug('Event: ', JSON.stringify(event, null, 2));
@@ -43,15 +39,8 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
   }
   writeFileSync('/tmp/id3.txt', txt);
 
-  const getCommand = new GetObjectCommand({
-    Bucket: bucketName,
-    Key: `output/${filename}/${filename.replace(new RegExp(`.${extension}$`), '.wav')}`,
-  });
-  const { Body } = await s3.send(getCommand);
-  const writeStream = createWriteStream('/tmp/input.wav');
-  await new Promise((resolve, reject) => {
-    (Body as Readable).pipe(writeStream).on('error', reject).on('finish', resolve);
-  });
+  await download(bucketName, `output/${filename}/${filename.replace(new RegExp(`.${extension}$`), '.wav')}`, '/tmp/input.wav');
+
   // NOTE: we convert to MP3 and also set max volume to 0dB
   // We assume we are already at -6dB from previous step in pipeline
   // Due to lossy nature we don't get exactly 0dB
@@ -60,19 +49,7 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
     event
   );
 
-  const readStream = createReadStream('/tmp/output.mp3');
-
-  await new Upload({
-    client: s3,
-    params: {
-      Bucket: bucketName,
-      Key: `output/${filename}/${filename.replace(new RegExp(`.${extension}$`), '.mp3')}`,
-      Body: readStream,
-      ContentType: 'audio/mpeg',
-      ChecksumAlgorithm: 'SHA256',
-    },
-    partSize: 100 * 1024 * 1024,
-  }).done();
+  await upload('/tmp/output.mp3', bucketName, `output/${filename}/${filename.replace(new RegExp(`.${extension}$`), '.mp3')}`, 'audio/mpeg');
 
   notes.push('createPresentation: Created MP3 file');
 

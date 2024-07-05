@@ -1,16 +1,14 @@
-import { createReadStream, createWriteStream, writeFileSync } from 'node:fs';
-import type { Readable } from 'node:stream';
+import { writeFileSync } from 'node:fs';
 
 import * as Sentry from '@sentry/aws-serverless';
-import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
-import { Upload } from '@aws-sdk/lib-storage';
 
 import type { Handler } from 'aws-lambda';
 
+import '../lib/sentry.js';
 import { StepError } from '../lib/errors.js';
 import { execute } from '../lib/command.js';
-import '../lib/sentry.js';
 import { getItemBwfCsv } from '../models/item.js';
+import { download, upload } from '../lib/s3.js';
 
 type Event = {
   notes: string[];
@@ -25,8 +23,6 @@ type Event = {
     extension: string;
   };
 };
-
-const s3 = new S3Client();
 
 export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
   console.debug('Event: ', JSON.stringify(event, null, 2));
@@ -43,31 +39,11 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
   }
   writeFileSync('/tmp/core.csv', csv);
 
-  const getCommand = new GetObjectCommand({
-    Bucket: bucketName,
-    Key: `output/${filename}/${filename.replace(new RegExp(`.${extension}$`), '.wav')}`,
-  });
-  const { Body } = await s3.send(getCommand);
-  const writeStream = createWriteStream('/tmp/input.wav');
-  await new Promise((resolve, reject) => {
-    (Body as Readable).pipe(writeStream).on('error', reject).on('finish', resolve);
-  });
+  await download(bucketName, `output/${filename}/${filename.replace(new RegExp(`.${extension}$`), '.wav')}`, '/tmp/input.wav');
 
   execute('bwfmetaedit --in-core=core.csv input.wav', event);
 
-  const readStream = createReadStream('/tmp/input.wav');
-
-  await new Upload({
-    client: s3,
-    params: {
-      Bucket: bucketName,
-      Key: `output/${filename}/${filename.replace(new RegExp(`.${extension}$`), '.wav')}`,
-      Body: readStream,
-      ContentType: 'audio/wav',
-      ChecksumAlgorithm: 'SHA256',
-    },
-    partSize: 100 * 1024 * 1024,
-  }).done();
+  upload('/tmp/input.wav', bucketName, `output/${filename}/${filename.replace(new RegExp(`.${extension}$`), '.wav')}`, 'audio/wav');
 
   notes.push('createBWF: Created BWF file');
 

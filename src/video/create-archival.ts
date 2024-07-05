@@ -1,14 +1,10 @@
 import '../lib/sentry-node.js';
 
-import { createReadStream, createWriteStream } from 'node:fs';
-import type { Readable } from 'node:stream';
-
-import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
-import { Upload } from '@aws-sdk/lib-storage';
 import { SFNClient, SendTaskSuccessCommand } from '@aws-sdk/client-sfn';
 
 import { getMediaMetadata } from '../lib/media.js';
 import { execute } from '../lib/command.js';
+import { download, upload } from '../lib/s3.js';
 
 type Event = {
   notes: string[];
@@ -26,7 +22,6 @@ type Event = {
   taskToken: string;
 };
 
-const s3 = new S3Client();
 const sfn = new SFNClient();
 
 export const handler = async (event: Event) => {
@@ -38,15 +33,7 @@ export const handler = async (event: Event) => {
     objectKey,
   } = event;
 
-  const getCommand = new GetObjectCommand({
-    Bucket: bucketName,
-    Key: objectKey,
-  });
-  const { Body } = await s3.send(getCommand);
-  const writeStream = createWriteStream('/tmp/input');
-  await new Promise((resolve, reject) => {
-    (Body as Readable).pipe(writeStream).on('error', reject).on('finish', resolve);
-  });
+  await download(bucketName, objectKey, '/tmp/input');
 
   // TODO maybe refactor later as this accesses via S3 and we've already downloaded
   const {
@@ -74,19 +61,7 @@ export const handler = async (event: Event) => {
     notes.push('create-archival: Created MKV file');
   }
 
-  const readStream = createReadStream('/tmp/output.mkv');
-
-  await new Upload({
-    client: s3,
-    params: {
-      Bucket: bucketName,
-      Key: `output/${filename}/${filename.replace(new RegExp(`.${extension}$`), '.mkv')}`,
-      Body: readStream,
-      ContentType: 'application/mkv',
-      ChecksumAlgorithm: 'SHA256',
-    },
-    partSize: 100 * 1024 * 1024,
-  }).done();
+  await upload('/tmp/output.mkv', bucketName, `output/${filename}/${filename.replace(new RegExp(`.${extension}$`), '.mkv')}`, 'application/mkv');
 
   const successCommand = new SendTaskSuccessCommand({
     taskToken: process.env.SFN_TASK_TOKEN,

@@ -2,12 +2,11 @@ import type { Handler } from 'aws-lambda';
 
 import * as Sentry from '@sentry/aws-serverless';
 
-import { S3Client, DeleteObjectCommand } from '@aws-sdk/client-s3';
-
 import './lib/sentry.js';
 
 import { sendEmail } from './lib/email';
 import type { EmailUser } from './gql/graphql';
+import { destroy } from './lib/s3.js';
 
 type Event = {
   notes: string[];
@@ -23,8 +22,6 @@ type Event = {
   };
 };
 
-const s3 = new S3Client();
-
 export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
   console.debug('Error:', JSON.stringify(event, null, 2));
 
@@ -36,12 +33,8 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
     principalId,
   } = event;
 
-  const deleteCommand = new DeleteObjectCommand({
-    Bucket: bucketName,
-    Key: objectKey,
-  });
   console.debug('Deleting object from incoming bucket');
-  await s3.send(deleteCommand);
+  await destroy(bucketName, objectKey);
 
   const subject = `${process.env.PARAGEST_ENV === 'stage' ? '[STAGE]' : ''}Success: ${collectionIdentifier}/${itemIdentifier}/${filename}`;
   const body = (admin: EmailUser | undefined | null, unikey: string) =>

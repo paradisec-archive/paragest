@@ -1,17 +1,15 @@
-import { createWriteStream } from 'node:fs';
-import type { Readable } from 'node:stream';
-
 import * as Sentry from '@sentry/aws-serverless';
 
 import type { Handler } from 'aws-lambda';
 import { FileMagic } from '@npcz/magic';
 import { fileTypeFromTokenizer } from 'file-type/core';
 import { makeTokenizer } from '@tokenizer/s3';
-import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { S3Client } from '@aws-sdk/client-s3';
 
 import './lib/sentry.js';
 import { StepError } from './lib/errors.js';
 import { lookupMimetypeFromExtension } from './lib/media.js';
+import { download } from './lib/s3.js';
 
 type Event = {
   notes: string[];
@@ -63,16 +61,7 @@ const getFiletype = async (bucketName: string, objectKey: string) => {
 };
 
 const getMagic = async (bucketName: string, objectKey: string) => {
-  const getCommand = new GetObjectCommand({
-    Bucket: bucketName,
-    Key: objectKey,
-    Range: 'bytes=0-20479',
-  });
-  const { Body } = await s3.send(getCommand);
-  const writeStream = createWriteStream('/tmp/input');
-  await new Promise((resolve, reject) => {
-    (Body as Readable).pipe(writeStream).on('error', reject).on('finish', resolve);
-  });
+  await download(bucketName, objectKey, '/tmp/input', { range: 'bytes=0-20479' });
 
   const magic = await FileMagic.getInstance();
   const mimetype = magic.detectMimeType('/tmp/input');
