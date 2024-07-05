@@ -273,7 +273,7 @@ export const getMediaMetadata = async (bucketName: string, objectKey: string, ev
     duration: general.Duration,
     samplerate: audio?.SamplingRate,
     bitrate: general.OverallBitRate,
-    fps: video?.FrameRate,
+    fps: video?.FrameRate ? Math.round(video.FrameRate) : null,
     other: {
       bitDepth: video?.BitDepth,
       scanType: video?.ScanType,
