@@ -150,6 +150,8 @@ export const lookupMimetypeFromExtension = (extension: string) => {
       return 'video/mp2t';
     case 'avi':
       return 'video/x-msvideo';
+    case 'vob':
+      return 'video/x-ms-vob';
 
     // We aren't going to accept these
     // case '3gp':
