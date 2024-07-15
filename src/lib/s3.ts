@@ -41,7 +41,7 @@ const bigCopy = async (srcBucket: string, src: string, dstBucket: string, dst: s
 
     const cmd = new UploadPartCopyCommand({
       Bucket: dstBucket,
-      CopySource: `${srcBucket}/${src}`,
+      CopySource: encodeURIComponent(`${srcBucket}/${src}`).replace(/%20/g, '+'),
       CopySourceRange: copySourceRange,
       Key: dst,
       PartNumber: partNumber,
