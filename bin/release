@@ -2,6 +2,13 @@
 
 set -e
 
+switch_to_main() {
+  echo "Switching back to main branch..."
+  git checkout main
+}
+
+trap 'switch_to_main' ERR
+
 ENV=$1
 if [ -z "$ENV" ]; then
   echo "Usage: bin/release <stage|prod>"
@@ -30,4 +37,4 @@ yarn sentry-cli releases $COMMON finalize $RELEASE_NAME
 
 echo "Sentry release $RELEASE_NAME created."
 
-git switch main
+switch_to_main
