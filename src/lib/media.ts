@@ -13,7 +13,10 @@ const GeneralTrack = z.object({
   Duration: z.coerce.number(),
   OverallBitRate_Mode: z.string().optional(),
   OverallBitRate: z.coerce.number(),
-  FrameRate: z.coerce.number().transform((val) => Math.round(val)).optional(),
+  FrameRate: z.coerce
+    .number()
+    .transform((val) => Math.round(val))
+    .optional(),
   FrameCount: z.coerce.number().optional(),
   StreamSize: z.coerce.number().optional(),
   IsStreamable: z
@@ -101,7 +104,16 @@ const MaxTrack = z.object({
   Format: z.string(),
 });
 
-const MediaTrack = z.discriminatedUnion('@type', [GeneralTrack, VideoTrack, AudioTrack, OtherTrack, ImageTrack, TextTrack, MenuTrack, MaxTrack]);
+const MediaTrack = z.discriminatedUnion('@type', [
+  GeneralTrack,
+  VideoTrack,
+  AudioTrack,
+  OtherTrack,
+  ImageTrack,
+  TextTrack,
+  MenuTrack,
+  MaxTrack,
+]);
 
 export const MediaInfoSchema = z.object({
   creatingLibrary: z.object({
@@ -240,7 +252,11 @@ export const lookupMimetypeFromExtension = (extension: string) => {
 
 const s3 = new S3Client();
 
-export const getMediaMetadata = async (bucketName: string, objectKey: string, event: Record<string, string | number | object>) => {
+export const getMediaMetadata = async (
+  bucketName: string,
+  objectKey: string,
+  event: Record<string, string | number | object>,
+) => {
   const getObjectCommand = new GetObjectCommand({
     Bucket: bucketName,
     Key: objectKey,
@@ -283,6 +299,6 @@ export const getMediaMetadata = async (bucketName: string, objectKey: string, ev
       generalCodecId: general.CodecID,
       videoCodecId: video?.CodecID,
       audioCodecId: audio?.CodecID,
-    }
+    },
   };
 };
