@@ -43,7 +43,7 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
 
   execute('bwfmetaedit --in-core=core.csv input.wav', event);
 
-  upload('/tmp/input.wav', bucketName, `output/${filename}/${filename.replace(new RegExp(`.${extension}$`), '.wav')}`, 'audio/wav');
+  await upload('/tmp/input.wav', bucketName, `output/${filename}/${filename.replace(new RegExp(`.${extension}$`), '.wav')}`, 'audio/wav');
 
   notes.push('createBWF: Created BWF file');
 
