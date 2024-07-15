@@ -91,7 +91,7 @@ export const copy = async (srcBucket: string, src: string, dstBucket: string, ds
   if (objectSize < partSize) {
     console.debug(`Small Copying ${srcBucket}:${src} to ${dstBucket}:${dst}`);
     const copyCommand = new CopyObjectCommand({
-      CopySource: `${srcBucket}/${src}`,
+      CopySource: encodeURIComponent(`${srcBucket}/${src}`).replace(/%20/g, '+'),
       Bucket: dstBucket,
       Key: dst,
       ChecksumAlgorithm: 'SHA256',
