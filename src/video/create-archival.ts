@@ -55,7 +55,7 @@ export const handler = async (event: Event) => {
     notes.push('create-archival: Copied MKV file');
   } else {
     execute(
-      'ffmpeg -y -hide_banner -i input -map 0 -dn -c:v ffv1 -level 3 -g 1 -slicecrc 1 -slices 16 -c:a flac output.mkv',
+      'ffmpeg -y -hide_banner -i input -sn -map 0 -dn -c:v ffv1 -level 3 -g 1 -slicecrc 1 -slices 16 -c:a flac output.mkv',
       event
     );
     notes.push('create-archival: Created MKV file');

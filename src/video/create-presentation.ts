@@ -53,7 +53,7 @@ export const handler = (async (event: Event) => {
     notes.push('create-presentation: Copied MP4 file');
   } else {
     execute(
-      `ffmpeg -y -hide_banner -i input -c:v libx264 -pix_fmt yuv420p ${isInterlaced ? '-vf yadif' : ''} -preset slower -crf 15 -c:a aac output.mp4`,
+      `ffmpeg -y -hide_banner -i input -sn -c:v libx264 -pix_fmt yuv420p ${isInterlaced ? '-vf yadif' : ''} -preset slower -crf 15 -c:a aac output.mp4`,
       event
     );
     notes.push('create-presentation: Created MP4 file');
