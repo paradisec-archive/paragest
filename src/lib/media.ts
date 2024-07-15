@@ -183,6 +183,8 @@ export const lookupMimetypeFromExtension = (extension: string) => {
       return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
     case 'rtf':
       return 'text/rtf';
+    case 'srt':
+      return 'application/x-subrip';
     case 'txt':
       return 'text/plain';
     case 'zip':
@@ -198,8 +200,6 @@ export const lookupMimetypeFromExtension = (extension: string) => {
     // case 'version':
     //   return 'text/plain';
     //
-    // case 'srt':
-    //   return 'application/x-subrip';
     //
     // case 'flextext':
     //   return 'application/flextext+xml';
