@@ -5,35 +5,36 @@ import { execute } from './command';
 
 const GeneralTrack = z.object({
   '@type': z.literal('General'),
+  // Used
+  Duration: z.coerce.number(),
+  OverallBitRate: z.coerce.number(),
+  Format: z.string(),
+  CodecID: z.string().optional(),
+
+  // Useful
   VideoCount: z.coerce.number().optional(),
   AudioCount: z.coerce.number().optional(),
   FileExtension: z.string(),
-  Format: z.string(),
   FileSize: z.coerce.number(),
-  Duration: z.coerce.number(),
-  OverallBitRate_Mode: z.string().optional(),
-  OverallBitRate: z.coerce.number(),
   FrameRate: z.coerce
     .number()
     .transform((val) => Math.round(val))
     .optional(),
   FrameCount: z.coerce.number().optional(),
-  StreamSize: z.coerce.number().optional(),
-  IsStreamable: z
-    .string()
-    .transform((value) => value === 'Yes')
-    .optional(),
-  CodecID: z.string().optional(),
 });
 
 const VideoTrack = z.object({
   '@type': z.literal('Video'),
-  StreamOrder: z.coerce.number(),
+  // Used
+  FrameRate: z.coerce.number(),
+  BitDepth: z.coerce.number(),
+  ScanType: z.string(),
+  CodecID: z.string(),
+
+  // Useful
   ID: z.coerce.number(),
   Format: z.string(),
-  CodecID: z.string(),
   Duration: z.coerce.number(),
-  BitRate_Mode: z.string().optional(),
   BitRate: z.coerce.number().optional(),
   Width: z.coerce.number(),
   Height: z.coerce.number(),
@@ -42,36 +43,26 @@ const VideoTrack = z.object({
   PixelAspectRatio: z.coerce.number(),
   DisplayAspectRatio: z.coerce.number(),
   Rotation: z.coerce.number().optional(),
-  FrameRate_Mode: z.string(),
-  FrameRate: z.coerce.number(),
   FrameRate_Num: z.coerce.number().optional(),
-  FrameRate_Den: z.coerce.number().optional(),
   FrameCount: z.coerce.number(),
   ColorSpace: z.string(),
-  BitDepth: z.coerce.number(),
-  ScanType: z.string(),
-  Compression_Mode: z.string().optional(),
-  StreamSize: z.coerce.number().optional(),
 });
 
 const AudioTrack = z.object({
   '@type': z.literal('Audio'),
-  StreamOrder: z.coerce.number().optional(),
+
+  // Used
+  Channels: z.coerce.number(),
+  SamplingRate: z.coerce.number(),
+  CodecID: z.string().optional(),
+
+  // Useful
   ID: z.coerce.number().optional(),
   Format: z.string(),
-  Format_Settings_Endianness: z.string().optional(),
-  Format_Settings_Sign: z.string().optional(),
-  CodecID: z.string().optional(),
   Duration: z.coerce.number(),
-  BitRate_Mode: z.string(),
   BitRate: z.coerce.number().optional(),
-  Channels: z.coerce.number(),
-  ChannelPositions: z.string().optional(),
-  ChannelLayout: z.string().optional(),
-  SamplingRate: z.coerce.number(),
   SamplingCount: z.coerce.number(),
   BitDepth: z.coerce.number().optional(),
-  StreamSize: z.coerce.number().optional(),
 });
 
 const TextTrack = z.object({
@@ -115,7 +106,7 @@ const MediaTrack = z.discriminatedUnion('@type', [
   MaxTrack,
 ]);
 
-export const MediaInfoSchema = z.object({
+const MediaInfoSchema = z.object({
   creatingLibrary: z.object({
     name: z.literal('MediaInfoLib'),
     version: z.string(),
