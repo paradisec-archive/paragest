@@ -12,7 +12,7 @@ if [ -z "$KEY" ]; then
   exit 1
 fi
 
-AWS_PROFILE=nabu-$ENV
+export AWS_PROFILE=nabu-$ENV
 
 SIZE=$(
   aws s3api head-object \

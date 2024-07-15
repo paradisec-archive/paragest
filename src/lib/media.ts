@@ -29,7 +29,7 @@ const VideoTrack = z.object({
   FrameRate: z.coerce.number(),
   BitDepth: z.coerce.number(),
   ScanType: z.string(),
-  CodecID: z.string(),
+  CodecID: z.string().optional(),
 
   // Useful
   ID: z.coerce.number(),
