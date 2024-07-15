@@ -32,7 +32,7 @@ const VideoTrack = z.object({
   CodecID: z.string().optional(),
 
   // Useful
-  ID: z.coerce.number(),
+  ID: z.coerce.number().optional(),
   Format: z.string(),
   Duration: z.coerce.number(),
   BitRate: z.coerce.number().optional(),
