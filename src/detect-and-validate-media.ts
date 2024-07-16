@@ -119,7 +119,11 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
   }
 
   if (detected.ext !== extension && !allowedExtensionException(detected.ext, extension)) {
-    throw new StepError(`${filename}: File extension doesn't match detected filetype ${detected.ext} != ${extension}`, event, event);
+    throw new StepError(
+      `${filename}: File extension doesn't match detected filetype ${detected.ext} != ${extension}`,
+      event,
+      event,
+    );
   }
 
   const mimetype = lookupMimetypeFromExtension(extension);
@@ -143,6 +147,7 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
       mediaType = 'audio';
       break;
     case mimetype.startsWith('video'):
+    case mimetype === 'application/mxf':
       mediaType = 'video';
       break;
     case mimetype.startsWith('image'):
