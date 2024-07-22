@@ -32,7 +32,6 @@ const VideoTrack = z.object({
   CodecID: z.string().optional(),
 
   // Useful
-  ID: z.coerce.number().optional(),
   Format: z.string(),
   Duration: z.coerce.number(),
   BitRate: z.coerce.number().optional(),
@@ -57,7 +56,6 @@ const AudioTrack = z.object({
   CodecID: z.string().optional(),
 
   // Useful
-  ID: z.string().optional(),
   Format: z.string(),
   Duration: z.coerce.number(),
   BitRate: z.coerce.number().optional(),
@@ -67,31 +65,26 @@ const AudioTrack = z.object({
 
 const TextTrack = z.object({
   '@type': z.literal('Text'),
-  ID: z.coerce.number().optional(),
   Format: z.string(),
 });
 
 const OtherTrack = z.object({
   '@type': z.literal('Other'),
-  ID: z.coerce.number().optional(),
   Format: z.string(),
 });
 
 const ImageTrack = z.object({
   '@type': z.literal('Image'),
-  ID: z.coerce.number().optional(),
   Format: z.string(),
 });
 
 const MenuTrack = z.object({
   '@type': z.literal('Menu'),
-  ID: z.coerce.number().optional(),
   Format: z.string(),
 });
 
 const MaxTrack = z.object({
   '@type': z.literal('Max'),
-  ID: z.coerce.number().optional(),
   Format: z.string(),
 });
 
