@@ -280,7 +280,7 @@ export class ParagestStack extends cdk.Stack {
       grantFunc: (lambdaFunc) => {
         ingestBucket.grantRead(lambdaFunc);
       },
-      lambdaProps: { nodeModules: ['@npcz/magic'], memorySize: 10240, timeout: cdk.Duration.minutes(5) },
+      lambdaProps: { nodeModules: ['@npcz/magic'], memorySize: 10240, timeout: cdk.Duration.minutes(15) },
     });
 
     const checkMetadataReadyStep = paragestStep('CheckMetadataReady', 'src/check-metadata-ready.ts', {

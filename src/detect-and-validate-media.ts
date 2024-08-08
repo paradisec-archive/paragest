@@ -29,11 +29,21 @@ const s3 = new S3Client();
 
 FileMagic.magicFile = require.resolve('@npcz/magic/dist/magic.mgc');
 
+// sleep 10 seconds
 const getFiletype = async (bucketName: string, objectKey: string) => {
-  const s3Tokenizer = await makeTokenizer(s3, {
-    Bucket: bucketName,
-    Key: objectKey,
-  });
+  // TODO: zip files sometimes hang https://github.com/Borewit/tokenizer-s3/issues/1200 https://github.com/Borewit/tokenizer-s3/issues/1235
+  const opts = { disableChunked: false };
+  if (objectKey.endsWith('.zip')) {
+    opts.disableChunked = true;
+  }
+  const s3Tokenizer = await makeTokenizer(
+    s3,
+    {
+      Bucket: bucketName,
+      Key: objectKey,
+    },
+    opts,
+  );
 
   const fileType = await fileTypeFromTokenizer(s3Tokenizer);
   if (!fileType) {
