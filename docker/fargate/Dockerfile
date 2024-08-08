@@ -31,7 +31,7 @@ RUN ./node_modules/.bin/esbuild \
   --target=node20 \
   --platform=node \
   --outfile=index.js \
-  --sourcemap=external \
+  --sourcemap \
   --sources-content=true
 # --minify \
 
