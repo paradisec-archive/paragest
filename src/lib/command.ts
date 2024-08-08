@@ -12,7 +12,7 @@ export const execute = (command: string, event: Record<string, string | number |
   try {
     const cmd = `${command} 2>&1`;
 
-    const output = execSync(cmd, { stdio: 'pipe', cwd: '/tmp', encoding: 'utf-8' });
+    const output = execSync(cmd, { stdio: 'pipe', cwd: '/tmp', encoding: 'utf-8', maxBuffer: 4 * 1024 * 1024 });
 
     process.stdout.write(output);
 
