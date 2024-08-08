@@ -65,12 +65,12 @@ const AudioTrack = z.object({
 
 const TextTrack = z.object({
   '@type': z.literal('Text'),
-  Format: z.string(),
+  Format: z.string().optional(),
 });
 
 const OtherTrack = z.object({
   '@type': z.literal('Other'),
-  Format: z.string(),
+  Format: z.string().optional(),
 });
 
 const ImageTrack = z.object({
@@ -80,12 +80,12 @@ const ImageTrack = z.object({
 
 const MenuTrack = z.object({
   '@type': z.literal('Menu'),
-  Format: z.string(),
+  Format: z.string().optional(),
 });
 
 const MaxTrack = z.object({
   '@type': z.literal('Max'),
-  Format: z.string(),
+  Format: z.string().optional(),
 });
 
 const MediaTrack = z.discriminatedUnion('@type', [
