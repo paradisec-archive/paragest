@@ -26,6 +26,7 @@
     "file:notexportable": "AWS_PROFILE=nabu-$ENV aws s3 cp samples/sample.wav s3://paragest-ingest-$ENV/incoming/JFTEST-002-notExportable.wav",
     "file:webp": "AWS_PROFILE=nabu-$ENV aws s3 cp samples/sample.webp s3://paragest-ingest-$ENV/incoming/JFTEST-001-webp.webp",
     "file:odt": "AWS_PROFILE=nabu-$ENV aws s3 cp samples/sample.odt s3://paragest-ingest-$ENV/incoming/JFTEST-001-odt.odt",
+    "file:lc_ext": "AWS_PROFILE=nabu-$ENV aws s3 cp samples/sample.odt s3://paragest-ingest-$ENV/incoming/JFTEST-001-odt.ODT",
     "knip": "knip"
   },
   "devDependencies": {
