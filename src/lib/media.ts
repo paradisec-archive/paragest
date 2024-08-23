@@ -177,6 +177,8 @@ export const lookupMimetypeFromExtension = (extension: string) => {
       return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
     case 'xlsx':
       return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+    case 'odt':
+      return 'application/vnd.oasis.opendocument.text';
     case 'rtf':
       return 'text/rtf';
     case 'srt':
@@ -219,8 +221,6 @@ export const lookupMimetypeFromExtension = (extension: string) => {
     // case 'ods':
     //   return 'application/vnd.oasis.opendocument.spreadsheet';
     //
-    // case 'odt':
-    //   return 'application/vnd.oasis.opendocument.text';
     // case 'tex':
     //   return 'text/x-tex';
     //
