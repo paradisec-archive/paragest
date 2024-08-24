@@ -258,7 +258,7 @@ export class ParagestStack extends cdk.Stack {
     const checkCatalogForItemStep = paragestStep('CheckCatalogForItem', 'src/check-catalog-for-item.ts', {
       grantFunc: (lambdaFunc) => nabuOauthSecret.grantRead(lambdaFunc),
     });
-    const checkIfPDSCStep = paragestStep('CheckIfPDSC', 'src/check-if-pdsc.ts');
+    const checkIfSpecialStep = paragestStep('CheckIfSpecial', 'src/check-if-special.ts');
 
     // /////////////////////////////
     // Add to Catalog Steps
@@ -385,14 +385,23 @@ export class ParagestStack extends cdk.Stack {
       },
     });
 
+    const handleSpecialStep = paragestStep('HandleSpecial', 'src/handle-special.ts', {
+      grantFunc: (lambdaFunc) => {
+        ingestBucket.grantReadWrite(lambdaFunc);
+        nabuOauthSecret.grantRead(lambdaFunc);
+      },
+    });
+
     const processOtherFlow = sfn.Chain.start(createOtherArchivalStep).next(addToCatalogFlow);
 
     // /////////////////////////////
     // MediaFlow
     // /////////////////////////////
 
-    const mediaFlow = sfn.Chain.start(detectAndValidateMediaStep)
-      .next(checkMetadataReadyStep)
+    const mediaFlow = sfn.Chain.start(checkMetadataReadyStep)
+      .next(checkCatalogForItemStep)
+      .next(checkItemIdentifierLengthStep)
+      .next(detectAndValidateMediaStep)
       .next(
         new sfn.Choice(this, 'Media Type')
           .when(sfn.Condition.stringEquals('$.mediaType', 'audio'), processAudioFlow)
@@ -401,15 +410,16 @@ export class ParagestStack extends cdk.Stack {
           .when(sfn.Condition.stringEquals('$.mediaType', 'other'), processOtherFlow),
       );
 
+    const handleSpecialFlow = sfn.Chain.start(handleSpecialStep)
+      .next(processSuccessStep);
+
     const workflow = sfn.Chain.start(rejectEmptyFilesStep)
-      .next(checkCatalogForItemStep)
-      .next(checkItemIdentifierLengthStep)
-      .next(checkIfPDSCStep)
+      .next(checkIfSpecialStep)
       .next(
-        new sfn.Choice(this, 'Is PDSC File?')
-          .when(sfn.Condition.booleanEquals('$.isPDSCFile', true), addToCatalogFlow)
-          .when(sfn.Condition.booleanEquals('$.isPDSCFile', false), mediaFlow),
-      );
+        new sfn.Choice(this, 'Is Special File?')
+          .when(sfn.Condition.booleanEquals('$.isSpecialFile', true), handleSpecialFlow)
+          .when(sfn.Condition.booleanEquals('$.isSpecialFile', false), mediaFlow),
+      )
 
     const parallel = new sfn.Parallel(this, 'ParallelErrorCatcher');
     parallel.branch(workflow);

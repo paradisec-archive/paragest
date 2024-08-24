@@ -13,6 +13,7 @@ import { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/
  * Therefore it is highly recommended to use the babel or swc plugin for production.
  */
 const documents = {
+    "\n    query GetCollectionQuery($identifier: ID!) {\n      collection(identifier: $identifier) {\n        identifier\n        title\n      }\n    }\n  ": types.GetCollectionQueryDocument,
     "\n  fragment EssenceItem on Essence {\n    id\n\n    filename\n    size\n\n    mimetype\n    channels\n    citation\n    duration\n    fps\n    bitrate\n    samplerate\n\n    createdAt\n    updatedAt\n  }\n": types.EssenceItemFragmentDoc,
     "\n    query GetEssenceQuery($fullIdentifier: ID!, $filename: String!) {\n      essence(fullIdentifier: $fullIdentifier, filename: $filename) {\n        id\n      }\n    }\n  ": types.GetEssenceQueryDocument,
     "\n      mutation EssenceCreateMutation($input: EssenceCreateInput!) {\n        essenceCreate(input: $input) {\n          essence {\n            ...EssenceItem\n          }\n        }\n      }\n    ": types.EssenceCreateMutationDocument,
@@ -37,6 +38,10 @@ const documents = {
  */
 export function graphql(source: string): unknown;
 
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n    query GetCollectionQuery($identifier: ID!) {\n      collection(identifier: $identifier) {\n        identifier\n        title\n      }\n    }\n  "): (typeof documents)["\n    query GetCollectionQuery($identifier: ID!) {\n      collection(identifier: $identifier) {\n        identifier\n        title\n      }\n    }\n  "];
 /**
  * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
