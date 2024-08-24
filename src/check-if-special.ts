@@ -18,7 +18,10 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
 
   const md = objectKey.match(/^incoming\/([A-Za-z][a-zA-Z0-9_]+)-deposit\.pdf$/);
   if (!md) {
-    throw new StepError(`Object key ${objectKey} does not match expected pattern`, event, { objectKey });
+    return {
+      ...event,
+      isSpecialFile: false,
+    }
   }
 
   const [, collectionIdentifier] = md;
@@ -46,6 +49,6 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
   return {
     ...event,
     details,
-    isSpecialFile: !!md,
+    isSpecialFile: true,
   };
 });

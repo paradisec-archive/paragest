@@ -258,7 +258,10 @@ export class ParagestStack extends cdk.Stack {
     const checkCatalogForItemStep = paragestStep('CheckCatalogForItem', 'src/check-catalog-for-item.ts', {
       grantFunc: (lambdaFunc) => nabuOauthSecret.grantRead(lambdaFunc),
     });
-    const checkIfSpecialStep = paragestStep('CheckIfSpecial', 'src/check-if-special.ts');
+
+    const checkIfSpecialStep = paragestStep('CheckIfSpecial', 'src/check-if-special.ts', {
+      grantFunc: (lambdaFunc) => nabuOauthSecret.grantRead(lambdaFunc),
+    });
 
     // /////////////////////////////
     // Add to Catalog Steps
@@ -388,7 +391,10 @@ export class ParagestStack extends cdk.Stack {
     const handleSpecialStep = paragestStep('HandleSpecial', 'src/handle-special.ts', {
       grantFunc: (lambdaFunc) => {
         ingestBucket.grantReadWrite(lambdaFunc);
+        ingestBucket.grantDelete(lambdaFunc);
         nabuOauthSecret.grantRead(lambdaFunc);
+        catalogBucket.grantPut(lambdaFunc);
+        catalogBucket.grantRead(lambdaFunc);
       },
     });
 
@@ -398,8 +404,8 @@ export class ParagestStack extends cdk.Stack {
     // MediaFlow
     // /////////////////////////////
 
-    const mediaFlow = sfn.Chain.start(checkMetadataReadyStep)
-      .next(checkCatalogForItemStep)
+    const mediaFlow = sfn.Chain.start(checkCatalogForItemStep)
+      .next(checkMetadataReadyStep)
       .next(checkItemIdentifierLengthStep)
       .next(detectAndValidateMediaStep)
       .next(

@@ -2,7 +2,7 @@ import * as Sentry from '@sentry/aws-serverless';
 
 import type { Handler } from 'aws-lambda';
 
-import '../lib/sentry.js';
+import './lib/sentry.js';
 import { move } from './lib/s3.js';
 
 if (!process.env.PARAGEST_ENV) {
@@ -29,13 +29,13 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
     notes,
     bucketName,
     objectKey,
-    details: { collectionIdentifier }
+    details: { collectionIdentifier },
   } = event;
 
   const dest = `${collectionIdentifier}/pdsc_admin/${collectionIdentifier}-deposit.pdf`;
   await move(bucketName, objectKey, destBucket, dest);
 
-  notes.push(`addToCatalog: Copying ${objectKey} to catalog`);
+  notes.push(`handleSpecial: Copying ${objectKey} to catalog`);
 
   return event;
 });
