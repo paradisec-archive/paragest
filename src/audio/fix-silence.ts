@@ -66,8 +66,10 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
     'ffmpeg -y -i left.wav -filter:a volumedetect -f null /dev/null 2>&1 | grep volumedetect | sed "s/^.*] //"',
     event
   );
-  execute('rm left.wav', event); // TODO: Preserve space
   const leftSilent = checkSilence(left.toString(), event);
+  if (leftSilent) {
+    execute('rm left.wav', event); // TODO: Preserve space
+  }
 
   execute('ffmpeg -y -i input.wav -af "pan=mono|c0=FR" right.wav', event);
   const right = execute(
@@ -75,6 +77,9 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
     event
   );
   const rightSilent = checkSilence(right.toString(), event);
+  if (rightSilent) {
+    execute('rm right.wav', event); // TODO: Preserve space
+  }
 
   if (leftSilent && rightSilent) {
     throw new StepError('Both channels are silent', event, {});
@@ -83,6 +88,7 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
   if (!leftSilent && !rightSilent) {
     notes.push('fixSilence: Neither channel is silent');
     console.debug('Both channels have audio, not doing anything');
+
     return event;
   }
 
