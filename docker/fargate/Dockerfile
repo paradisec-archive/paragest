@@ -1,4 +1,4 @@
-FROM node:lts-alpine as build-image
+FROM node:lts-alpine AS build-image
 
 ARG SOURCE_FILE
 

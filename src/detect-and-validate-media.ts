@@ -29,7 +29,6 @@ const s3 = new S3Client();
 
 FileMagic.magicFile = require.resolve('@npcz/magic/dist/magic.mgc');
 
-// sleep 10 seconds
 const getFiletype = async (bucketName: string, objectKey: string) => {
   // TODO: zip files sometimes hang https://github.com/Borewit/tokenizer-s3/issues/1200 https://github.com/Borewit/tokenizer-s3/issues/1235
   const opts = { disableChunked: false };
@@ -56,6 +55,7 @@ const getFiletype = async (bucketName: string, objectKey: string) => {
       mimetype = 'audio/mp4';
       break;
     case 'audio/wav':
+    case 'audio/x-wav':
       mimetype = 'audio/vnd.wav';
       break;
     case 'video/vnd.avi':
@@ -74,11 +74,26 @@ const getMagic = async (bucketName: string, objectKey: string) => {
   await download(bucketName, objectKey, '/tmp/input', { range: 'bytes=0-20479' });
 
   const magic = await FileMagic.getInstance();
-  const mimetype = magic.detectMimeType('/tmp/input');
+  const magicMimetype = magic.detectMimeType('/tmp/input');
 
   const ext = objectKey.split('.').pop();
   if (!ext) {
     throw new Error('Why no extension');
+  }
+
+  let mimetype: string = magicMimetype;
+  switch (mimetype) {
+    case 'audio/x-m4a':
+      mimetype = 'audio/mp4';
+      break;
+    case 'audio/wav':
+    case 'audio/x-wav':
+      mimetype = 'audio/vnd.wav';
+      break;
+    case 'video/vnd.avi':
+      mimetype = 'video/x-msvideo';
+      break;
+    default:
   }
 
   return {
