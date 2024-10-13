@@ -61,7 +61,7 @@ export const handler = async (event: Event) => {
     notes.push('create-archival: Created MKV file');
   }
 
-  await upload('/tmp/output.mkv', bucketName, `output/${filename}/${filename.replace(new RegExp(`.${extension}$`), '.mkv')}`, 'application/mkv');
+  await upload('/tmp/output.mkv', bucketName, `output/${filename}/${filename.replace(new RegExp(`.${extension}$`), '.mkv')}`, 'application/mkv', true);
 
   const successCommand = new SendTaskSuccessCommand({
     taskToken: process.env.SFN_TASK_TOKEN,
