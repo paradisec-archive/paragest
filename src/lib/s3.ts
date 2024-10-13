@@ -12,6 +12,7 @@ import {
   ListObjectsV2Command,
   UploadPartCopyCommand,
   type GetObjectCommandInput,
+  PutObjectCommandInput,
 } from '@aws-sdk/client-s3';
 
 import { Upload } from '@aws-sdk/lib-storage';
@@ -118,18 +119,30 @@ export const move = async (srcBucket: string, src: string, dstBucket: string, ds
   await destroy(srcBucket, src);
 };
 
-export const upload = async (filename: string, dstBucket: string, dst: string, mimetype: string) => {
+export const upload = async (
+  filename: string,
+  dstBucket: string,
+  dst: string,
+  mimetype: string,
+  archiveTag = false,
+) => {
   const readStream = createReadStream(filename);
+
+  const params: PutObjectCommandInput = {
+    Bucket: dstBucket,
+    Key: dst,
+    Body: readStream,
+    ContentType: mimetype,
+    ChecksumAlgorithm: 'SHA256',
+  };
+
+  if (archiveTag) {
+    params.Tagging = 'archive=true';
+  }
 
   await new Upload({
     client: s3,
-    params: {
-      Bucket: dstBucket,
-      Key: dst,
-      Body: readStream,
-      ContentType: mimetype,
-      ChecksumAlgorithm: 'SHA256',
-    },
+    params,
     partSize: 100 * 1024 * 1024,
   }).done();
 };
@@ -138,7 +151,7 @@ export const download = async (srcBucket: string, src: string, filename: string,
   const params: GetObjectCommandInput = {
     Bucket: srcBucket,
     Key: src,
-  }
+  };
   if (options.range) {
     params.Range = options.range;
   }
