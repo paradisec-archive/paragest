@@ -187,8 +187,8 @@ export const lookupMimetypeFromExtension = (extension: string) => {
       return 'text/plain';
     case 'zip':
       return 'application/zip';
-    case 'idmi':
-      return 'application/idmi+xml';
+    case 'imdi':
+      return 'application/imdi+xml';
     case 'cmdi':
       return 'application/cmdi+xml';
     case 'opex':
