@@ -110,6 +110,12 @@ const allowedExtensionException = (detected: string, actual: string) => {
       return true;
     case detected === 'mp4' && actual === 'm4a':
       return true;
+    case detected === 'xml' && actual === 'imdi':
+      return true;
+    case detected === 'xml' && actual === 'cmdi':
+      return true;
+    case detected === 'xml' && actual === 'opex':
+      return true;
     default:
       return false;
   }
@@ -118,6 +124,12 @@ const allowedExtensionException = (detected: string, actual: string) => {
 const allowedMimetypeException = (detected: string, actual: string) => {
   switch (true) {
     case detected === 'application/xml' && actual === 'application/eaf+xml':
+      return true;
+    case detected === 'application/xml' && actual === 'application/imdi+xml':
+      return true;
+    case detected === 'application/xml' && actual === 'application/cmdi+xml':
+      return true;
+    case detected === 'application/xml' && actual === 'application/opex+xml':
       return true;
     case detected === 'video/mp4' && actual === 'audio/mp4':
       return true;
