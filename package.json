@@ -27,6 +27,9 @@
     "file:odt": "AWS_PROFILE=nabu-$ENV aws s3 cp samples/sample.odt s3://paragest-ingest-$ENV/incoming/JFTEST-001-odt.odt",
     "file:lc_ext": "AWS_PROFILE=nabu-$ENV aws s3 cp samples/sample.odt s3://paragest-ingest-$ENV/incoming/JFTEST-001-odt.ODT",
     "file:deposit": "AWS_PROFILE=nabu-$ENV aws s3 cp samples/sample.pdf s3://paragest-ingest-$ENV/incoming/JFTEST-deposit.pdf",
+    "file:cmdi": "AWS_PROFILE=nabu-$ENV aws s3 cp samples/sample.cmdi s3://paragest-ingest-$ENV/incoming/JFTEST-001.cmdi",
+    "file:opex": "AWS_PROFILE=nabu-$ENV aws s3 cp samples/sample.opex s3://paragest-ingest-$ENV/incoming/JFTEST-001.opex",
+    "file:imdi": "AWS_PROFILE=nabu-$ENV aws s3 cp samples/sample.imdi s3://paragest-ingest-$ENV/incoming/JFTEST-001.imdi",
     "knip": "knip"
   },
   "devDependencies": {
@@ -78,16 +81,7 @@
   },
   "packageManager": "yarn@4.3.1",
   "knip": {
-    "entry": [
-      "bin/paragest.ts",
-      "src/*.ts",
-      "src/audio/*.ts",
-      "src/image/*.ts",
-      "src/video/*.ts",
-      "src/other/*.ts"
-    ],
-    "ignore": [
-      "src/gql/*.ts"
-    ]
+    "entry": ["bin/paragest.ts", "src/*.ts", "src/audio/*.ts", "src/image/*.ts", "src/video/*.ts", "src/other/*.ts"],
+    "ignore": ["src/gql/*.ts"]
   }
 }

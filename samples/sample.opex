@@ -1,0 +1,267 @@
+<?xml version="1.0"?>
+<opex:OPEXMetadata xmlns:opex="http://www.openpreservationexchange.org/opex/v1.0">
+  <opex:DescriptiveMetadata>
+    <METATRANSCRIPT xmlns="http://www.mpi.nl/IMDI/Schema/IMDI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mpi.nl/IMDI/Schema/IMDI_3.0.xsd" Type="SESSION" Version="0" Date="2023-04-01" Originator="lameta 2.1.1-alpha" FormatId="IMDI 3.0" ArchiveHandle="">
+      <Session>
+        <Name>DGB1-am02</Name>
+        <Title>John Maram, Clara Kusos Darra and Musum Darr doing an Associated Motion task</Title>
+        <Date>2022-11-09</Date>
+        <Description>Family members John Manam, his wife Clara Kusos Darr and one of their daughters Musum Darr tell a story based on a wordless picture book designed by Vuillermet and Desnoyers (2013) to assess associated motion in languages. The story is about hunting and features people, animals and plants from the Amazon. Many of the animals are unfamiliar to residents of Matukar.
+
+Vuillermet, Marine and Antoine Desnoyers. 2013. A hunting story – Yendo a cazar: A visual stimulus for eliciting constructions that associate motion with other events. Linguistic Department, UC Berkeley, ms. http://tulquest.huma-num.fr/fr/node/46.
+
+Vuillermet, Marine. "6 A visual stimulus for eliciting associated motion". Associated Motion, edited by Antoine Guillaume and Harold Koch, Berlin, Boston: De Gruyter Mouton, 2021, pp. 201-228.</Description>
+        <MDGroup>
+          <Location>
+            <Continent Link="http://www.mpi.nl/IMDI/Schema/Continents.xml" Type="ClosedVocabulary">Oceania</Continent>
+            <Country Link="http://www.mpi.nl/IMDI/Schema/Countries.xml" Type="OpenVocabulary">Papua New Guinea</Country>
+            <Region>Oceania</Region>
+            <Address>Surumaran</Address>
+          </Location>
+          <Project>
+            <Name>0545-MDP0382</Name>
+            <Title>Matukar Panau corpus building for the study of language use in context</Title>
+            <Id>MDP0382</Id>
+            <Contact>
+              <Name>Danielle Barth</Name>
+            </Contact>
+            <Description>Matukar Panau is a highly endangered Oceanic language spoken near Madang, Papua New Guinea. Although most children are no longer learning Matukar Panau, current speakers (apx. 300) form a vibrant community of multilinguals in dense social networks. As an Oceanic language on the PNG coast, Matukar Panau has many interesting Papuan features. No language of this area has a large corpus available. This project aims to produce 47 hours of audio-visual recordings and a 200,000+ word corpus. Recordings will focus on conversations where participants are varied by age, gender, clan, social connections and differing language portfolios to document speaker interaction. Pairs of speakers will discuss life, customs, and family and will respond to stimuli-based activities. Transcription and translation of data into the PNG lingua franca, Tok Pisin, will be done with an existing trained local team.</Description>
+          </Project>
+          <Keys/>
+          <Content>
+            <Genre Link="http://www.mpi.nl/IMDI/Schema/Content-Genre.xml" Type="OpenVocabulary">Interactive_discourse</Genre>
+            <SubGenre Link="http://www.mpi.nl/IMDI/Schema/Content-SubGenre.xml" Type="OpenVocabulary">Stimuli-Based</SubGenre>
+            <Task Link="http://www.mpi.nl/IMDI/Schema/Content-Task.xml" Type="OpenVocabulary"/>
+            <Modalities Link="http://www.mpi.nl/IMDI/Schema/Content-Modalities.xml" Type="OpenVocabulary"/>
+            <Subject Link="http://www.mpi.nl/IMDI/Schema/Content-Subject.xml" Type="OpenVocabularyList"/>
+            <CommunicationContext>
+              <Interactivity Link="http://www.mpi.nl/IMDI/Schema/Content-Interactivity.xml" Type="ClosedVocabulary">Unspecified</Interactivity>
+              <PlanningType Link="http://www.mpi.nl/IMDI/Schema/Content-PlanningType.xml" Type="ClosedVocabulary">Unspecified</PlanningType>
+              <Involvement Link="http://www.mpi.nl/IMDI/Schema/Content-Involvement.xml" Type="ClosedVocabulary">Unspecified</Involvement>
+              <SocialContext Link="http://www.mpi.nl/IMDI/Schema/Content-SocialContext.xml" Type="ClosedVocabulary">Unspecified</SocialContext>
+              <EventStructure Link="http://www.mpi.nl/IMDI/Schema/Content-EventStructure.xml" Type="ClosedVocabulary">Unspecified</EventStructure>
+              <Channel Link="http://www.mpi.nl/IMDI/Schema/Content-Channel.xml" Type="ClosedVocabulary">Unspecified</Channel>
+            </CommunicationContext>
+            <Languages>
+              <Language>
+                <Id>ISO639-3:mjk</Id>
+                <Name Link="http://www.mpi.nl/IMDI/Schema/MPI-Languages.xml" Type="OpenVocabulary">Matukar</Name>
+                <Description>Subject Language</Description>
+              </Language>
+              <Language>
+                <Id>ISO639-3:tpi</Id>
+                <Name Link="http://www.mpi.nl/IMDI/Schema/MPI-Languages.xml" Type="OpenVocabulary">Tok Pisin</Name>
+                <Description>Working Language</Description>
+              </Language>
+            </Languages>
+            <Keys>
+              <Key Name="Status">Incoming</Key>
+              <Key Name="Topic">Associated motion</Key>
+            </Keys>
+          </Content>
+          <Actors>
+            <Actor>
+              <Role>participant</Role>
+              <Name>John Maram</Name>
+              <FullName>John Maram</FullName>
+              <Code/>
+              <FamilySocialRole/>
+              <Languages>
+                <Language>
+                  <Id>ISO639-3:mjk</Id>
+                  <Name Link="http://www.mpi.nl/IMDI/Schema/MPI-Languages.xml">Matukar</Name>
+                  <PrimaryLanguage Type="ClosedVocabulary" Link="http://www.mpi.nl/IMDI/Schema/Boolean.xml">false</PrimaryLanguage>
+                </Language>
+                <Language>
+                  <Id>ISO639-3:tpi</Id>
+                  <Name Link="http://www.mpi.nl/IMDI/Schema/MPI-Languages.xml">Tok Pisin</Name>
+                  <PrimaryLanguage Type="ClosedVocabulary" Link="http://www.mpi.nl/IMDI/Schema/Boolean.xml">false</PrimaryLanguage>
+                </Language>
+                <Language>
+                  <Id>ISO639-3:mlp</Id>
+                  <Name Link="http://www.mpi.nl/IMDI/Schema/MPI-Languages.xml">Bargam</Name>
+                  <PrimaryLanguage Type="ClosedVocabulary" Link="http://www.mpi.nl/IMDI/Schema/Boolean.xml">false</PrimaryLanguage>
+                </Language>
+                <Language>
+                  <Id>ISO639-3:gdd</Id>
+                  <Name Link="http://www.mpi.nl/IMDI/Schema/MPI-Languages.xml">Gedaged</Name>
+                  <PrimaryLanguage Type="ClosedVocabulary" Link="http://www.mpi.nl/IMDI/Schema/Boolean.xml">false</PrimaryLanguage>
+                </Language>
+                <Language>
+                  <Id>ISO639-3:tbc</Id>
+                  <Name Link="http://www.mpi.nl/IMDI/Schema/MPI-Languages.xml">Takia</Name>
+                  <PrimaryLanguage Type="ClosedVocabulary" Link="http://www.mpi.nl/IMDI/Schema/Boolean.xml">false</PrimaryLanguage>
+                </Language>
+              </Languages>
+              <EthnicGroup/>
+              <Age>62</Age>
+              <BirthDate>1960</BirthDate>
+              <Sex Link="http://www.mpi.nl/IMDI/Schema/Actor-Sex.xml" Type="ClosedVocabulary">Male</Sex>
+              <Education/>
+              <Anonymized>false</Anonymized>
+              <Keys>
+                <Key Name="Description">John is the husband of Clara Kusos Darr and the father of Agnes Kaigul. He says that he speaks Bel rather than Gedaged. Bel has multiple dialects.</Key>
+                <Key Name="Hasconsent">Consent</Key>
+                <Key Name="contribution-comments"/>
+              </Keys>
+              <Description>John is the husband of Clara Kusos Darr and the father of Agnes Kaigul. He says that he speaks Bel rather than Gedaged. Bel has multiple dialects.</Description>
+            </Actor>
+            <Actor>
+              <Role>participant</Role>
+              <Name>Clara Kusos Darr</Name>
+              <FullName>Clara Kusos Darr</FullName>
+              <Code/>
+              <FamilySocialRole/>
+              <Languages>
+                <Language>
+                  <Id>ISO639-3:mjk</Id>
+                  <Name Link="http://www.mpi.nl/IMDI/Schema/MPI-Languages.xml">Matukar</Name>
+                  <PrimaryLanguage Type="ClosedVocabulary" Link="http://www.mpi.nl/IMDI/Schema/Boolean.xml">true</PrimaryLanguage>
+                </Language>
+                <Language>
+                  <Id>ISO639-3:tpi</Id>
+                  <Name Link="http://www.mpi.nl/IMDI/Schema/MPI-Languages.xml">Tok Pisin</Name>
+                  <PrimaryLanguage Type="ClosedVocabulary" Link="http://www.mpi.nl/IMDI/Schema/Boolean.xml">true</PrimaryLanguage>
+                </Language>
+                <Language>
+                  <Id>ISO639-3:mlp</Id>
+                  <Name Link="http://www.mpi.nl/IMDI/Schema/MPI-Languages.xml">Bargam</Name>
+                  <PrimaryLanguage Type="ClosedVocabulary" Link="http://www.mpi.nl/IMDI/Schema/Boolean.xml">true</PrimaryLanguage>
+                </Language>
+                <Language>
+                  <Id>ISO639-3:gdd</Id>
+                  <Name Link="http://www.mpi.nl/IMDI/Schema/MPI-Languages.xml">Gedaged</Name>
+                  <PrimaryLanguage Type="ClosedVocabulary" Link="http://www.mpi.nl/IMDI/Schema/Boolean.xml">true</PrimaryLanguage>
+                </Language>
+              </Languages>
+              <EthnicGroup/>
+              <Age>62</Age>
+              <BirthDate>1960</BirthDate>
+              <Sex Link="http://www.mpi.nl/IMDI/Schema/Actor-Sex.xml" Type="ClosedVocabulary">Female</Sex>
+              <Education/>
+              <Anonymized>false</Anonymized>
+              <Keys>
+                <Key Name="Clan">Bantibun</Key>
+                <Key Name="Area">Malukabe</Key>
+                <Key Name="Hasconsent">Consent</Key>
+                <Key Name="contribution-comments"/>
+              </Keys>
+              <Description>Clara says she speaks Riwo rather than Gedaged, which is a different dialect of Bel. She is the wife of John Maram and the mother of Agnes Kaigul.</Description>
+            </Actor>
+            <Actor>
+              <Role>participant</Role>
+              <Name>Musum Darr</Name>
+              <FullName>Musum Darr</FullName>
+              <Code/>
+              <FamilySocialRole/>
+              <Languages/>
+              <EthnicGroup/>
+              <Age>Unspecified</Age>
+              <!-- Could not compute age -->
+              <BirthDate>Unspecified</BirthDate>
+              <Sex Link="http://www.mpi.nl/IMDI/Schema/Actor-Sex.xml" Type="ClosedVocabulary">Female</Sex>
+              <Education/>
+              <Anonymized>false</Anonymized>
+              <Keys>
+                <Key Name="Hasconsent">Consent</Key>
+                <Key Name="contribution-comments"/>
+              </Keys>
+              <Description/>
+            </Actor>
+            <Actor>
+              <Role>researcher</Role>
+              <Name>Danielle Barth</Name>
+              <FullName>Danielle Barth</FullName>
+              <Code/>
+              <FamilySocialRole/>
+              <Languages>
+                <Language>
+                  <Id>ISO639-3:eng</Id>
+                  <Name Link="http://www.mpi.nl/IMDI/Schema/MPI-Languages.xml">English</Name>
+                  <PrimaryLanguage Type="ClosedVocabulary" Link="http://www.mpi.nl/IMDI/Schema/Boolean.xml">true</PrimaryLanguage>
+                </Language>
+                <Language>
+                  <Id>ISO639-3:mjk</Id>
+                  <Name Link="http://www.mpi.nl/IMDI/Schema/MPI-Languages.xml">Matukar</Name>
+                  <PrimaryLanguage Type="ClosedVocabulary" Link="http://www.mpi.nl/IMDI/Schema/Boolean.xml">false</PrimaryLanguage>
+                </Language>
+                <Language>
+                  <Id>ISO639-3:tpi</Id>
+                  <Name Link="http://www.mpi.nl/IMDI/Schema/MPI-Languages.xml">Tok Pisin</Name>
+                  <PrimaryLanguage Type="ClosedVocabulary" Link="http://www.mpi.nl/IMDI/Schema/Boolean.xml">false</PrimaryLanguage>
+                </Language>
+                <Language>
+                  <Id>ISO639-3:fra</Id>
+                  <Name Link="http://www.mpi.nl/IMDI/Schema/MPI-Languages.xml">French</Name>
+                  <PrimaryLanguage Type="ClosedVocabulary" Link="http://www.mpi.nl/IMDI/Schema/Boolean.xml">false</PrimaryLanguage>
+                </Language>
+                <Language>
+                  <Id>ISO639-3:deu</Id>
+                  <Name Link="http://www.mpi.nl/IMDI/Schema/MPI-Languages.xml">German, Standard</Name>
+                  <PrimaryLanguage Type="ClosedVocabulary" Link="http://www.mpi.nl/IMDI/Schema/Boolean.xml">false</PrimaryLanguage>
+                </Language>
+              </Languages>
+              <EthnicGroup/>
+              <Age>38</Age>
+              <BirthDate>1984</BirthDate>
+              <Sex Link="http://www.mpi.nl/IMDI/Schema/Actor-Sex.xml" Type="ClosedVocabulary">Female</Sex>
+              <Education>PhD - linguistics</Education>
+              <Anonymized>false</Anonymized>
+              <Keys>
+                <Key Name="Nickname">Aipain</Key>
+                <Key Name="Primaryoccupation">University Professor</Key>
+                <Key Name="Hasconsent">Consent</Key>
+                <Key Name="contribution-comments"/>
+              </Keys>
+              <Description/>
+            </Actor>
+          </Actors>
+        </MDGroup>
+        <Resources>
+          <MediaFile>
+            <ResourceLink ArchiveHandle="">DGB1-am02/DGB1-am02-jm_ckd_md.mp4</ResourceLink>
+            <Type Link="http://www.mpi.nl/IMDI/Schema/MediaFile-Type.xml" Type="OpenVocabulary">Video</Type>
+            <Format Link="https://www.mpi.nl/IMDI/Schema/MediaFile-Format.xml" Type="OpenVocabulary">video/mp4</Format>
+            <Size>929 MB</Size>
+            <Quality>Unspecified</Quality>
+            <RecordingConditions/>
+            <TimePosition>
+              <Start>Unspecified</Start>
+              <End>Unspecified</End>
+            </TimePosition>
+            <Access>
+              <Availability>O</Availability>
+              <Date/>
+              <Owner/>
+              <Publisher/>
+              <Contact/>
+              <Description>The material is licensed under Creative Commons Licences with the licence CC BY-NC-ND Attribution-NonCommercial-NoDerivs, which means that others may download the material and share them with others as long as they credit the creators. Others cannot change the materials in any way or use the materials commercially.</Description>
+            </Access>
+            <Keys/>
+          </MediaFile>
+          <MediaFile>
+            <ResourceLink ArchiveHandle="">DGB1-am02/DGB1-am02-jm_ckd_md.WAV</ResourceLink>
+            <Type Link="http://www.mpi.nl/IMDI/Schema/MediaFile-Type.xml" Type="OpenVocabulary">Audio</Type>
+            <Format Link="https://www.mpi.nl/IMDI/Schema/MediaFile-Format.xml" Type="OpenVocabulary">audio/wav</Format>
+            <Size>252 MB</Size>
+            <Quality>Unspecified</Quality>
+            <RecordingConditions/>
+            <TimePosition>
+              <Start>Unspecified</Start>
+              <End>Unspecified</End>
+            </TimePosition>
+            <Access>
+              <Availability>O</Availability>
+              <Date/>
+              <Owner/>
+              <Publisher/>
+              <Contact/>
+              <Description>The material is licensed under Creative Commons Licences with the licence CC BY-NC-ND Attribution-NonCommercial-NoDerivs, which means that others may download the material and share them with others as long as they credit the creators. Others cannot change the materials in any way or use the materials commercially.</Description>
+            </Access>
+            <Keys/>
+          </MediaFile>
+        </Resources>
+      </Session>
+    </METATRANSCRIPT>
+  </opex:DescriptiveMetadata>
+</opex:OPEXMetadata>

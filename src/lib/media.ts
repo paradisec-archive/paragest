@@ -187,6 +187,12 @@ export const lookupMimetypeFromExtension = (extension: string) => {
       return 'text/plain';
     case 'zip':
       return 'application/zip';
+    case 'idmi':
+      return 'application/idmi+xml';
+    case 'cmdi':
+      return 'application/cmdi+xml';
+    case 'opex':
+      return 'application/opex+xml';
 
     // /////////////////
     // Here for later as we deal with these
@@ -198,13 +204,10 @@ export const lookupMimetypeFromExtension = (extension: string) => {
     // case 'version':
     //   return 'text/plain';
     //
-    //
     // case 'flextext':
     //   return 'application/flextext+xml';
     // case 'kml':
     //   return 'application/vnd.google-earth.kml+xml';
-    // case 'idmi':
-    //   return 'application/idmi+xml';
     // case 'ixt':
     //   return 'application/ixt+xml';
     // case 'trs':
@@ -217,14 +220,11 @@ export const lookupMimetypeFromExtension = (extension: string) => {
     // case 'xhtml':
     //   return 'application/xhtml+xml';
     //
-
     // case 'ods':
     //   return 'application/vnd.oasis.opendocument.spreadsheet';
     //
     // case 'tex':
     //   return 'text/x-tex';
-    //
-    //
     //
     // case 'iso':
     //   return 'application/x-iso9660-image';
