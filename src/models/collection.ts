@@ -5,7 +5,8 @@ import { getGraphQLClient } from '../lib/graphql.js';
 const gqlClient = await getGraphQLClient();
 
 export const getCollection = async (identifier: string) => {
-  const query = graphql(/* GraphQL */ `
+  const CollectionQuery = graphql(/* GraphQL */ `
+
     query GetCollectionQuery($identifier: ID!) {
       collection(identifier: $identifier) {
         identifier
@@ -14,8 +15,27 @@ export const getCollection = async (identifier: string) => {
     }
   `);
 
-  const response = await gqlClient.query(query, { identifier });
+  const response = await gqlClient.query(CollectionQuery, { identifier });
   console.debug('Response:', JSON.stringify(response, null, 2));
 
   return response.data?.collection;
+};
+
+export const setHasDepositForm = async (identifier: string) => {
+  const query = graphql(/* GraphQL */ `
+    mutation SetCollectionHasDepositForm($input: SetCollectionHasDepositFormInput!) {
+      setCollectionHasDepositForm(input: $input) {
+        clientMutationId
+      }
+    }
+  `);
+
+  const params = {
+    identifier,
+  };
+
+  const updateResponse = await gqlClient.mutation(query, { input: params });
+  console.debug('UpdateResponse:', JSON.stringify(updateResponse, null, 2));
+
+  return updateResponse.error;
 };

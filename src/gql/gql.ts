@@ -11,9 +11,11 @@ import { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/
  * 3. It does not support dead code elimination, so it will add unused operations.
  *
  * Therefore it is highly recommended to use the babel or swc plugin for production.
+ * Learn more about it here: https://the-guild.dev/graphql/codegen/plugins/presets/preset-client#reducing-bundle-size
  */
 const documents = {
-    "\n    query GetCollectionQuery($identifier: ID!) {\n      collection(identifier: $identifier) {\n        identifier\n        title\n      }\n    }\n  ": types.GetCollectionQueryDocument,
+    "\n\n    query GetCollectionQuery($identifier: ID!) {\n      collection(identifier: $identifier) {\n        identifier\n        title\n      }\n    }\n  ": types.GetCollectionQueryDocument,
+    "\n    mutation SetCollectionHasDepositForm($input: SetCollectionHasDepositFormInput!) {\n      setCollectionHasDepositForm(input: $input) {\n        clientMutationId\n      }\n    }\n  ": types.SetCollectionHasDepositFormDocument,
     "\n  fragment EssenceItem on Essence {\n    id\n\n    filename\n    size\n\n    mimetype\n    channels\n    citation\n    duration\n    fps\n    bitrate\n    samplerate\n\n    createdAt\n    updatedAt\n  }\n": types.EssenceItemFragmentDoc,
     "\n    query GetEssenceQuery($fullIdentifier: ID!, $filename: String!) {\n      essence(fullIdentifier: $fullIdentifier, filename: $filename) {\n        id\n      }\n    }\n  ": types.GetEssenceQueryDocument,
     "\n      mutation EssenceCreateMutation($input: EssenceCreateInput!) {\n        essenceCreate(input: $input) {\n          essence {\n            ...EssenceItem\n          }\n        }\n      }\n    ": types.EssenceCreateMutationDocument,
@@ -41,7 +43,11 @@ export function graphql(source: string): unknown;
 /**
  * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
-export function graphql(source: "\n    query GetCollectionQuery($identifier: ID!) {\n      collection(identifier: $identifier) {\n        identifier\n        title\n      }\n    }\n  "): (typeof documents)["\n    query GetCollectionQuery($identifier: ID!) {\n      collection(identifier: $identifier) {\n        identifier\n        title\n      }\n    }\n  "];
+export function graphql(source: "\n\n    query GetCollectionQuery($identifier: ID!) {\n      collection(identifier: $identifier) {\n        identifier\n        title\n      }\n    }\n  "): (typeof documents)["\n\n    query GetCollectionQuery($identifier: ID!) {\n      collection(identifier: $identifier) {\n        identifier\n        title\n      }\n    }\n  "];
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n    mutation SetCollectionHasDepositForm($input: SetCollectionHasDepositFormInput!) {\n      setCollectionHasDepositForm(input: $input) {\n        clientMutationId\n      }\n    }\n  "): (typeof documents)["\n    mutation SetCollectionHasDepositForm($input: SetCollectionHasDepositFormInput!) {\n      setCollectionHasDepositForm(input: $input) {\n        clientMutationId\n      }\n    }\n  "];
 /**
  * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
