@@ -5,7 +5,6 @@ import { SFNClient, SendTaskFailureCommand, SendTaskSuccessCommand } from '@aws-
 import { getMediaMetadata } from '../lib/media.js';
 import { execute } from '../lib/command.js';
 import { download, upload } from '../lib/s3.js';
-import { StepError } from '../lib/errors.js';
 
 type Event = {
   notes: string[];
@@ -26,7 +25,6 @@ type Event = {
 const sfn = new SFNClient();
 
 export const handler = async (event: Event) => {
-  throw new StepError('TEST ERROR', event, { });
   console.debug('Event: ', JSON.stringify(event, null, 2));
   const {
     notes,
@@ -78,13 +76,14 @@ if (!event) {
 }
 
 try {
-  handler(JSON.parse(event));
+  await handler(JSON.parse(event));
 } catch (error) {
+  console.error('Error:', error);
   const err = error as Error;
   const failureCommand = new SendTaskFailureCommand({
     taskToken: process.env.SFN_TASK_TOKEN,
     error: err.name,
-    cause: err.message,
+    cause: JSON.stringify({ errorType: err.name, errorMessage: err.message }),
   });
   await sfn.send(failureCommand);
 }
