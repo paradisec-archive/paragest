@@ -28,7 +28,7 @@ const VideoTrack = z.object({
   // Used
   FrameRate: z.coerce.number(),
   BitDepth: z.coerce.number().optional(),
-  ScanType: z.string(),
+  ScanType: z.string().optional(),
   CodecID: z.string().optional(),
 
   // Useful
@@ -278,7 +278,7 @@ export const getMediaMetadata = async (
     fps: video?.FrameRate ? Math.round(video.FrameRate) : null,
     other: {
       bitDepth: video?.BitDepth,
-      scanType: video?.ScanType,
+      scanType: video?.ScanType || 'Progressive',
       generalFormat: general.Format,
       generalCodecId: general.CodecID,
       videoCodecId: video?.CodecID,
