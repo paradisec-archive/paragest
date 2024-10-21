@@ -1,6 +1,6 @@
 import '../lib/sentry-node.js';
 
-import { SFNClient, SendTaskSuccessCommand } from '@aws-sdk/client-sfn';
+import { SFNClient, SendTaskFailureCommand, SendTaskSuccessCommand } from '@aws-sdk/client-sfn';
 
 import { getMediaMetadata } from '../lib/media.js';
 import { execute } from '../lib/command.js';
@@ -77,4 +77,14 @@ if (!event) {
   throw new Error('No event provided');
 }
 
-handler(JSON.parse(event));
+try {
+  handler(JSON.parse(event));
+} catch (error) {
+  const err = error as Error;
+  const failureCommand = new SendTaskFailureCommand({
+    taskToken: process.env.SFN_TASK_TOKEN,
+    error: err.name,
+    cause: err.message,
+  });
+  await sfn.send(failureCommand);
+}
