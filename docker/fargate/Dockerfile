@@ -28,13 +28,17 @@ RUN ls node_modules/@sentry/node
 
 RUN ./node_modules/.bin/esbuild \
   --bundle ${SOURCE_FILE} \
-  --target=node20 \
+  --target=esnext \
   --platform=node \
+  --format=esm \
   --outfile=index.mjs \
+  --minify \
   --sourcemap \
   --sources-content=true \
-  --format=esm
-# --minify
+  --main-fields=module,main \
+  --banner:js="import { createRequire } from 'module';const require = createRequire(import.meta.url);" \
+  --loader:.node=copy
+  # DIrty hack from https://github.com/evanw/esbuild/pull/2067
 
 FROM node:lts-alpine
 
