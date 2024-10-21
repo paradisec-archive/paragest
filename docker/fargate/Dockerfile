@@ -30,10 +30,11 @@ RUN ./node_modules/.bin/esbuild \
   --bundle ${SOURCE_FILE} \
   --target=node20 \
   --platform=node \
-  --outfile=index.js \
+  --outfile=index.mjs \
   --sourcemap \
-  --sources-content=true
-# --minify \
+  --sources-content=true \
+  --format=esm
+# --minify
 
 FROM node:lts-alpine
 
@@ -56,7 +57,7 @@ RUN apk add mediainfo
 WORKDIR /function
 
 # Copy in the built dependencies
-COPY --from=build-image /function/index.js /function
-COPY --from=build-image /function/index.js.map /function
+COPY --from=build-image /function/index.mjs /function
+COPY --from=build-image /function/index.mjs.map /function
 
-CMD ["node", "--enable-source-maps", "index.js"]
+CMD ["node", "--enable-source-maps", "index.mjs"]
