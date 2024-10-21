@@ -5,6 +5,7 @@ import { SFNClient, SendTaskSuccessCommand } from '@aws-sdk/client-sfn';
 import { getMediaMetadata } from '../lib/media.js';
 import { execute } from '../lib/command.js';
 import { download, upload } from '../lib/s3.js';
+import { StepError } from '../lib/errors.js';
 
 type Event = {
   notes: string[];
@@ -25,6 +26,7 @@ type Event = {
 const sfn = new SFNClient();
 
 export const handler = async (event: Event) => {
+  throw new StepError('TEST ERROR', event, { });
   console.debug('Event: ', JSON.stringify(event, null, 2));
   const {
     notes,
