@@ -5,7 +5,7 @@ import * as Sentry from '@sentry/aws-serverless';
 import './lib/sentry.js';
 
 import { sendEmail } from './lib/email';
-import type { EmailUser } from './gql/graphql';
+import type { EmailUser } from './models/user';
 import { copy, destroy, list } from './lib/s3.js';
 
 type Event = {

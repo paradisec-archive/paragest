@@ -1,7 +1,6 @@
 import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses';
 
-import { getUserByUnikey } from '../models/user.js';
-import type { EmailUser } from '../gql/graphql.js';
+import { getUserByUnikey, type EmailUser } from '../models/user.js';
 
 const ses = new SESClient();
 
@@ -11,7 +10,7 @@ const defaultEmail = env === 'prod' ? 'admin@paradisec.org.au' : 'jferlito@gmail
 const cc = env === 'prod' ? [] : ['jferlito@gmail.com'];
 
 // eslint-disable-next-line no-unused-vars
-export const sendEmail = async (principalId: string, subject: string, bodyFunc: (admin: EmailUser | null | undefined, unikey: string) => string) => {
+export const sendEmail = async (principalId: string, subject: string, bodyFunc: (admin: EmailUser, unikey: string) => string) => {
   const unikey = principalId.replace(/.*:/, '');
   const admin = await getUserByUnikey(unikey);
 

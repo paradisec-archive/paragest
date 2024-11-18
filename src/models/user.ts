@@ -24,3 +24,6 @@ export const getUserByUnikey = async (unikey: string) => {
 
   return response.data?.userByUnikey;
 };
+
+// We should be able to get this via codgen but it's not being pulled in
+export type EmailUser = Awaited<ReturnType<typeof getUserByUnikey>>;
