@@ -135,6 +135,8 @@ const allowedMimetypeException = (detected: string, actual: string) => {
       return true;
     case detected === 'video/MP2P' && actual === 'video/x-ms-vob':
       return true;
+    case detected === 'application/rtf' && actual === 'text/rtf':
+      return true;
     default:
       return false;
   }
