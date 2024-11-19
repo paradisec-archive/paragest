@@ -81,7 +81,16 @@
   },
   "packageManager": "yarn@4.3.1",
   "knip": {
-    "entry": ["bin/paragest.ts", "src/*.ts", "src/audio/*.ts", "src/image/*.ts", "src/video/*.ts", "src/other/*.ts"],
-    "ignore": ["src/gql/*.ts"]
+    "entry": [
+      "bin/paragest.ts",
+      "src/*.ts",
+      "src/audio/*.ts",
+      "src/image/*.ts",
+      "src/video/*.ts",
+      "src/other/*.ts"
+    ],
+    "ignore": [
+      "src/gql/*.ts"
+    ]
   }
 }

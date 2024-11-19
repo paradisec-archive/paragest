@@ -20,7 +20,10 @@ export const getUserByUnikey = async (unikey: string) => {
   }
 
   const response = await gqlClient.query(UserByUnikeyQuery, { unikey });
-  console.debug('Response:', JSON.stringify(response, null, 2));
+  if (response.error) {
+    console.debug('Response:', JSON.stringify(response, null, 2));
+    console.debug('ERROR:', response.error);
+  }
 
   return response.data?.userByUnikey;
 };
