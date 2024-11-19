@@ -61,25 +61,17 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
 
   await download(bucketName, `output/${filename}/${filename.replace(new RegExp(`.${extension}$`), '.wav')}`, '/tmp/input.wav');
 
-  execute('ffmpeg -y -i input.wav -af "pan=mono|c0=FL" left.wav', event);
   const left = execute(
-    'ffmpeg -y -i left.wav -filter:a volumedetect -f null /dev/null 2>&1 | grep volumedetect | sed "s/^.*] //"',
+    'ffmpeg -y -i input.wav -filter_complex "[0:a]pan=mono|c0=c0,volumedetect" -f null /dev/null 2>&1 | grep volumedetect_ | sed "s/^.*] //"',
     event
   );
   const leftSilent = checkSilence(left.toString(), event);
-  if (leftSilent) {
-    execute('rm left.wav', event); // TODO: Preserve space
-  }
 
-  execute('ffmpeg -y -i input.wav -af "pan=mono|c0=FR" right.wav', event);
   const right = execute(
-    'ffmpeg -y -i right.wav -filter:a volumedetect -f null /dev/null 2>&1 | grep volumedetect | sed "s/^.*] //"',
+    'ffmpeg -y -i input.wav -filter_complex "[0:a]pan=mono|c0=c1,volumedetect" -f null /dev/null 2>&1 | grep volumedetect_ | sed "s/^.*] //"',
     event
   );
   const rightSilent = checkSilence(right.toString(), event);
-  if (rightSilent) {
-    execute('rm right.wav', event); // TODO: Preserve space
-  }
 
   if (leftSilent && rightSilent) {
     throw new StepError('Both channels are silent', event, {});
@@ -96,7 +88,11 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
   console.debug(`Only ${file} channel has audio, copying to output.wav`);
   notes.push(`Only ${file} channel has audio, copying to silent channel`);
 
-  execute(`ffmpeg -y -i ${file}.wav -ac 2 -ar 96000 -c:a pcm_s24le -rf64 auto output.wav`, event);
+  const filter = leftSilent ? 'c0=c1|c1=c1' : 'c0=c0|c1=c0';
+  execute(
+    `ffmpeg -y -i input.wav -filter_complex "pan=stereo|${filter}" -ac 2 -ar 96000 -c:a pcm_s24le -rf64 auto output.wav`,
+    event,
+  );
 
   await upload('/tmp/output.wav', bucketName, `output/${filename}/${filename.replace(new RegExp(`.${extension}$`), '.wav')}`, 'audio/wav');
 
