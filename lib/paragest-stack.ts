@@ -437,7 +437,7 @@ export class ParagestStack extends cdk.Stack {
     const stateMachine = new sfn.StateMachine(this, 'StateMachine', {
       definitionBody: sfn.DefinitionBody.fromChainable(definition),
       stateMachineName: 'Paragest',
-      timeout: cdk.Duration.hours(3),
+      timeout: cdk.Duration.hours(5),
     });
 
     const processS3Event = new nodejs.NodejsFunction(this, 'ProcessS3EventLambda', {
