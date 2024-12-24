@@ -3,7 +3,7 @@ import * as Sentry from '@sentry/aws-serverless';
 import type { Handler } from 'aws-lambda';
 import { FileMagic } from '@npcz/magic';
 import { fileTypeFromTokenizer } from 'file-type/core';
-import { makeTokenizer } from '@tokenizer/s3';
+import { makeChunkedTokenizerFromS3 } from '@tokenizer/s3';
 import { S3Client } from '@aws-sdk/client-s3';
 
 import './lib/sentry.js';
@@ -30,19 +30,10 @@ const s3 = new S3Client();
 FileMagic.magicFile = require.resolve('@npcz/magic/dist/magic.mgc');
 
 const getFiletype = async (bucketName: string, objectKey: string) => {
-  // TODO: zip files sometimes hang https://github.com/Borewit/tokenizer-s3/issues/1200 https://github.com/Borewit/tokenizer-s3/issues/1235
-  const opts = { disableChunked: false };
-  if (objectKey.endsWith('.zip')) {
-    opts.disableChunked = true;
-  }
-  const s3Tokenizer = await makeTokenizer(
-    s3,
-    {
-      Bucket: bucketName,
-      Key: objectKey,
-    },
-    opts,
-  );
+  const s3Tokenizer = await makeChunkedTokenizerFromS3(s3, {
+    Bucket: bucketName,
+    Key: objectKey,
+  });
 
   const fileType = await fileTypeFromTokenizer(s3Tokenizer);
   if (!fileType) {
