@@ -10,7 +10,10 @@ type OAuthSecret = {
 if (!process.env.PARAGEST_ENV) {
   throw new Error('PARAGEST_ENV is not set');
 }
-const apiUrl = `https://catalog.nabu-${process.env.PARAGEST_ENV}.paradisec.org.au`;
+const apiUrl =
+  process.env.PARAGEST_ENV === 'prod'
+    ? 'https://catalog.paradisec.org.au'
+    : 'https://catalog.nabu-stage.paradisec.org.au';
 
 const getAccessToken = async (credentials: OAuthSecret): Promise<string> => {
   const tokenUrl = `${apiUrl}/oauth/token`;
