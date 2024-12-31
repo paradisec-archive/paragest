@@ -31,6 +31,7 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
 
   if (mediaType !== 'audio') {
     event.notes.push('checkIfExportable: Skipping non-audio file');
+
     return event;
   }
 
