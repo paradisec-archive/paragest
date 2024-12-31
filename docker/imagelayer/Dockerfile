@@ -6,7 +6,7 @@ RUN mkdir -p /asset/bin /asset/lib /asset/share
 RUN dnf groupinstall -y "Development Tools" && \
   dnf install -y wget tar gzip libjpeg-turbo-devel openjpeg2-devel zlib-devel xz-devel \
   bzip2-devel libexif-devel libpng-devel libtiff-devel libwebp-devel && \
-  dnf clean
+  dnf clean all
 
 ARG magickURL=https://imagemagick.org/archive/ImageMagick.tar.gz
 RUN wget -qO ImageMagick.tar.gz ${magickURL}
