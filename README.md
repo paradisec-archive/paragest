@@ -17,4 +17,8 @@ The `cdk.json` file tells the CDK Toolkit how to execute your app.
 
 ### Assumptions
 
-- Data going through the ingestion system is transient and there is no impact if anything is lost
+* Data going through the ingestion system is transient and there is no impact if anything is lost
+
+## TODO
+
+* <https://aws.amazon.com/blogs/compute/simplifying-developer-experience-with-variables-and-jsonata-in-aws-step-functions/>
