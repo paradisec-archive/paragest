@@ -22,6 +22,7 @@
     "file:badName": "AWS_PROFILE=nabu-$ENV aws s3 cp samples/bad-name.txt s3://paragest-ingest-$ENV/incoming/bad-name.txt",
     "file:empty": "AWS_PROFILE=nabu-$ENV aws s3 cp samples/empty.txt s3://paragest-ingest-$ENV/incoming/empty.txt",
     "file:emptyAnnis": "AWS_PROFILE=nabu-$ENV aws s3 cp samples/empty.txt s3://paragest-ingest-$ENV/incoming/JFTEST-001-emptyAnnis.annis",
+    "file:notexportableMP4": "AWS_PROFILE=nabu-$ENV aws s3 cp samples/sample.mp4 s3://paragest-ingest-$ENV/incoming/JFTEST-002-notExportable.mp4",
     "file:notexportable": "AWS_PROFILE=nabu-$ENV aws s3 cp samples/sample.wav s3://paragest-ingest-$ENV/incoming/JFTEST-002-notExportable.wav",
     "file:webp": "AWS_PROFILE=nabu-$ENV aws s3 cp samples/sample.webp s3://paragest-ingest-$ENV/incoming/JFTEST-001-webp.webp",
     "file:odt": "AWS_PROFILE=nabu-$ENV aws s3 cp samples/sample.odt s3://paragest-ingest-$ENV/incoming/JFTEST-001-odt.odt",

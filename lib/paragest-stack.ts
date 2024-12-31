@@ -198,7 +198,7 @@ export class ParagestStack extends cdk.Stack {
             SFN_TASK_TOKEN: sfn.JsonPath.taskToken,
             PARAGEST_ENV: env,
             SENTRY_DSN: 'https://e36e8aa3d034861a3803d2edbd4773ff@o4504801902985216.ingest.sentry.io/4506375864254464',
-            SENTRY_RELEASE: JSON.stringify(getGitSha(source))
+            SENTRY_RELEASE: JSON.stringify(getGitSha(source)),
           },
         },
         outputPath: '$',
@@ -405,9 +405,9 @@ export class ParagestStack extends cdk.Stack {
     // /////////////////////////////
 
     const mediaFlow = sfn.Chain.start(checkCatalogForItemStep)
-      .next(checkMetadataReadyStep)
       .next(checkItemIdentifierLengthStep)
       .next(detectAndValidateMediaStep)
+      .next(checkMetadataReadyStep)
       .next(
         new sfn.Choice(this, 'Media Type')
           .when(sfn.Condition.stringEquals('$.mediaType', 'audio'), processAudioFlow)
@@ -416,8 +416,7 @@ export class ParagestStack extends cdk.Stack {
           .when(sfn.Condition.stringEquals('$.mediaType', 'other'), processOtherFlow),
       );
 
-    const handleSpecialFlow = sfn.Chain.start(handleSpecialStep)
-      .next(processSuccessStep);
+    const handleSpecialFlow = sfn.Chain.start(handleSpecialStep).next(processSuccessStep);
 
     const workflow = sfn.Chain.start(rejectEmptyFilesStep)
       .next(checkIfSpecialStep)
@@ -425,7 +424,7 @@ export class ParagestStack extends cdk.Stack {
         new sfn.Choice(this, 'Is Special File?')
           .when(sfn.Condition.booleanEquals('$.isSpecialFile', true), handleSpecialFlow)
           .when(sfn.Condition.booleanEquals('$.isSpecialFile', false), mediaFlow),
-      )
+      );
 
     const parallel = new sfn.Parallel(this, 'ParallelErrorCatcher');
     parallel.branch(workflow);
