@@ -1,18 +1,17 @@
 FROM public.ecr.aws/amazonlinux/amazonlinux:2023
 
-# NOTE: We don't care about docker images size as we are copying out of it, we prefer faster builds
-
 # NOTE: This is where cdk expects to find everything, lambda will dump it into opt
 RUN mkdir -p /asset/bin /asset/lib /asset/share
 
-RUN dnf groupinstall -y "Development Tools"
-RUN dnf install -y wget tar gzip libjpeg-turbo-devel openjpeg2-devel zlib-devel xz-devel \
-  bzip2-devel libexif-devel libpng-devel libtiff-devel libwebp-devel
+RUN dnf groupinstall -y "Development Tools" && \
+  dnf install -y wget tar gzip libjpeg-turbo-devel openjpeg2-devel zlib-devel xz-devel \
+  bzip2-devel libexif-devel libpng-devel libtiff-devel libwebp-devel && \
+  dnf clean
 
 ARG magickURL=https://imagemagick.org/archive/ImageMagick.tar.gz
-RUN wget -O ImageMagick.tar.gz ${magickURL}
-RUN tar xf ImageMagick.tar.gz
-RUN cd ImageMagick-* \
+RUN wget -qO ImageMagick.tar.gz ${magickURL}
+RUN tar xf ImageMagick.tar.gz && \
+  cd ImageMagick-* \
   && ./configure \
   --prefix=/asset \
   --disable-shared \
@@ -40,9 +39,10 @@ RUN cd ImageMagick-* \
   --without-openexr \
   && make -j 12 \
   && make install-exec
+
 # No symlinks in zip file so try to make it smaler
-RUN cd /asset/bin && rm animate conjure montage stream
-RUN cp \
+RUN cd /asset/bin && rm animate conjure montage stream && \
+  cp \
   /lib64/libtiff.so.5 \
   /lib64/libjpeg.so.62 \
   /lib64/libpng16.so.16 \

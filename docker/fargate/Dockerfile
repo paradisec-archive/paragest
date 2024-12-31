@@ -11,20 +11,11 @@ COPY package.json /function
 COPY yarn.lock /function
 
 
-RUN corepack enable
-RUN yarn --immutable
-
-RUN ls
+RUN corepack enable && \
+  yarn --immutable
 
 COPY src/${SOURCE_FILE} /function/video/
 COPY src/lib/*.ts /function/lib/
-
-RUN echo  /
-RUN ls  /
-RUN echo  /function
-RUN ls node_modules
-RUN ls node_modules/@sentry
-RUN ls node_modules/@sentry/node
 
 RUN ./node_modules/.bin/esbuild \
   --bundle ${SOURCE_FILE} \
@@ -38,7 +29,7 @@ RUN ./node_modules/.bin/esbuild \
   --main-fields=module,main \
   --banner:js="import { createRequire } from 'module';const require = createRequire(import.meta.url);" \
   --loader:.node=copy
-  # DIrty hack from https://github.com/evanw/esbuild/pull/2067
+# Dirty hack from https://github.com/evanw/esbuild/pull/2067
 
 FROM node:lts-alpine
 
@@ -49,13 +40,13 @@ ARG ffmpegURL=https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-sta
 RUN apk add --no-cache --virtual .build-deps-yarn wget \
   && mkdir /tmp/ffmpeg \
   && cd /tmp/ffmpeg \
-  && wget -O ffmpeg.tar.xz ${ffmpegURL} \
+  && wget -qO ffmpeg.tar.xz ${ffmpegURL} \
   && tar -xf ffmpeg.tar.xz \
   && mv ffmpeg*/ffmpeg /usr/local/bin \
   && rm -rf /tmp/ffmpeg \
   && apk del .build-deps-yarn
 
-RUN apk add mediainfo
+RUN apk add --no-cache mediainfo
 
 # Set working directory to function root directory
 WORKDIR /function

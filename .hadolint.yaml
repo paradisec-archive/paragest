@@ -1,0 +1,5 @@
+ignored:
+  - DL3008 # specify explict apt versions
+  - DL3041 # Specify explict dnf versions
+  - DL3018 # Specify explict apk versions
+  - DL3003 # use WORKDIR instead of cd
