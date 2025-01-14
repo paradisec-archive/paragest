@@ -17,7 +17,7 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
 
   const { objectKey } = event;
 
-  const md = objectKey.match(/^incoming\/([A-Za-z][a-zA-Z0-9_]+)-([A-Za-z0-9][a-zA-Z0-9_]+)-(.*)\.([^.]+)$/);
+  const md = objectKey.match(/^incoming\/([A-Za-z0-9][a-zA-Z0-9_]+)-([A-Za-z0-9][a-zA-Z0-9_]+)-(.*)\.([^.]+)$/);
   if (!md) {
     throw new StepError(`Object key ${objectKey} does not match expected pattern`, event, { objectKey });
   }
@@ -39,7 +39,11 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
   const item = await getItem(collectionIdentifier, itemIdentifier);
 
   if (!item) {
-    throw new StepError(`File ${filename} is for collection: ${collectionIdentifier} item: ${itemIdentifier} but that is not in the database`, event, { objectKey });
+    throw new StepError(
+      `File ${filename} is for collection: ${collectionIdentifier} item: ${itemIdentifier} but that is not in the database`,
+      event,
+      { objectKey },
+    );
   }
 
   const details = {
