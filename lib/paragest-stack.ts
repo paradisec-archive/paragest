@@ -86,24 +86,6 @@ export class ParagestStack extends cdk.Stack {
       return task;
     };
 
-    const mediaDocker = lambda.Code.fromDockerBuild(path.join(__dirname, '..', 'docker', 'medialayer'), {
-      buildArgs: {
-        MEDIAINFO_VERSION: '23.11',
-        LIBZEN_VERSION: '0.4.41',
-        BWF_METAEDIT_VERSION: '23.04',
-      },
-    });
-    const mediaLayer = new lambda.LayerVersion(this, 'MediaLayer', {
-      code: mediaDocker,
-      description: 'Media Layer',
-    });
-
-    const imageDocker = lambda.Code.fromDockerBuild(path.join(__dirname, '..', 'docker', 'imagelayer'));
-    const imageLayer = new lambda.LayerVersion(this, 'ImageLayer', {
-      code: imageDocker,
-      description: 'Image Layer',
-    });
-
     const ingestBucket = new s3.Bucket(this, 'IngestBucket', {
       bucketName: `paragest-ingest-${env}`,
       lifecycleRules: [{ prefix: 'rejected/', expiration: cdk.Duration.days(4 * 7) }],
@@ -162,8 +144,9 @@ export class ParagestStack extends cdk.Stack {
 
     type ParagestFargateOpts = {
       grantFunc?: (role: IRole) => void; // eslint-disable-line no-unused-vars
+      jobProps?: Partial<tasks.BatchSubmitJobProps>;
     };
-    const paragestFargateStep = (stepId: string, source: string, { grantFunc }: ParagestFargateOpts = {}) => {
+    const paragestFargateStep = (stepId: string, source: string, { grantFunc, jobProps }: ParagestFargateOpts = {}) => {
       // eslint-disable-line no-unused-vars
       const image = new ecrAssets.DockerImageAsset(this, `${stepId}DockerImage`, {
         directory: path.join(__dirname, '..'),
@@ -202,6 +185,8 @@ export class ParagestStack extends cdk.Stack {
           },
         },
         outputPath: '$',
+        taskTimeout: sfn.Timeout.duration(cdk.Duration.minutes(15)),
+        ...jobProps,
       });
 
       grantFunc?.(jobRole);
@@ -256,70 +241,64 @@ export class ParagestStack extends cdk.Stack {
       'src/check-item-identifier-length.ts',
     );
     const checkCatalogForItemStep = paragestStep('CheckCatalogForItem', 'src/check-catalog-for-item.ts', {
-      grantFunc: (lambdaFunc) => nabuOauthSecret.grantRead(lambdaFunc),
+      grantFunc: (role) => nabuOauthSecret.grantRead(role),
     });
 
     const checkIfSpecialStep = paragestStep('CheckIfSpecial', 'src/check-if-special.ts', {
-      grantFunc: (lambdaFunc) => nabuOauthSecret.grantRead(lambdaFunc),
+      grantFunc: (role) => nabuOauthSecret.grantRead(role),
     });
 
     // /////////////////////////////
     // Add to Catalog Steps
     // /////////////////////////////
-    const addToCatalogStep = paragestStep('AddToCatalog', 'src/add-to-catalog.ts', {
-      lambdaProps: { timeout: cdk.Duration.minutes(5), layers: [mediaLayer] },
-      grantFunc: (lambdaFunc) => {
-        ingestBucket.grantRead(lambdaFunc);
-        ingestBucket.grantDelete(lambdaFunc);
-        catalogBucket.grantPut(lambdaFunc);
-        catalogBucket.grantRead(lambdaFunc);
-        nabuOauthSecret.grantRead(lambdaFunc);
+    const addToCatalogStep = paragestFargateStep('AddToCatalog', 'src/add-to-catalog.ts', {
+      grantFunc: (role) => {
+        ingestBucket.grantRead(role);
+        ingestBucket.grantDelete(role);
+        catalogBucket.grantPut(role);
+        catalogBucket.grantRead(role);
+        nabuOauthSecret.grantRead(role);
       },
     });
 
     const addToCatalogFlow = sfn.Chain.start(addToCatalogStep).next(processSuccessStep);
 
     const detectAndValidateMediaStep = paragestStep('detectAndValidateMedia', 'src/detect-and-validate-media.ts', {
-      grantFunc: (lambdaFunc) => {
-        ingestBucket.grantRead(lambdaFunc);
+      grantFunc: (role) => {
+        ingestBucket.grantRead(role);
       },
       lambdaProps: { nodeModules: ['@npcz/magic'], memorySize: 10240, timeout: cdk.Duration.minutes(15) },
     });
 
     const checkMetadataReadyStep = paragestStep('CheckMetadataReady', 'src/check-metadata-ready.ts', {
-      grantFunc: (lambdaFunc) => {
-        nabuOauthSecret.grantRead(lambdaFunc);
+      grantFunc: (role) => {
+        nabuOauthSecret.grantRead(role);
       },
     });
 
     // /////////////////////////////
     // Audio Flow Steps
     // /////////////////////////////
-    const convertAudioStep = paragestStep('ConvertAudio', 'src/audio/convert.ts', {
-      grantFunc: (lambdaFunc) => ingestBucket.grantReadWrite(lambdaFunc),
-      lambdaProps: { memorySize: 10240, timeout: cdk.Duration.minutes(15), layers: [mediaLayer] },
+    const convertAudioStep = paragestFargateStep('ConvertAudio', 'src/audio/convert.ts', {
+      grantFunc: (role) => ingestBucket.grantReadWrite(role),
     });
-    const fixSilenceStep = paragestStep('FixSilence', 'src/audio/fix-silence.ts', {
-      grantFunc: (lambdaFunc) => ingestBucket.grantReadWrite(lambdaFunc),
-      lambdaProps: { memorySize: 10240, timeout: cdk.Duration.minutes(15), layers: [mediaLayer] },
+    const fixSilenceStep = paragestFargateStep('FixSilence', 'src/audio/fix-silence.ts', {
+      grantFunc: (role) => ingestBucket.grantReadWrite(role),
     });
-    const setMaxVolumeStep = paragestStep('SetMaxVolume', 'src/audio/set-max-volume.ts', {
-      grantFunc: (lambdaFunc) => ingestBucket.grantReadWrite(lambdaFunc),
-      lambdaProps: { memorySize: 10240, timeout: cdk.Duration.minutes(15), layers: [mediaLayer] },
+    const setMaxVolumeStep = paragestFargateStep('SetMaxVolume', 'src/audio/set-max-volume.ts', {
+      grantFunc: (role) => ingestBucket.grantReadWrite(role),
     });
-    const createBWFStep = paragestStep('CreateBWF', 'src/audio/create-bwf.ts', {
-      grantFunc: (lambdaFunc) => {
-        ingestBucket.grantReadWrite(lambdaFunc);
-        nabuOauthSecret.grantRead(lambdaFunc);
+    const createBWFStep = paragestFargateStep('CreateBWF', 'src/audio/create-bwf.ts', {
+      grantFunc: (role) => {
+        ingestBucket.grantReadWrite(role);
+        nabuOauthSecret.grantRead(role);
       },
-      lambdaProps: { memorySize: 10240, timeout: cdk.Duration.minutes(15), layers: [mediaLayer] },
     });
-    const createPresentationStep = paragestStep('CreatePresentationStep', 'src/audio/create-presentation.ts', {
-      grantFunc: (lambdaFunc) => {
-        ingestBucket.grantReadWrite(lambdaFunc);
-        nabuOauthSecret.grantRead(lambdaFunc);
+    const createPresentationStep = paragestFargateStep('CreatePresentationStep', 'src/audio/create-presentation.ts', {
+      grantFunc: (role) => {
+        ingestBucket.grantReadWrite(role);
+        nabuOauthSecret.grantRead(role);
       },
-      lambdaProps: { memorySize: 10240, timeout: cdk.Duration.minutes(15), layers: [mediaLayer] },
     });
     const processAudioFlow = sfn.Chain.start(convertAudioStep)
       .next(fixSilenceStep)
@@ -332,20 +311,22 @@ export class ParagestStack extends cdk.Stack {
     // Video Flow Steps
     // /////////////////////////////
     const createVideoArchivalStep = paragestFargateStep('CreateVideoArchival', 'video/create-archival.ts', {
-      grantFunc: (container) => {
-        ingestBucket.grantReadWrite(container);
-        nabuOauthSecret.grantRead(container);
+      grantFunc: (role) => {
+        ingestBucket.grantReadWrite(role);
+        nabuOauthSecret.grantRead(role);
       },
+      jobProps: { taskTimeout: sfn.Timeout.duration(cdk.Duration.minutes(120)) },
     });
 
     const createVideoPresentationStep = paragestFargateStep(
       'CreateVideoPresentationStep',
       'video/create-presentation.ts',
       {
-        grantFunc: (lambdaFunc) => {
-          ingestBucket.grantReadWrite(lambdaFunc);
-          nabuOauthSecret.grantRead(lambdaFunc);
+        grantFunc: (role) => {
+          ingestBucket.grantReadWrite(role);
+          nabuOauthSecret.grantRead(role);
         },
+        jobProps: { taskTimeout: sfn.Timeout.duration(cdk.Duration.minutes(120)) },
       },
     );
     const processVideoFlow = sfn.Chain.start(createVideoArchivalStep)
@@ -355,23 +336,21 @@ export class ParagestStack extends cdk.Stack {
     // /////////////////////////////
     // Image Flow Steps
     // /////////////////////////////
-    const createImageArchivalStep = paragestStep('CreateImageArchival', 'src/image/create-archival.ts', {
-      grantFunc: (lambdaFunc) => {
-        ingestBucket.grantReadWrite(lambdaFunc);
-        nabuOauthSecret.grantRead(lambdaFunc);
+    const createImageArchivalStep = paragestFargateStep('CreateImageArchival', 'src/image/create-archival.ts', {
+      grantFunc: (role) => {
+        ingestBucket.grantReadWrite(role);
+        nabuOauthSecret.grantRead(role);
       },
-      lambdaProps: { layers: [imageLayer], timeout: cdk.Duration.minutes(15), memorySize: 10240 },
     });
 
-    const createImagePresentationStep = paragestStep(
+    const createImagePresentationStep = paragestFargateStep(
       'CreateImagePresentationStep',
       'src/image/create-presentation.ts',
       {
-        grantFunc: (lambdaFunc) => {
-          ingestBucket.grantReadWrite(lambdaFunc);
-          nabuOauthSecret.grantRead(lambdaFunc);
+        grantFunc: (role) => {
+          ingestBucket.grantReadWrite(role);
+          nabuOauthSecret.grantRead(role);
         },
-        lambdaProps: { layers: [imageLayer], timeout: cdk.Duration.minutes(15), memorySize: 10240 },
       },
     );
     const processImageFlow = sfn.Chain.start(createImageArchivalStep)
@@ -382,19 +361,19 @@ export class ParagestStack extends cdk.Stack {
     // Other Flow Steps
     // /////////////////////////////
     const createOtherArchivalStep = paragestStep('CreateOtherArchival', 'src/other/create-archival.ts', {
-      grantFunc: (lambdaFunc) => {
-        ingestBucket.grantReadWrite(lambdaFunc);
-        nabuOauthSecret.grantRead(lambdaFunc);
+      grantFunc: (role) => {
+        ingestBucket.grantReadWrite(role);
+        nabuOauthSecret.grantRead(role);
       },
     });
 
     const handleSpecialStep = paragestStep('HandleSpecial', 'src/handle-special.ts', {
-      grantFunc: (lambdaFunc) => {
-        ingestBucket.grantReadWrite(lambdaFunc);
-        ingestBucket.grantDelete(lambdaFunc);
-        nabuOauthSecret.grantRead(lambdaFunc);
-        catalogBucket.grantPut(lambdaFunc);
-        catalogBucket.grantRead(lambdaFunc);
+      grantFunc: (role) => {
+        ingestBucket.grantReadWrite(role);
+        ingestBucket.grantDelete(role);
+        nabuOauthSecret.grantRead(role);
+        catalogBucket.grantPut(role);
+        catalogBucket.grantRead(role);
       },
     });
 
