@@ -251,7 +251,7 @@ export class ParagestStack extends cdk.Stack {
     // /////////////////////////////
     // Add to Catalog Steps
     // /////////////////////////////
-    const addToCatalogStep = paragestFargateStep('AddToCatalog', 'src/add-to-catalog.ts', {
+    const addToCatalogStep = paragestFargateStep('AddToCatalog', 'add-to-catalog.ts', {
       grantFunc: (role) => {
         ingestBucket.grantRead(role);
         ingestBucket.grantDelete(role);
@@ -279,22 +279,22 @@ export class ParagestStack extends cdk.Stack {
     // /////////////////////////////
     // Audio Flow Steps
     // /////////////////////////////
-    const convertAudioStep = paragestFargateStep('ConvertAudio', 'src/audio/convert.ts', {
+    const convertAudioStep = paragestFargateStep('ConvertAudio', 'audio/convert.ts', {
       grantFunc: (role) => ingestBucket.grantReadWrite(role),
     });
-    const fixSilenceStep = paragestFargateStep('FixSilence', 'src/audio/fix-silence.ts', {
+    const fixSilenceStep = paragestFargateStep('FixSilence', 'audio/fix-silence.ts', {
       grantFunc: (role) => ingestBucket.grantReadWrite(role),
     });
-    const setMaxVolumeStep = paragestFargateStep('SetMaxVolume', 'src/audio/set-max-volume.ts', {
+    const setMaxVolumeStep = paragestFargateStep('SetMaxVolume', 'audio/set-max-volume.ts', {
       grantFunc: (role) => ingestBucket.grantReadWrite(role),
     });
-    const createBWFStep = paragestFargateStep('CreateBWF', 'src/audio/create-bwf.ts', {
+    const createBWFStep = paragestFargateStep('CreateBWF', 'audio/create-bwf.ts', {
       grantFunc: (role) => {
         ingestBucket.grantReadWrite(role);
         nabuOauthSecret.grantRead(role);
       },
     });
-    const createPresentationStep = paragestFargateStep('CreatePresentationStep', 'src/audio/create-presentation.ts', {
+    const createPresentationStep = paragestFargateStep('CreatePresentationStep', 'audio/create-presentation.ts', {
       grantFunc: (role) => {
         ingestBucket.grantReadWrite(role);
         nabuOauthSecret.grantRead(role);
@@ -336,7 +336,7 @@ export class ParagestStack extends cdk.Stack {
     // /////////////////////////////
     // Image Flow Steps
     // /////////////////////////////
-    const createImageArchivalStep = paragestFargateStep('CreateImageArchival', 'src/image/create-archival.ts', {
+    const createImageArchivalStep = paragestFargateStep('CreateImageArchival', 'image/create-archival.ts', {
       grantFunc: (role) => {
         ingestBucket.grantReadWrite(role);
         nabuOauthSecret.grantRead(role);
@@ -345,7 +345,7 @@ export class ParagestStack extends cdk.Stack {
 
     const createImagePresentationStep = paragestFargateStep(
       'CreateImagePresentationStep',
-      'src/image/create-presentation.ts',
+      'image/create-presentation.ts',
       {
         grantFunc: (role) => {
           ingestBucket.grantReadWrite(role);

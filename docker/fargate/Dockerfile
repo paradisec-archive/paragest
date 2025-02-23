@@ -11,8 +11,8 @@ COPY yarn.lock /function
 RUN corepack enable && \
   yarn --immutable
 
-COPY src/* /function
-COPY src/lib/*.ts /function/lib/
+COPY src/ /function/src/
+RUN ls -lR /function/src
 
 RUN ./node_modules/.bin/esbuild \
   --bundle ${SOURCE_FILE} \
