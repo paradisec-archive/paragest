@@ -29,7 +29,7 @@ RUN ./node_modules/.bin/esbuild \
 
 FROM ubuntu:24.10
 
-# SHELL ["/bin/bash", "-exo", "pipefail", "-c"]
+SHELL ["/bin/bash", "-exo", "pipefail", "-c"]
 
 ARG FUNCTION_DIR
 
@@ -40,7 +40,7 @@ ARG BWF_METAEDIT_URL="https://mediaarea.net/download/binary/bwfmetaedit/24.10/bw
 
 # hadolint ignore=DL3015
 RUN apt-get update && \
-  apt-get install -y ffmpeg imagemagick wget && \
+  apt-get install -y ffmpeg imagemagick wget ca-certificates gnupg && \
   rm -rf /var/lib/apt/lists/*
 
 WORKDIR /tmp
@@ -51,6 +51,14 @@ RUN wget -qO mediainfo.deb "$MEDIA_INFO_URL" && \
   wget -qO bwfmetaedit.deb "$BWF_METAEDIT_URL" && \
   apt-get update && \
   apt-get install -y -f ./mediainfo.deb ./libmediainfo.deb ./libzen.deb ./bwfmetaedit.deb && \
+  rm -rf /var/lib/apt/lists/*
+
+# hadolint ignore=DL3015
+RUN mkdir -p /etc/apt/keyrings && \
+  wget -qO - https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg && \
+  echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_22.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list && \
+  apt-get update && \
+  apt-get install -y nodejs && \
   rm -rf /var/lib/apt/lists/*
 
 # # Set working directory to function root directory
