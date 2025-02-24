@@ -1,10 +1,11 @@
 import { graphql } from '../gql';
 
 import { getGraphQLClient } from '../lib/graphql.js';
+import { throttle } from '../lib/rate-limit';
 
 const gqlClient = await getGraphQLClient();
 
-export const getUserByUnikey = async (unikey: string) => {
+export const getUserByUnikey = throttle(async (unikey: string) => {
   const UserByUnikeyQuery = graphql(/* GraphQL */ `
     query GetUserByUnikeyQuery($unikey: String!) {
       userByUnikey(unikey: $unikey) {
@@ -26,7 +27,7 @@ export const getUserByUnikey = async (unikey: string) => {
   }
 
   return response.data?.userByUnikey;
-};
+});
 
 // We should be able to get this via codgen but it's not being pulled in
 export type EmailUser = Awaited<ReturnType<typeof getUserByUnikey>>;

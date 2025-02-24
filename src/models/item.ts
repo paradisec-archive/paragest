@@ -1,10 +1,11 @@
 import { graphql } from '../gql';
 
 import { getGraphQLClient } from '../lib/graphql.js';
+import { throttle } from '../lib/rate-limit';
 
 const gqlClient = await getGraphQLClient();
 
-export const getItem = async (collectionIdentifier: string, itemIdentifier: string) => {
+export const getItem = throttle(async (collectionIdentifier: string, itemIdentifier: string) => {
   const ItemQuery = graphql(/* GraphQL */ `
     query GetItemQuery($fullIdentifier: ID!) {
       item(fullIdentifier: $fullIdentifier) {
@@ -22,10 +23,11 @@ export const getItem = async (collectionIdentifier: string, itemIdentifier: stri
   console.debug('Response:', JSON.stringify(response, null, 2));
 
   return response.data?.item;
-};
+});
 
-export const getItemBwfCsv = async (collectionIdentifier: string, itemIdentifier: string, filename: string) => {
-  const ItemBwfCsvQuery = graphql(/* GraphQL */ `
+export const getItemBwfCsv = throttle(
+  async (collectionIdentifier: string, itemIdentifier: string, filename: string) => {
+    const ItemBwfCsvQuery = graphql(/* GraphQL */ `
     query GetItemBwfCsvQuery($fullIdentifier: ID!, $filename: String!) {
       itemBwfCsv(fullIdentifier: $fullIdentifier, filename: $filename) {
         csv
@@ -33,16 +35,17 @@ export const getItemBwfCsv = async (collectionIdentifier: string, itemIdentifier
     }
   `);
 
-  const response = await gqlClient.query(ItemBwfCsvQuery, {
-    fullIdentifier: `${collectionIdentifier}-${itemIdentifier}`,
-    filename,
-  });
-  console.debug('Response:', JSON.stringify(response, null, 2));
+    const response = await gqlClient.query(ItemBwfCsvQuery, {
+      fullIdentifier: `${collectionIdentifier}-${itemIdentifier}`,
+      filename,
+    });
+    console.debug('Response:', JSON.stringify(response, null, 2));
 
-  return response.data?.itemBwfCsv?.csv;
-};
+    return response.data?.itemBwfCsv?.csv;
+  },
+);
 
-export const getItemId3 = async (collectionIdentifier: string, itemIdentifier: string) => {
+export const getItemId3 = throttle(async (collectionIdentifier: string, itemIdentifier: string) => {
   const query = graphql(/* GraphQL */ `
     query GetItemId3Query($fullIdentifier: ID!) {
       itemId3(fullIdentifier: $fullIdentifier) {
@@ -55,4 +58,4 @@ export const getItemId3 = async (collectionIdentifier: string, itemIdentifier: s
   console.debug('Response:', JSON.stringify(response, null, 2));
 
   return response.data?.itemId3?.txt;
-};
+});

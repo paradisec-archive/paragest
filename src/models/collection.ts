@@ -1,10 +1,11 @@
 import { graphql } from '../gql';
 
 import { getGraphQLClient } from '../lib/graphql.js';
+import { throttle } from '../lib/rate-limit';
 
 const gqlClient = await getGraphQLClient();
 
-export const getCollection = async (identifier: string) => {
+export const getCollection = throttle(async (identifier: string) => {
   const CollectionQuery = graphql(/* GraphQL */ `
 
     query GetCollectionQuery($identifier: ID!) {
@@ -19,9 +20,9 @@ export const getCollection = async (identifier: string) => {
   console.debug('Response:', JSON.stringify(response, null, 2));
 
   return response.data?.collection;
-};
+});
 
-export const setHasDepositForm = async (identifier: string) => {
+export const setHasDepositForm = throttle(async (identifier: string) => {
   const query = graphql(/* GraphQL */ `
     mutation SetCollectionHasDepositForm($input: SetCollectionHasDepositFormInput!) {
       setCollectionHasDepositForm(input: $input) {
@@ -38,4 +39,4 @@ export const setHasDepositForm = async (identifier: string) => {
   console.debug('UpdateResponse:', JSON.stringify(updateResponse, null, 2));
 
   return updateResponse.error;
-};
+});

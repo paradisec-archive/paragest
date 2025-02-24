@@ -5,6 +5,7 @@ import * as cdk from 'aws-cdk-lib';
 import type { Construct } from 'constructs';
 
 import * as batch from 'aws-cdk-lib/aws-batch';
+import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as ecs from 'aws-cdk-lib/aws-ecs';
 import * as ecrAssets from 'aws-cdk-lib/aws-ecr-assets';
@@ -33,11 +34,17 @@ export class ParagestStack extends cdk.Stack {
 
     const env = props?.env?.account === '618916419351' ? 'prod' : 'stage';
 
+    const concurrencyTable = new dynamodb.TableV2(this, 'ConcurrencyTable', {
+      tableName: 'ConcurrencyTable',
+      partitionKey: { name: 'pk', type: dynamodb.AttributeType.STRING },
+    });
+
     const lambdaCommon: nodejs.NodejsFunctionProps = {
       environment: {
         PARAGEST_ENV: env,
         SENTRY_DSN: 'https://e36e8aa3d034861a3803d2edbd4773ff@o4504801902985216.ingest.sentry.io/4506375864254464',
         NODE_OPTIONS: '--enable-source-maps',
+        CONCURRENCY_TABLE_NAME: concurrencyTable.tableName,
       },
       runtime: lambda.Runtime.NODEJS_20_X,
       memorySize: 2048,
@@ -77,6 +84,8 @@ export class ParagestStack extends cdk.Stack {
         entry,
       });
       grantFunc?.(lambdaFunction);
+
+      concurrencyTable.grantReadWrite(lambdaFunction);
 
       const task = new tasks.LambdaInvoke(this, `${stepId}Task`, {
         lambdaFunction,
@@ -182,6 +191,7 @@ export class ParagestStack extends cdk.Stack {
             PARAGEST_ENV: env,
             SENTRY_DSN: 'https://e36e8aa3d034861a3803d2edbd4773ff@o4504801902985216.ingest.sentry.io/4506375864254464',
             SENTRY_RELEASE: JSON.stringify(getGitSha(source)),
+            CONCURRENCY_TABLE_NAME: concurrencyTable.tableName,
           },
         },
         outputPath: '$',
@@ -190,6 +200,8 @@ export class ParagestStack extends cdk.Stack {
       });
 
       grantFunc?.(jobRole);
+
+      concurrencyTable.grantReadWrite(jobRole);
 
       jobRole.addToPolicy(
         new iam.PolicyStatement({
