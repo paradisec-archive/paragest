@@ -91,6 +91,7 @@ export const throttle =
 
         const delay = BASE_DELAY * 2 ** retires;
         const jitter = Math.random() * 100;
+        console.log(`Retrying in ${delay + jitter}ms`);
         await sleep(delay + jitter);
 
         retires += 1;
