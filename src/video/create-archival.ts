@@ -1,10 +1,9 @@
 import '../lib/sentry-node.js';
 
-import { SFNClient, SendTaskFailureCommand, SendTaskSuccessCommand } from '@aws-sdk/client-sfn';
-
 import { getMediaMetadata } from '../lib/media.js';
 import { execute } from '../lib/command.js';
 import { download, upload } from '../lib/s3.js';
+import { processBatch } from '../lib/batch.js';
 
 type Event = {
   notes: string[];
@@ -21,8 +20,6 @@ type Event = {
   videoBitDepth: number;
   taskToken: string;
 };
-
-const sfn = new SFNClient();
 
 export const handler = async (event: Event) => {
   console.debug('Event: ', JSON.stringify(event, null, 2));
@@ -56,34 +53,20 @@ export const handler = async (event: Event) => {
   } else {
     execute(
       'ffmpeg -y -hide_banner -i input -sn -map 0 -dn -c:v ffv1 -level 3 -g 1 -slicecrc 1 -slices 16 -c:a flac output.mkv',
-      event
+      event,
     );
     notes.push('create-archival: Created MKV file');
   }
 
-  await upload('/tmp/output.mkv', bucketName, `output/${filename}/${filename.replace(new RegExp(`.${extension}$`), '.mkv')}`, 'application/mkv', true);
+  await upload(
+    '/tmp/output.mkv',
+    bucketName,
+    `output/${filename}/${filename.replace(new RegExp(`.${extension}$`), '.mkv')}`,
+    'application/mkv',
+    true,
+  );
 
-  const successCommand = new SendTaskSuccessCommand({
-    taskToken: process.env.SFN_TASK_TOKEN,
-    output: JSON.stringify(event),
-  });
-  await sfn.send(successCommand);
+  return event;
 };
 
-const event = process.env.SFN_INPUT;
-if (!event) {
-  throw new Error('No event provided');
-}
-
-try {
-  await handler(JSON.parse(event));
-} catch (error) {
-  console.error('Error:', error);
-  const err = error as Error;
-  const failureCommand = new SendTaskFailureCommand({
-    taskToken: process.env.SFN_TASK_TOKEN,
-    error: err.name,
-    cause: JSON.stringify({ errorType: err.name, errorMessage: err.message }),
-  });
-  await sfn.send(failureCommand);
-}
+processBatch<Event>(handler);

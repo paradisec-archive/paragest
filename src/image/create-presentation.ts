@@ -1,8 +1,6 @@
-import * as Sentry from '@sentry/aws-serverless';
+import '../lib/sentry-node.js';
 
-import type { Handler } from 'aws-lambda';
-
-import '../lib/sentry.js';
+import { processBatch } from '../lib/batch.js';
 import { execute } from '../lib/command.js';
 import { download, upload } from '../lib/s3.js';
 
@@ -20,7 +18,7 @@ type Event = {
   };
 };
 
-export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
+export const handler = async (event: Event) => {
   console.debug('Event: ', JSON.stringify(event, null, 2));
   const {
     notes,
@@ -33,9 +31,16 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
 
   execute('convert input -quality 85 output.jpg', event);
 
-  await upload('/tmp/output.jpg', bucketName, `output/${filename}/${filename.replace(new RegExp(`.${extension}$`), '.jpg')}`, 'image/jpeg');
+  await upload(
+    '/tmp/output.jpg',
+    bucketName,
+    `output/${filename}/${filename.replace(new RegExp(`.${extension}$`), '.jpg')}`,
+    'image/jpeg',
+  );
 
   notes.push('createPresentation: Created MP4 file');
 
   return event;
-});
+};
+
+processBatch<Event>(handler);

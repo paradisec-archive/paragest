@@ -1,12 +1,10 @@
-import type { Handler } from 'aws-lambda';
+import '../lib/sentry-node.js';
 
-import * as Sentry from '@sentry/aws-serverless';
-
-import './lib/sentry.js';
-import { getMediaMetadata, lookupMimetypeFromExtension } from './lib/media.js';
+import { processBatch } from './lib/batch.js';
 import { StepError } from './lib/errors.js';
-import { createEssence, getEssence, updateEssence } from './models/essence.js';
+import { getMediaMetadata, lookupMimetypeFromExtension } from './lib/media.js';
 import { list, move } from './lib/s3.js';
+import { createEssence, getEssence, updateEssence } from './models/essence.js';
 
 type Event = {
   notes: string[];
@@ -73,14 +71,13 @@ const upsertEssence = async (
   return true;
 };
 
-export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
+export const handler = async (event: Event) => {
   console.debug('Event:', JSON.stringify(event, null, 2));
   const {
     notes,
     bucketName,
     details: { collectionIdentifier, itemIdentifier, filename },
   } = event;
-
 
   const prefix = `output/${filename}`;
   const objects = await list(bucketName, prefix);
@@ -104,4 +101,6 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
   await Promise.all(promises || []);
 
   return event;
-});
+};
+
+processBatch<Event>(handler);

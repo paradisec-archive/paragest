@@ -1,10 +1,8 @@
-import * as Sentry from '@sentry/aws-serverless';
+import '../lib/sentry-node.js';
 
-import type { Handler } from 'aws-lambda';
-
-import '../lib/sentry.js';
-import { StepError } from '../lib/errors.js';
+import { processBatch } from '../lib/batch.js';
 import { execute } from '../lib/command.js';
+import { StepError } from '../lib/errors.js';
 import { download, upload } from '../lib/s3.js';
 
 type Event = {
@@ -51,7 +49,7 @@ const checkSilence = (stats: string, event: Event) => {
   return false;
 };
 
-export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
+export const handler = async (event: Event) => {
   console.debug('Event: ', JSON.stringify(event, null, 2));
   const {
     notes,
@@ -59,17 +57,21 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
     bucketName,
   } = event;
 
-  await download(bucketName, `output/${filename}/${filename.replace(new RegExp(`.${extension}$`), '.wav')}`, '/tmp/input.wav');
+  await download(
+    bucketName,
+    `output/${filename}/${filename.replace(new RegExp(`.${extension}$`), '.wav')}`,
+    '/tmp/input.wav',
+  );
 
   const left = execute(
     'ffmpeg -y -i input.wav -filter_complex "[0:a]pan=mono|c0=c0,volumedetect" -f null /dev/null 2>&1 | grep volumedetect_ | sed "s/^.*] //"',
-    event
+    event,
   );
   const leftSilent = checkSilence(left.toString(), event);
 
   const right = execute(
     'ffmpeg -y -i input.wav -filter_complex "[0:a]pan=mono|c0=c1,volumedetect" -f null /dev/null 2>&1 | grep volumedetect_ | sed "s/^.*] //"',
-    event
+    event,
   );
   const rightSilent = checkSilence(right.toString(), event);
 
@@ -94,7 +96,14 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
     event,
   );
 
-  await upload('/tmp/output.wav', bucketName, `output/${filename}/${filename.replace(new RegExp(`.${extension}$`), '.wav')}`, 'audio/wav');
+  await upload(
+    '/tmp/output.wav',
+    bucketName,
+    `output/${filename}/${filename.replace(new RegExp(`.${extension}$`), '.wav')}`,
+    'audio/wav',
+  );
 
   return event;
-});
+};
+
+processBatch<Event>(handler);

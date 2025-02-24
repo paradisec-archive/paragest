@@ -1,10 +1,8 @@
-import * as Sentry from '@sentry/aws-serverless';
+import '../lib/sentry-node.js';
 
-import type { Handler } from 'aws-lambda';
-
-import '../lib/sentry.js';
-import { StepError } from '../lib/errors.js';
+import { processBatch } from '../lib/batch.js';
 import { execute } from '../lib/command.js';
+import { StepError } from '../lib/errors.js';
 import { download, upload } from '../lib/s3.js';
 
 type Event = {
@@ -41,7 +39,7 @@ const getVolume = (stats: string, event: Event) => {
   return statsObject.max_volume;
 };
 
-export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
+export const handler = async (event: Event) => {
   console.debug('Event: ', JSON.stringify(event, null, 2));
   const {
     notes,
@@ -49,11 +47,15 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
     bucketName,
   } = event;
 
-  await download(bucketName, `output/${filename}/${filename.replace(new RegExp(`.${extension}$`), '.wav')}`, '/tmp/input.wav');
+  await download(
+    bucketName,
+    `output/${filename}/${filename.replace(new RegExp(`.${extension}$`), '.wav')}`,
+    '/tmp/input.wav',
+  );
 
   const analysis = execute(
     'ffmpeg -i input.wav -filter:a volumedetect -f null /dev/null 2>&1 | grep volumedetect | sed "s/^.*] //"',
-    event
+    event,
   );
   const maxVolume = getVolume(analysis.toString(), event);
 
@@ -66,7 +68,14 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
   notes.push(`setMaxVolume: Adjusting by ${diff} dB`);
   execute(`ffmpeg -y -i input.wav -af "volume=${diff}dB" -ac 2 -ar 96000 -c:a pcm_s24le -rf64 auto output.wav`, event);
 
-  await upload('/tmp/output.wav', bucketName, `output/${filename}/${filename.replace(new RegExp(`.${extension}$`), '.wav')}`, 'audio/wav');
+  await upload(
+    '/tmp/output.wav',
+    bucketName,
+    `output/${filename}/${filename.replace(new RegExp(`.${extension}$`), '.wav')}`,
+    'audio/wav',
+  );
 
   return event;
-});
+};
+
+processBatch<Event>(handler);

@@ -1,14 +1,12 @@
 import { writeFileSync } from 'node:fs';
 
-import * as Sentry from '@sentry/aws-serverless';
+import '../lib/sentry-node.js';
 
-import type { Handler } from 'aws-lambda';
-
-import '../lib/sentry.js';
-import { StepError } from '../lib/errors.js';
-import { getItemId3 } from '../models/item.js';
+import { processBatch } from '../lib/batch.js';
 import { execute } from '../lib/command.js';
+import { StepError } from '../lib/errors.js';
 import { download, upload } from '../lib/s3.js';
+import { getItemId3 } from '../models/item.js';
 
 type Event = {
   notes: string[];
@@ -24,7 +22,7 @@ type Event = {
   };
 };
 
-export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
+export const handler = async (event: Event) => {
   console.debug('Event: ', JSON.stringify(event, null, 2));
   const {
     notes,
@@ -39,19 +37,30 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
   }
   writeFileSync('/tmp/id3.txt', txt);
 
-  await download(bucketName, `output/${filename}/${filename.replace(new RegExp(`.${extension}$`), '.wav')}`, '/tmp/input.wav');
+  await download(
+    bucketName,
+    `output/${filename}/${filename.replace(new RegExp(`.${extension}$`), '.wav')}`,
+    '/tmp/input.wav',
+  );
 
   // NOTE: we convert to MP3 and also set max volume to 0dB
   // We assume we are already at -6dB from previous step in pipeline
   // Due to lossy nature we don't get exactly 0dB
   execute(
     'ffmpeg -y -i input.wav -i id3.txt -map_metadata 1 -write_id3v2 1 -filter:a "volume=6dB" -codec:a libmp3lame -ar 44100 -b:a 128k output.mp3',
-    event
+    event,
   );
 
-  await upload('/tmp/output.mp3', bucketName, `output/${filename}/${filename.replace(new RegExp(`.${extension}$`), '.mp3')}`, 'audio/mpeg');
+  await upload(
+    '/tmp/output.mp3',
+    bucketName,
+    `output/${filename}/${filename.replace(new RegExp(`.${extension}$`), '.mp3')}`,
+    'audio/mpeg',
+  );
 
   notes.push('createPresentation: Created MP3 file');
 
   return event;
-});
+};
+
+processBatch<Event>(handler);
