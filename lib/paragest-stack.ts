@@ -85,7 +85,7 @@ export class ParagestStack extends cdk.Stack {
       });
       grantFunc?.(lambdaFunction);
 
-      concurrencyTable.grantReadWrite(lambdaFunction);
+      concurrencyTable.grantReadWriteData(lambdaFunction);
 
       const task = new tasks.LambdaInvoke(this, `${stepId}Task`, {
         lambdaFunction,
@@ -201,7 +201,7 @@ export class ParagestStack extends cdk.Stack {
 
       grantFunc?.(jobRole);
 
-      concurrencyTable.grantReadWrite(jobRole);
+      concurrencyTable.grantReadWriteData(jobRole);
 
       jobRole.addToPolicy(
         new iam.PolicyStatement({
