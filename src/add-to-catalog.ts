@@ -1,4 +1,4 @@
-import '../lib/sentry-node.js';
+import './lib/sentry-node.js';
 
 import { processBatch } from './lib/batch.js';
 import { StepError } from './lib/errors.js';
