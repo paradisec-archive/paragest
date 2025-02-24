@@ -80,6 +80,7 @@ export const throttle =
 
         break;
       } catch (err: unknown) {
+        console.error('Failed to increment concurrency counter', err);
         const error = err as Error;
         if (error.name !== 'ConditionalCheckFailedException') {
           throw err;
