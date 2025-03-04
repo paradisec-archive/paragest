@@ -327,7 +327,7 @@ export class ParagestStack extends cdk.Stack {
         ingestBucket.grantReadWrite(role);
         nabuOauthSecret.grantRead(role);
       },
-      jobProps: { taskTimeout: sfn.Timeout.duration(cdk.Duration.minutes(120)) },
+      jobProps: { taskTimeout: sfn.Timeout.duration(cdk.Duration.hours(2)) },
     });
 
     const createVideoPresentationStep = paragestFargateStep(
@@ -338,7 +338,7 @@ export class ParagestStack extends cdk.Stack {
           ingestBucket.grantReadWrite(role);
           nabuOauthSecret.grantRead(role);
         },
-        jobProps: { taskTimeout: sfn.Timeout.duration(cdk.Duration.minutes(120)) },
+        jobProps: { taskTimeout: sfn.Timeout.duration(cdk.Duration.hours(5)) },
       },
     );
     const processVideoFlow = sfn.Chain.start(createVideoArchivalStep)
