@@ -7,11 +7,13 @@ import {
   CreateMultipartUploadCommand,
   DeleteObjectCommand,
   GetObjectCommand,
+  GetObjectTaggingCommand,
   type GetObjectCommandInput,
   HeadObjectCommand,
   ListObjectsV2Command,
   type PutObjectCommandInput,
   S3Client,
+  type Tag,
   UploadPartCopyCommand,
 } from '@aws-sdk/client-s3';
 
@@ -19,14 +21,29 @@ import { Upload } from '@aws-sdk/lib-storage';
 
 const s3 = new S3Client();
 
-const bigCopy = async (srcBucket: string, src: string, dstBucket: string, dst: string, objectSize: number) => {
+const bigCopy = async (
+  srcBucket: string,
+  src: string,
+  dstBucket: string,
+  dst: string,
+  objectSize: number,
+  metadata?: Record<string, string>,
+  tags?: Tag[],
+) => {
   const partSize = 100 * 1024 * 1024;
   let uploadId: string | undefined;
+
+  const tagging = tags
+    ?.filter((tag): tag is Tag & { Key: string; Value: string } => !!tag.Key && !!tag.Value)
+    .map((tag) => `${encodeURIComponent(tag.Key)}=${encodeURIComponent(tag.Value)}`)
+    .join('&');
 
   const createMultipartUploadResult = await s3.send(
     new CreateMultipartUploadCommand({
       Bucket: dstBucket,
       Key: dst,
+      Metadata: metadata,
+      Tagging: tagging,
     }),
   );
   uploadId = createMultipartUploadResult.UploadId;
@@ -99,8 +116,14 @@ export const copy = async (srcBucket: string, src: string, dstBucket: string, ds
     });
     await s3.send(copyCommand);
   } else {
+    const getTagsCommand = new GetObjectTaggingCommand({
+      Bucket: srcBucket,
+      Key: src,
+    });
+    const tags = await s3.send(getTagsCommand);
+
     console.debug(`Big Copying ${srcBucket}:${src} to ${dstBucket}:${dst}`);
-    await bigCopy(srcBucket, src, dstBucket, dst, objectSize);
+    await bigCopy(srcBucket, src, dstBucket, dst, objectSize, headObject.Metadata, tags.TagSet);
   }
 };
 
@@ -161,7 +184,10 @@ export const download = async (srcBucket: string, src: string, filename: string,
   const writeStream = createWriteStream(filename);
 
   await new Promise((resolve, reject) => {
-    (Body as Readable).pipe(writeStream).on('error', reject).on('finish', resolve);
+    (Body as Readable)
+      .pipe(writeStream)
+      .on('error', reject)
+      .on('finish', resolve as () => void);
   });
 };
 
