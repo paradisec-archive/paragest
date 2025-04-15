@@ -1,12 +1,13 @@
 #!/usr/bin/env -S node --experimental-strip-types
 
 import { S3Client, HeadObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
-import { LambdaClient, InvokeCommand, ListFunctionsCommand } from '@aws-sdk/client-lambda';
+import { LambdaClient, ListFunctionsCommand } from '@aws-sdk/client-lambda';
 import {
   SFNClient,
   ListExecutionsCommand,
   ListStateMachinesCommand,
   GetExecutionHistoryCommand,
+  StartExecutionCommand,
 } from '@aws-sdk/client-sfn';
 import inquirer from 'inquirer';
 
@@ -16,7 +17,8 @@ const PATHS = ['incoming', 'rejected'];
 const lambda = new LambdaClient({ region: 'ap-southeast-2' });
 const sfn = new SFNClient({ region: 'ap-southeast-2' });
 
-const findOriginalInput = async (path: string, key: string) => {
+// Find the state machine ARN for Paragest
+const findParagestStateMachine = async (): Promise<string> => {
   const listStateMachinesCommand = new ListStateMachinesCommand({});
   const stateMachineResponse = await sfn.send(listStateMachinesCommand);
 
@@ -26,10 +28,16 @@ const findOriginalInput = async (path: string, key: string) => {
     throw new Error('Could not find Paragest state machine');
   }
 
+  return stateMachine.stateMachineArn;
+};
+
+const findOriginalInput = async (key: string) => {
+  const stateMachineArn = await findParagestStateMachine();
+
   // Get executions for the Paragest state machine
   const listResponse = await sfn.send(
     new ListExecutionsCommand({
-      stateMachineArn: stateMachine.stateMachineArn,
+      stateMachineArn,
       maxResults: 100,
     }),
   );
@@ -160,58 +168,26 @@ const invokeLambdaWithS3Event = async (bucketName: string, path: string, key: st
     process.exit(1);
   }
 
-  // Try to find the principalId from step functions
-  let input;
-  try {
-    input = await findOriginalInput(path, key);
+  const input = await findOriginalInput(key);
 
-    if (input.objectSize !== size) {
-      console.warn(`Size mismatch: ${input.objectSize} (original) !== ${size} (current). Using current size.`);
-      input.objectSize = size;
-    }
-  } catch (error) {
-    console.warn(`Could not find original input: ${error.message}`);
-    console.warn('Using default principalId: AWS:AJJJ:jfer7719_admin');
-
-    input = {
-      principalId: 'AWS:AJJJ:jfer7719_admin',
-      objectKey: `incoming/${key}`,
-      objectSize: size,
-      bucketName,
-    };
+  if (input.objectSize !== size) {
+    throw new Error(`Size mismatch: ${input.objectSize} (original) !== ${size} (current).`);
   }
+
+  // Get the state machine ARN
+  const stateMachineArn = await findParagestStateMachine();
 
   // Create event payload - always use incoming path for key
   const s3Key = `incoming/${key}`;
   console.log(`Using S3 key: ${s3Key}`);
 
-  const event = {
-    Records: [
-      {
-        userIdentity: {
-          principalId: input.principalId,
-        },
-        s3: {
-          bucket: {
-            name: bucketName,
-          },
-          object: {
-            key: s3Key,
-            size: input.objectSize,
-          },
-        },
-      },
-    ],
-  };
-
-  // Invoke Lambda function
-  const invokeCommand = new InvokeCommand({
-    FunctionName: funcName,
-    Payload: Buffer.from(JSON.stringify(event)),
+  const executionCommand = new StartExecutionCommand({
+    stateMachineArn,
+    input: JSON.stringify(input),
   });
+  await sfn.send(executionCommand);
 
-  await lambda.send(invokeCommand);
-  console.log('Successfully invoked Lambda function');
+  console.log('Successfully invoked Step function');
 };
 
 const s3 = new S3Client({ region: 'ap-southeast-2' });
