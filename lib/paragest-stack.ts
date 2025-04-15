@@ -444,13 +444,13 @@ export class ParagestStack extends cdk.Stack {
         STATE_MACHINE_ARN: stateMachine.stateMachineArn,
       },
     });
+    stateMachine.grantStartExecution(processS3Event);
+    ingestBucket.grantRead(processS3Event);
 
     const s3EventSource = new eventsources.S3EventSource(ingestBucket, {
       events: [s3.EventType.OBJECT_CREATED],
       filters: [{ prefix: 'incoming/' }],
     });
     processS3Event.addEventSource(s3EventSource);
-
-    stateMachine.grantStartExecution(processS3Event);
   }
 }
