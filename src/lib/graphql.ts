@@ -21,7 +21,7 @@ const getAccessToken = async (credentials: OAuthSecret): Promise<string> => {
     grant_type: 'client_credentials',
     client_id: credentials.clientId,
     client_secret: credentials.clientSecret,
-    scope: 'read admin',
+    scope: 'public admin',
   };
 
   try {
