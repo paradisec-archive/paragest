@@ -1,6 +1,12 @@
 #!/usr/bin/env -S node --experimental-strip-types
 
-import { S3Client, HeadObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
+import {
+  S3Client,
+  HeadObjectCommand,
+  ListObjectsV2Command,
+  DeleteObjectCommand,
+  CopyObjectCommand,
+} from '@aws-sdk/client-s3';
 import { LambdaClient, ListFunctionsCommand } from '@aws-sdk/client-lambda';
 import {
   SFNClient,
@@ -17,8 +23,19 @@ const PATHS = ['incoming', 'rejected'];
 const lambda = new LambdaClient({ region: 'ap-southeast-2' });
 const sfn = new SFNClient({ region: 'ap-southeast-2' });
 
+// Cache for file inputs to avoid repeated SFN API calls
+type FileInput = {
+  bucketName: string;
+  objectKey: string;
+  objectSize: number;
+  principalId: string;
+};
+
+// Global cache that will store execution inputs for each file
+const executionInputCache: Map<string, FileInput> = new Map();
+
 // Find the state machine ARN for Paragest
-const findParagestStateMachine = async (): Promise<string> => {
+const findParagestStateMachine = async () => {
   const listStateMachinesCommand = new ListStateMachinesCommand({});
   const stateMachineResponse = await sfn.send(listStateMachinesCommand);
 
@@ -31,7 +48,73 @@ const findParagestStateMachine = async (): Promise<string> => {
   return stateMachine.stateMachineArn;
 };
 
+// Initialize the cache by fetching executions once
+const buildExecutionCache = async () => {
+  console.log('Building execution cache from recent Step Function executions...');
+  const stateMachineArn = await findParagestStateMachine();
+
+  // Get executions for the Paragest state machine
+  const listResponse = await sfn.send(
+    new ListExecutionsCommand({
+      stateMachineArn,
+      maxResults: 100,
+    }),
+  );
+
+  if (!listResponse.executions || listResponse.executions.length === 0) {
+    console.warn('No executions found in Step Function history');
+    return;
+  }
+
+  // Process each execution and build the cache
+  let processedCount = 0;
+  for (const execution of listResponse.executions) {
+    try {
+      const historyResponse = await sfn.send(
+        new GetExecutionHistoryCommand({
+          executionArn: execution.executionArn,
+          includeExecutionData: true,
+          maxResults: 1,
+        }),
+      );
+
+      // Find the execution started event which contains the input
+      const startedEvent = historyResponse.events?.find(
+        (event) => event.type === 'ExecutionStarted' && event.executionStartedEventDetails?.input,
+      );
+
+      if (!startedEvent?.executionStartedEventDetails?.input) {
+        continue;
+      }
+
+      const input = JSON.parse(startedEvent.executionStartedEventDetails.input) as FileInput;
+
+      // Extract the key from the objectKey (remove 'incoming/')
+      if (input.objectKey.startsWith('incoming/')) {
+        const key = input.objectKey.replace('incoming/', '');
+        executionInputCache.set(key, input);
+        processedCount++;
+      }
+    } catch (err) {
+      const error = err as Error;
+      // Skip this execution if there's an error
+      console.warn(`Error processing execution ${execution.executionArn}: ${error.message}`);
+    }
+  }
+
+  console.log(`Cached inputs for ${processedCount} files`);
+};
+
 const findOriginalInput = async (key: string) => {
+  // Check if the input is already in our cache
+  if (executionInputCache.has(key)) {
+    const cachedInput = executionInputCache.get(key);
+    console.log(`Using cached execution input for ${key}`);
+    return cachedInput;
+  }
+
+  // If not in cache, fall back to the original method
+  console.log(`Cache miss for ${key}, searching execution history...`);
   const stateMachineArn = await findParagestStateMachine();
 
   // Get executions for the Paragest state machine
@@ -66,12 +149,7 @@ const findOriginalInput = async (key: string) => {
       throw new Error('No input found in execution started event');
     }
 
-    const input = JSON.parse(startedEvent.executionStartedEventDetails.input) as {
-      bucketName: string;
-      objectKey: string;
-      objectSize: number;
-      principalId: string;
-    };
+    const input = JSON.parse(startedEvent.executionStartedEventDetails.input) as FileInput;
 
     // Check if this execution is for our file
     if (input.objectKey !== objectKey) {
@@ -80,13 +158,16 @@ const findOriginalInput = async (key: string) => {
 
     console.log(`Found matching execution: ${execution.executionArn}`);
 
+    // Add to cache for future use
+    executionInputCache.set(key, input);
+
     return input;
   }
 
   throw new Error('No matching execution found');
 };
 
-const moveFileToIncoming = async (bucketName: string, path: string, key: string, size: number): Promise<void> => {
+const moveFileToIncoming = async (bucketName: string, path: string, key: string, size: number) => {
   if (path === 'incoming') {
     console.log('File is already in incoming, no need to move');
     return;
@@ -122,9 +203,6 @@ const moveFileToIncoming = async (bucketName: string, path: string, key: string,
     return;
   }
 
-  // For smaller files, use CopyObject API with tagging in a single operation
-  const { CopyObjectCommand } = await import('@aws-sdk/client-s3');
-
   // Copy the object to incoming/ with the manual tag in a single operation
   await s3.send(
     new CopyObjectCommand({
@@ -138,19 +216,39 @@ const moveFileToIncoming = async (bucketName: string, path: string, key: string,
 
   console.log(`Successfully copied ${path}/${key} to incoming/${key} with manual=true tag`);
 
-  // Optionally delete the original if it was in rejected
-  // Uncomment the following if you want to delete the original file
-  /*
-    const { DeleteObjectCommand } = await import('@aws-sdk/client-s3');
-    await s3.send(new DeleteObjectCommand({
-      Bucket: bucketName,
-      Key: `${path}/${key}`,
-    }));
+  // Format the date for the rejected archive folder
+  const date = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+  const rejectedArchiveKey = `rejected-${date}/${key}`;
+
+  // First copy to the rejected-$date folder
+  try {
+    await s3.send(
+      new CopyObjectCommand({
+        Bucket: bucketName,
+        CopySource: `${bucketName}/${path}/${key}`,
+        Key: rejectedArchiveKey,
+      }),
+    );
+
+    console.log(`Successfully copied ${path}/${key} to ${rejectedArchiveKey}`);
+
+    // Now delete the original file
+    await s3.send(
+      new DeleteObjectCommand({
+        Bucket: bucketName,
+        Key: `${path}/${key}`,
+      }),
+    );
+
     console.log(`Successfully deleted original file ${path}/${key}`);
-    */
+  } catch (err) {
+    const error = err as Error;
+    console.error(`Failed to archive and delete file: ${error.message}`);
+    throw error;
+  }
 };
 
-const invokeLambdaWithS3Event = async (bucketName: string, path: string, key: string, size: number): Promise<void> => {
+const invokeLambdaWithS3Event = async (bucketName: string, path: string, key: string, size: number) => {
   // First, move the file to incoming if it's in rejected
   if (path === 'rejected') {
     await moveFileToIncoming(bucketName, path, key, size);
@@ -169,6 +267,9 @@ const invokeLambdaWithS3Event = async (bucketName: string, path: string, key: st
   }
 
   const input = await findOriginalInput(key);
+  if (!input) {
+    throw new Error(`No input found for ${key}`);
+  }
 
   if (input.objectSize !== size) {
     throw new Error(`Size mismatch: ${input.objectSize} (original) !== ${size} (current).`);
@@ -220,7 +321,7 @@ const promptForPath = async (): Promise<string> => {
   return path;
 };
 
-const listFiles = async (s3Client: S3Client, bucket: string, prefix: string): Promise<string[]> => {
+const listFiles = async (s3Client: S3Client, bucket: string, prefix: string) => {
   const command = new ListObjectsV2Command({
     Bucket: bucket,
     Prefix: `${prefix}/`,
@@ -254,13 +355,7 @@ const promptForFile = async (files: string[]): Promise<string> => {
   return file;
 };
 
-const main = async () => {
-  const env = await promptForEnvironment();
-
-  process.env.AWS_PROFILE = `nabu-${env}`;
-
-  const path = await promptForPath();
-
+const processFile = async (env: string, path: string) => {
   const bucketName = `paragest-ingest-${env}`;
   console.log(`Fetching files from ${bucketName}/${path}/...`);
 
@@ -283,10 +378,49 @@ const main = async () => {
 
   if (!size) {
     console.error('Key not found or size is 0');
-    process.exit(1);
+    return false;
   }
 
   await invokeLambdaWithS3Event(bucketName, path, key, size);
+  return true;
+};
+
+const promptToContinue = async (): Promise<boolean> => {
+  const { continueProcessing } = await inquirer.prompt([
+    {
+      type: 'confirm',
+      name: 'continueProcessing',
+      message: 'Do you want to process another file?',
+      default: true,
+    },
+  ]);
+
+  return continueProcessing;
+};
+
+const main = async () => {
+  const env = await promptForEnvironment();
+  process.env.AWS_PROFILE = `nabu-${env}`;
+
+  // Build the cache once at the start to improve performance
+  console.log('Initializing...');
+  await buildExecutionCache();
+
+  let continueProcessing = true;
+
+  while (continueProcessing) {
+    const path = await promptForPath();
+    const success = await processFile(env, path);
+
+    if (success) {
+      continueProcessing = await promptToContinue();
+    } else {
+      console.log('There was an error processing the file.');
+      continueProcessing = await promptToContinue();
+    }
+  }
+
+  console.log('Exiting...');
 };
 
 main();
