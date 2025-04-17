@@ -1,3 +1,5 @@
+import { rmSync } from 'node:fs';
+
 import '../lib/sentry-node.js';
 
 import { getMediaMetadata } from '../lib/media.js';
@@ -63,6 +65,8 @@ export const handler = async (event: Event) => {
     `output/${filename}/${filename.replace(new RegExp(`.${extension}$`), '.mp4')}`,
     'video/mp4',
   );
+
+  rmSync(`/mnt/efs/${process.env.SFN_ID}`, { recursive: true, force: true });
 
   return event;
 };

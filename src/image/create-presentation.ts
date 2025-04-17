@@ -1,3 +1,5 @@
+import { rmSync } from 'node:fs';
+
 import '../lib/sentry-node.js';
 
 import { processBatch } from '../lib/batch.js';
@@ -37,6 +39,8 @@ export const handler = async (event: Event) => {
     `output/${filename}/${filename.replace(new RegExp(`.${extension}$`), '.jpg')}`,
     'image/jpeg',
   );
+
+  rmSync(`/mnt/efs/${process.env.SFN_ID}`, { recursive: true, force: true });
 
   notes.push('createPresentation: Created MP4 file');
 

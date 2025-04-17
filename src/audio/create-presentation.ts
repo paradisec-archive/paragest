@@ -1,4 +1,4 @@
-import { writeFileSync } from 'node:fs';
+import { writeFileSync, rmSync } from 'node:fs';
 
 import '../lib/sentry-node.js';
 
@@ -57,6 +57,8 @@ export const handler = async (event: Event) => {
     `output/${filename}/${filename.replace(new RegExp(`.${extension}$`), '.mp3')}`,
     'audio/mpeg',
   );
+
+  rmSync(`/mnt/efs/${process.env.SFN_ID}`, { recursive: true, force: true });
 
   notes.push('createPresentation: Created MP3 file');
 
