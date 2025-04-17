@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+
 import '../lib/sentry-node.js';
 
 import { processBatch } from '../lib/batch.js';
@@ -26,6 +28,8 @@ export const handler = async (event: Event) => {
     bucketName,
     objectKey,
   } = event;
+
+  fs.mkdirSync(`/mnt/efs/${process.env.AWS_BATCH_JOB_ID}`);
 
   await download(bucketName, objectKey, 'input');
 
