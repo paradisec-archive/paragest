@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+
 import '../lib/sentry-node.js';
 
 import { execute } from '../lib/command.js';
