@@ -39,13 +39,13 @@ export const handler = async (event: Event) => {
   await download(
     bucketName,
     `output/${filename}/${filename.replace(new RegExp(`.${extension}$`), '.wav')}`,
-    '/tmp/input.wav',
+    'input.wav',
   );
 
-  execute('bwfmetaedit --in-core=core.csv input.wav', event);
+  execute('bwfmetaedit --in-core=/tmp/core.csv input.wav', event);
 
   await upload(
-    '/tmp/input.wav',
+    'input.wav',
     bucketName,
     `output/${filename}/${filename.replace(new RegExp(`.${extension}$`), '.wav')}`,
     'audio/wav',

@@ -162,6 +162,8 @@ export class ParagestStack extends cdk.Stack {
       updateToLatestImageVersion: true,
       // spot: true,
     });
+    fileSystem.connections.allowDefaultPortFrom(batchEnv.securityGroups[0]);
+
     const jobQueue = new batch.JobQueue(this, 'BatchQueue', {
       priority: 1,
       jobStateTimeLimitActions: [
@@ -207,6 +209,7 @@ export class ParagestStack extends cdk.Stack {
               accessPointId: accessPoint.accessPointId,
               containerPath: '/mnt/efs',
               enableTransitEncryption: true,
+              useJobRole: true,
             }),
           ],
         }),

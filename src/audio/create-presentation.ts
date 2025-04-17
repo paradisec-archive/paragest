@@ -40,19 +40,19 @@ export const handler = async (event: Event) => {
   await download(
     bucketName,
     `output/${filename}/${filename.replace(new RegExp(`.${extension}$`), '.wav')}`,
-    '/tmp/input.wav',
+    'input.wav',
   );
 
   // NOTE: we convert to MP3 and also set max volume to 0dB
   // We assume we are already at -6dB from previous step in pipeline
   // Due to lossy nature we don't get exactly 0dB
   execute(
-    'ffmpeg -y -i input.wav -i id3.txt -map_metadata 1 -write_id3v2 1 -filter:a "volume=6dB" -codec:a libmp3lame -ar 44100 -b:a 128k output.mp3',
+    'ffmpeg -y -i input.wav -i /tmp/id3.txt -map_metadata 1 -write_id3v2 1 -filter:a "volume=6dB" -codec:a libmp3lame -ar 44100 -b:a 128k output.mp3',
     event,
   );
 
   await upload(
-    '/tmp/output.mp3',
+    'output.mp3',
     bucketName,
     `output/${filename}/${filename.replace(new RegExp(`.${extension}$`), '.mp3')}`,
     'audio/mpeg',

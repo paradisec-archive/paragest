@@ -50,7 +50,7 @@ export const handler = async (event: Event) => {
   await download(
     bucketName,
     `output/${filename}/${filename.replace(new RegExp(`.${extension}$`), '.wav')}`,
-    '/tmp/input.wav',
+    'input.wav',
   );
 
   const analysis = execute(
@@ -69,7 +69,7 @@ export const handler = async (event: Event) => {
   execute(`ffmpeg -y -i input.wav -af "volume=${diff}dB" -ac 2 -ar 96000 -c:a pcm_s24le -rf64 auto output.wav`, event);
 
   await upload(
-    '/tmp/output.wav',
+    'output.wav',
     bucketName,
     `output/${filename}/${filename.replace(new RegExp(`.${extension}$`), '.wav')}`,
     'audio/wav',

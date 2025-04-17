@@ -30,7 +30,7 @@ export const handler = async (event: Event) => {
     objectKey,
   } = event;
 
-  await download(bucketName, objectKey, '/tmp/input');
+  await download(bucketName, objectKey, 'input');
 
   // TODO maybe refactor later as this accesses via S3 and we've already downloaded
   const {
@@ -59,7 +59,7 @@ export const handler = async (event: Event) => {
   }
 
   await upload(
-    '/tmp/output.mkv',
+    'output.mkv',
     bucketName,
     `output/${filename}/${filename.replace(new RegExp(`.${extension}$`), '.mkv')}`,
     'application/mkv',

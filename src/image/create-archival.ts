@@ -27,12 +27,12 @@ export const handler = async (event: Event) => {
     objectKey,
   } = event;
 
-  await download(bucketName, objectKey, '/tmp/input');
+  await download(bucketName, objectKey, 'input');
 
   execute('convert input -compress lzw output.tif', event);
 
   await upload(
-    '/tmp/output.tif',
+    'output.tif',
     bucketName,
     `output/${filename}/${filename.replace(new RegExp(`.${extension}$`), '.tif')}`,
     'image/tiff',

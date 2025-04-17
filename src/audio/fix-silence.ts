@@ -60,7 +60,7 @@ export const handler = async (event: Event) => {
   await download(
     bucketName,
     `output/${filename}/${filename.replace(new RegExp(`.${extension}$`), '.wav')}`,
-    '/tmp/input.wav',
+    'input.wav',
   );
 
   const left = execute(
@@ -97,7 +97,7 @@ export const handler = async (event: Event) => {
   );
 
   await upload(
-    '/tmp/output.wav',
+    'output.wav',
     bucketName,
     `output/${filename}/${filename.replace(new RegExp(`.${extension}$`), '.wav')}`,
     'audio/wav',

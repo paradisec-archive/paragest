@@ -27,12 +27,12 @@ export const handler = async (event: Event) => {
     objectKey,
   } = event;
 
-  await download(bucketName, objectKey, '/tmp/input');
+  await download(bucketName, objectKey, 'input');
 
   execute('convert input -quality 85 output.jpg', event);
 
   await upload(
-    '/tmp/output.jpg',
+    'output.jpg',
     bucketName,
     `output/${filename}/${filename.replace(new RegExp(`.${extension}$`), '.jpg')}`,
     'image/jpeg',
