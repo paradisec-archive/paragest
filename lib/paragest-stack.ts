@@ -9,6 +9,7 @@ import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as ecs from 'aws-cdk-lib/aws-ecs';
 import * as ecrAssets from 'aws-cdk-lib/aws-ecr-assets';
+import * as efs from 'aws-cdk-lib/aws-efs';
 import * as eventsources from 'aws-cdk-lib/aws-lambda-event-sources';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
@@ -133,6 +134,26 @@ export class ParagestStack extends cdk.Stack {
       return subnet;
     });
 
+    const fileSystem = new efs.FileSystem(this, 'FargateFileSystem', {
+      vpc,
+      vpcSubnets: {
+        subnets: dataSubnets,
+      },
+    });
+
+    const accessPoint = fileSystem.addAccessPoint('ServiceAccessPoint', {
+      path: '/paragest',
+      createAcl: {
+        ownerGid: '1000',
+        ownerUid: '1000',
+        permissions: '755',
+      },
+      posixUser: {
+        gid: '1000',
+        uid: '1000',
+      },
+    });
+
     const batchEnv = new batch.FargateComputeEnvironment(this, 'FargateComputeEnv', {
       vpc,
       vpcSubnets: {
@@ -176,10 +197,18 @@ export class ParagestStack extends cdk.Stack {
           image: ecs.ContainerImage.fromDockerImageAsset(image),
           memory: cdk.Size.gibibytes(32),
           cpu: 16,
-          ephemeralStorageSize: cdk.Size.gibibytes(200),
           fargateCpuArchitecture: ecs.CpuArchitecture.X86_64,
           fargateOperatingSystemFamily: ecs.OperatingSystemFamily.LINUX,
           jobRole,
+          volumes: [
+            batch.EcsVolume.efs({
+              name: 'efs',
+              fileSystem,
+              accessPointId: accessPoint.accessPointId,
+              containerPath: '/mnt/efs',
+              enableTransitEncryption: true,
+            }),
+          ],
         }),
       });
 
@@ -205,6 +234,27 @@ export class ParagestStack extends cdk.Stack {
       grantFunc?.(jobRole);
 
       concurrencyTable.grantReadWriteData(jobRole);
+      fileSystem.grantReadWrite(jobRole);
+
+      // // Allow the container to mount the EFS file system using the access point
+      // jobRole.addToPolicy(
+      //   new iam.PolicyStatement({
+      //     actions: [
+      //       'elasticfilesystem:ClientMount',
+      //       'elasticfilesystem:ClientWrite',
+      //       'elasticfilesystem:ClientRootAccess',
+      //     ],
+      //     resources: [
+      //       `arn:aws:elasticfilesystem:${this.region}:${this.account}:file-system/${fileSystem.fileSystemId}`,
+      //       `arn:aws:elasticfilesystem:${this.region}:${this.account}:access-point/${accessPoint.accessPointId}`,
+      //     ],
+      //     conditions: {
+      //       StringEquals: {
+      //         'elasticfilesystem:AccessPointArn': accessPoint.accessPointArn,
+      //       },
+      //     },
+      //   }),
+      // );
 
       jobRole.addToPolicy(
         new iam.PolicyStatement({
