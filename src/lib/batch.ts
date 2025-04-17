@@ -3,13 +3,17 @@ import { SFNClient, SendTaskFailureCommand, SendTaskSuccessCommand } from '@aws-
 const sfn = new SFNClient();
 
 export const processBatch = async <Event>(handler: (event: Event) => Promise<Event>) => {
-  const event = process.env.SFN_INPUT;
-  if (!event) {
+  const rawEvent = process.env.SFN_INPUT;
+  if (!rawEvent) {
     throw new Error('No event provided');
   }
 
+  const event = JSON.parse(rawEvent);
+
+  process.env.SFN_ID = event.id;
+
   try {
-    const newEvent = await handler(JSON.parse(event));
+    const newEvent = await handler(event);
 
     const successCommand = new SendTaskSuccessCommand({
       taskToken: process.env.SFN_TASK_TOKEN,

@@ -223,7 +223,6 @@ export class ParagestStack extends cdk.Stack {
           environment: {
             SFN_INPUT: sfn.JsonPath.jsonToString(sfn.JsonPath.stringAt('$')),
             SFN_TASK_TOKEN: sfn.JsonPath.taskToken,
-            'SFN_ID.$': '$$.Execution.Id',
             PARAGEST_ENV: env,
             SENTRY_DSN: 'https://e36e8aa3d034861a3803d2edbd4773ff@o4504801902985216.ingest.sentry.io/4506375864254464',
             SENTRY_RELEASE: JSON.stringify(getGitSha(source)),
@@ -239,26 +238,6 @@ export class ParagestStack extends cdk.Stack {
 
       concurrencyTable.grantReadWriteData(jobRole);
       fileSystem.grantReadWrite(jobRole);
-
-      // // Allow the container to mount the EFS file system using the access point
-      // jobRole.addToPolicy(
-      //   new iam.PolicyStatement({
-      //     actions: [
-      //       'elasticfilesystem:ClientMount',
-      //       'elasticfilesystem:ClientWrite',
-      //       'elasticfilesystem:ClientRootAccess',
-      //     ],
-      //     resources: [
-      //       `arn:aws:elasticfilesystem:${this.region}:${this.account}:file-system/${fileSystem.fileSystemId}`,
-      //       `arn:aws:elasticfilesystem:${this.region}:${this.account}:access-point/${accessPoint.accessPointId}`,
-      //     ],
-      //     conditions: {
-      //       StringEquals: {
-      //         'elasticfilesystem:AccessPointArn': accessPoint.accessPointArn,
-      //       },
-      //     },
-      //   }),
-      // );
 
       jobRole.addToPolicy(
         new iam.PolicyStatement({

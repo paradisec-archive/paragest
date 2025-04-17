@@ -1,6 +1,7 @@
-import type { S3Event, Handler } from 'aws-lambda';
+import { GetObjectTaggingCommand, S3 } from '@aws-sdk/client-s3';
 import { SFN, type StartExecutionCommandInput } from '@aws-sdk/client-sfn';
-import { S3, GetObjectTaggingCommand } from '@aws-sdk/client-s3';
+import type { Handler, S3Event } from 'aws-lambda';
+import { v4 as uuidv4 } from 'uuid';
 
 import * as Sentry from '@sentry/aws-serverless';
 
@@ -52,6 +53,7 @@ export const handler: Handler = Sentry.wrapHandler(async (event: S3Event) => {
       }
 
       const input = JSON.stringify({
+        id: uuidv4(),
         bucketName,
         objectKey,
         objectSize,
