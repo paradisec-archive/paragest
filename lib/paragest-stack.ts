@@ -97,7 +97,10 @@ export class ParagestStack extends cdk.Stack {
 
     const ingestBucket = new s3.Bucket(this, 'IngestBucket', {
       bucketName: `paragest-ingest-${env}`,
-      lifecycleRules: [{ prefix: 'rejected/', expiration: cdk.Duration.days(4 * 7) }],
+      lifecycleRules: [
+        { prefix: 'rejected/', expiration: cdk.Duration.days(4 * 7) },
+        { prefix: 'output/', expiration: cdk.Duration.days(4 * 7) },
+      ],
     });
 
     const catalogBucket = s3.Bucket.fromBucketName(this, 'CatalogBucket', `nabu-catalog-${env}`);

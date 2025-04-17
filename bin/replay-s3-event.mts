@@ -121,7 +121,7 @@ const findOriginalInput = async (key: string) => {
   const listResponse = await sfn.send(
     new ListExecutionsCommand({
       stateMachineArn,
-      maxResults: 100,
+      maxResults: 200,
     }),
   );
 
