@@ -9,8 +9,8 @@ interface ExecSyncError extends Error {
 }
 
 export const execute = (command: string, event: Record<string, string | number | object>) => {
-  if (!process.env.AWS_BATCH_JOB_ID) {
-    throw new StepError('AWS_BATCH_JOB_ID is not set - contact John ', event, { error: 'AWS_BATCH_JOB_ID not set' });
+  if (!process.env.SFN_ID) {
+    throw new StepError('SFN_ID is not set - contact John ', event, { error: 'SFN_ID not set' });
   }
 
   try {
@@ -18,7 +18,7 @@ export const execute = (command: string, event: Record<string, string | number |
 
     const output = execSync(cmd, {
       stdio: 'pipe',
-      cwd: `/mnt/efs/${process.env.AWS_BATCH_JOB_ID}`,
+      cwd: `/mnt/efs/${process.env.SFN_ID}`,
       encoding: 'utf-8',
       maxBuffer: 4 * 1024 * 1024,
     });

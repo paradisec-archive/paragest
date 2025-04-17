@@ -223,6 +223,7 @@ export class ParagestStack extends cdk.Stack {
           environment: {
             SFN_INPUT: sfn.JsonPath.jsonToString(sfn.JsonPath.stringAt('$')),
             SFN_TASK_TOKEN: sfn.JsonPath.taskToken,
+            'SFN_ID.$': '$$.Execution.Id',
             PARAGEST_ENV: env,
             SENTRY_DSN: 'https://e36e8aa3d034861a3803d2edbd4773ff@o4504801902985216.ingest.sentry.io/4506375864254464',
             SENTRY_RELEASE: JSON.stringify(getGitSha(source)),

@@ -149,7 +149,7 @@ export const upload = async (
   mimetype: string,
   archiveTag = false,
 ) => {
-  const readStream = createReadStream(`/mnt/efs/${process.env.AWS_BATCH_JOB_ID}/${filename}`);
+  const readStream = createReadStream(`/mnt/efs/${process.env.SFN_ID}/${filename}`);
 
   const params: PutObjectCommandInput = {
     Bucket: dstBucket,
@@ -181,7 +181,7 @@ export const download = async (srcBucket: string, src: string, filename: string,
   const getCommand = new GetObjectCommand(params);
   const { Body } = await s3.send(getCommand);
 
-  const writeStream = createWriteStream(`/mnt/efs/${process.env.AWS_BATCH_JOB_ID}/${filename}`);
+  const writeStream = createWriteStream(`/mnt/efs/${process.env.SFN_ID}/${filename}`);
 
   await new Promise((resolve, reject) => {
     (Body as Readable)

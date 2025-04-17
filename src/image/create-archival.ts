@@ -29,7 +29,7 @@ export const handler = async (event: Event) => {
     objectKey,
   } = event;
 
-  fs.mkdirSync(`/mnt/efs/${process.env.AWS_BATCH_JOB_ID}`);
+  fs.mkdirSync(`/mnt/efs/${process.env.SFN_ID}`);
 
   await download(bucketName, objectKey, 'input');
 
