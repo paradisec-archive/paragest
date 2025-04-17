@@ -1,3 +1,5 @@
+import { rmSync } from 'node:fs';
+
 import './lib/sentry-node.js';
 
 import { processBatch } from './lib/batch.js';
@@ -99,6 +101,8 @@ export const handler = async (event: Event) => {
   });
 
   await Promise.all(promises || []);
+
+  rmSync(`/mnt/efs/${process.env.SFN_ID}`, { recursive: true, force: true });
 
   return event;
 };
