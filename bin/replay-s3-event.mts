@@ -16,6 +16,7 @@ import {
   StartExecutionCommand,
 } from '@aws-sdk/client-sfn';
 import inquirer from 'inquirer';
+import { v4 as uuidv4 } from 'uuid';
 
 const ENVIRONMENTS = ['prod', 'stage'];
 const PATHS = ['incoming', 'rejected'];
@@ -25,6 +26,7 @@ const sfn = new SFNClient({ region: 'ap-southeast-2' });
 
 // Cache for file inputs to avoid repeated SFN API calls
 type FileInput = {
+  id: string;
   bucketName: string;
   objectKey: string;
   objectSize: number;
@@ -260,6 +262,9 @@ const invokeLambdaWithS3Event = async (bucketName: string, path: string, key: st
     throw new Error(`Size mismatch: ${input.objectSize} (original) !== ${size} (current).`);
   }
 
+  // TODO: Reset the id so it can't use any old inputs
+  input.id = uuidv4();
+
   // Get the state machine ARN
   const stateMachineArn = await findParagestStateMachine();
 
@@ -326,48 +331,70 @@ const listFiles = async (s3Client: S3Client, bucket: string, prefix: string) => 
     .sort((a, b) => a.localeCompare(b));
 };
 
-const promptForFile = async (files: string[]): Promise<string> => {
-  const { file } = await inquirer.prompt([
+const promptForFiles = async (files: string[]): Promise<string[]> => {
+  const { selectedFiles } = await inquirer.prompt([
     {
-      type: 'list',
-      name: 'file',
-      message: 'Select a file:',
+      type: 'checkbox',
+      name: 'selectedFiles',
+      message: 'Select file(s) to process:',
       choices: files,
       pageSize: 15,
     },
   ]);
 
-  return file;
+  if (!selectedFiles.length) {
+    console.log('No files selected, please select at least one file.');
+    return promptForFiles(files);
+  }
+
+  return selectedFiles;
 };
 
-const processFile = async (env: string, path: string) => {
+const processFiles = async (env: string, path: string) => {
   const bucketName = `paragest-ingest-${env}`;
   console.log(`Fetching files from ${bucketName}/${path}/...`);
 
   const files = await listFiles(s3, bucketName, path);
 
-  const key = await promptForFile(files);
+  const keys = await promptForFiles(files);
 
   console.log(`Using environment: ${env}`);
   console.log(`Using path: ${path}`);
-  console.log(`Using key: ${key}`);
+  console.log(`Selected ${keys.length} file(s)`);
 
-  // Get object size from S3
-  const headObjectCommand = new HeadObjectCommand({
-    Bucket: bucketName,
-    Key: `${path}/${key}`,
-  });
+  let successCount = 0;
+  let failCount = 0;
 
-  const objectInfo = await s3.send(headObjectCommand);
-  const size = objectInfo.ContentLength;
+  for (const key of keys) {
+    console.log(`Processing file: ${key}`);
 
-  if (!size) {
-    console.error('Key not found or size is 0');
-    return false;
+    // Get object size from S3
+    const headObjectCommand = new HeadObjectCommand({
+      Bucket: bucketName,
+      Key: `${path}/${key}`,
+    });
+
+    try {
+      const objectInfo = await s3.send(headObjectCommand);
+      const size = objectInfo.ContentLength;
+
+      if (!size) {
+        console.error('Key not found or size is 0');
+        failCount++;
+        continue;
+      }
+
+      await invokeLambdaWithS3Event(bucketName, path, key, size);
+      successCount++;
+    } catch (err) {
+      const error = err as Error;
+      console.error(`Error processing file ${key}: ${error.message}`);
+      failCount++;
+    }
   }
 
-  await invokeLambdaWithS3Event(bucketName, path, key, size);
-  return true;
+  console.log(`Processing complete. Success: ${successCount}, Failed: ${failCount}`);
+  return successCount > 0;
 };
 
 const promptToContinue = async (): Promise<boolean> => {
@@ -395,12 +422,12 @@ const main = async () => {
 
   while (continueProcessing) {
     const path = await promptForPath();
-    const success = await processFile(env, path);
+    const success = await processFiles(env, path);
 
     if (success) {
       continueProcessing = await promptToContinue();
     } else {
-      console.log('There was an error processing the file.');
+      console.log('There was an error processing all files.');
       continueProcessing = await promptToContinue();
     }
   }
