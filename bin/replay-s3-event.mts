@@ -142,7 +142,7 @@ const findOriginalInput = async (key: string) => {
 
   if (paginationAttempts >= MAX_PAGINATION_ATTEMPTS) {
     console.log(`Could not find execution for ${key} after ${paginationAttempts} pages.`);
-    process.exit(1);
+    return;
   }
 
   // If not in cache, try to fetch the next page of executions
@@ -255,7 +255,8 @@ const invokeLambdaWithS3Event = async (bucketName: string, path: string, key: st
 
   const input = await findOriginalInput(key);
   if (!input) {
-    throw new Error(`No input found for ${key}`);
+    console.log(`No input found for ${key}`);
+    return;
   }
 
   if (input.objectSize !== size) {

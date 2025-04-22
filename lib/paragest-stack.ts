@@ -134,6 +134,19 @@ export class ParagestStack extends cdk.Stack {
       return subnet;
     });
 
+    // NOTE: We are temp hard coding in prod till we get subnet sizes sorted out
+    if (env === 'prod') {
+      dataSubnets.pop();
+      dataSubnets.pop();
+      dataSubnets.pop();
+      dataSubnets.push(
+        ec2.Subnet.fromSubnetAttributes(this, 'DataSubnetTemp', {
+          subnetId: 'subnet-02b44912323b6bb2d',
+          availabilityZone: 'ap-southeast-2a',
+        }),
+      );
+    }
+
     const fileSystem = new efs.FileSystem(this, 'FargateFileSystem', {
       vpc,
       vpcSubnets: {
@@ -154,7 +167,7 @@ export class ParagestStack extends cdk.Stack {
       },
     });
 
-    const batchEnv = new batch.FargateComputeEnvironment(this, 'FargateComputeEnv', {
+    const batchEnv = new batch.FargateComputeEnvironment(this, 'FargateBatch', {
       vpc,
       vpcSubnets: {
         subnets: dataSubnets,
