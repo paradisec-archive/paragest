@@ -300,7 +300,7 @@ const promptForEnvironment = async (): Promise<string> => {
       name: 'environment',
       message: 'Select the environment:',
       choices: ENVIRONMENTS,
-      default: 'stage',
+      default: 'prod',
     },
   ]);
 
