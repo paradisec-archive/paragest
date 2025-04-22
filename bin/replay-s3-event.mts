@@ -34,6 +34,13 @@ type FileInput = {
 // Global cache that will store execution inputs for each file
 const executionInputCache: Map<string, FileInput> = new Map();
 
+// Global variable to store the nextToken for pagination
+let nextExecutionToken: string | undefined;
+
+// Track pagination attempts
+let paginationAttempts = 0;
+const MAX_PAGINATION_ATTEMPTS = 10;
+
 // Find the state machine ARN for Paragest
 const findParagestStateMachine = async () => {
   const listStateMachinesCommand = new ListStateMachinesCommand({});
@@ -48,9 +55,24 @@ const findParagestStateMachine = async () => {
   return stateMachine.stateMachineArn;
 };
 
-// Initialize the cache by fetching executions once
+// Initialize or extend the cache by fetching executions page by page
 const buildExecutionCache = async () => {
-  console.log('Building execution cache from recent Step Function executions...');
+  // Reset pagination attempts if we're starting a new pagination sequence
+  if (!nextExecutionToken) {
+    paginationAttempts = 0;
+  }
+
+  // Give up after MAX_PAGINATION_ATTEMPTS
+  if (paginationAttempts >= MAX_PAGINATION_ATTEMPTS) {
+    console.log(
+      `Reached maximum pagination attempts (${MAX_PAGINATION_ATTEMPTS}), giving up on further cache building`,
+    );
+    return;
+  }
+
+  paginationAttempts++;
+
+  console.log(`Building execution cache from Step Function executions (page ${paginationAttempts})...`);
   const stateMachineArn = await findParagestStateMachine();
 
   // Get executions for the Paragest state machine
@@ -58,8 +80,12 @@ const buildExecutionCache = async () => {
     new ListExecutionsCommand({
       stateMachineArn,
       maxResults: 200,
+      nextToken: nextExecutionToken,
     }),
   );
+
+  // Store the next token for pagination
+  nextExecutionToken = listResponse.nextToken;
 
   if (!listResponse.executions || listResponse.executions.length === 0) {
     console.warn('No executions found in Step Function history');
@@ -102,69 +128,28 @@ const buildExecutionCache = async () => {
     }
   }
 
-  console.log(`Cached inputs for ${processedCount} files`);
+  console.log(`Cached inputs for ${processedCount} files (total pages fetched: ${paginationAttempts})`);
 };
 
 const findOriginalInput = async (key: string) => {
   // Check if the input is already in our cache
   if (executionInputCache.has(key)) {
     const cachedInput = executionInputCache.get(key);
-    console.log(`Using cached execution input for ${key}`);
     return cachedInput;
   }
 
-  // If not in cache, fall back to the original method
-  console.log(`Cache miss for ${key}, searching execution history...`);
-  const stateMachineArn = await findParagestStateMachine();
-
-  // Get executions for the Paragest state machine
-  const listResponse = await sfn.send(
-    new ListExecutionsCommand({
-      stateMachineArn,
-      maxResults: 200,
-    }),
-  );
-
-  if (!listResponse.executions || listResponse.executions.length === 0) {
-    throw new Error('No executions found');
+  if (paginationAttempts >= MAX_PAGINATION_ATTEMPTS) {
+    console.log(`Could not find execution for ${key} after ${paginationAttempts} pages.`);
+    process.exit(1);
   }
 
-  // Look for executions that might be for this file
-  const objectKey = `incoming/${key}`;
-  for (const execution of listResponse.executions) {
-    const historyResponse = await sfn.send(
-      new GetExecutionHistoryCommand({
-        executionArn: execution.executionArn,
-        includeExecutionData: true,
-        maxResults: 1,
-      }),
-    );
+  // If not in cache, try to fetch the next page of executions
+  console.log(`Cache miss for ${key}, fetching next page of executions...`);
 
-    // Find the execution started event which contains the input
-    const startedEvent = historyResponse.events?.find(
-      (event) => event.type === 'ExecutionStarted' && event.executionStartedEventDetails?.input,
-    );
+  // Try to extend the cache with the next page of data
+  await buildExecutionCache();
 
-    if (!startedEvent?.executionStartedEventDetails?.input) {
-      throw new Error('No input found in execution started event');
-    }
-
-    const input = JSON.parse(startedEvent.executionStartedEventDetails.input) as FileInput;
-
-    // Check if this execution is for our file
-    if (input.objectKey !== objectKey) {
-      continue;
-    }
-
-    console.log(`Found matching execution: ${execution.executionArn}`);
-
-    // Add to cache for future use
-    executionInputCache.set(key, input);
-
-    return input;
-  }
-
-  throw new Error('No matching execution found');
+  return findOriginalInput(key);
 };
 
 const moveFileToIncoming = async (bucketName: string, path: string, key: string, size: number) => {
@@ -325,7 +310,7 @@ const listFiles = async (s3Client: S3Client, bucket: string, prefix: string) => 
   const command = new ListObjectsV2Command({
     Bucket: bucket,
     Prefix: `${prefix}/`,
-    MaxKeys: 100,
+    MaxKeys: 500,
   });
 
   const response = await s3Client.send(command);
