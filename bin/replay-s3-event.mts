@@ -402,7 +402,7 @@ const promptToContinue = async (): Promise<boolean> => {
     {
       type: 'confirm',
       name: 'continueProcessing',
-      message: 'Do you want to process another file?',
+      message: 'Do you want to process more files?',
       default: true,
     },
   ]);
