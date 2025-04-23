@@ -12,6 +12,7 @@ import { lookupMimetypeFromExtension } from './lib/media.js';
 import { download } from './lib/s3.js';
 
 type Event = {
+  id: string;
   notes: string[];
   principalId: string;
   bucketName: string;
@@ -137,6 +138,8 @@ const allowedMimetypeException = (detected: string, actual: string) => {
 
 export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
   console.debug('Event:', JSON.stringify(event, null, 2));
+
+  process.env.SFN_ID = event.id;
 
   const {
     notes,
