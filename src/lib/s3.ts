@@ -181,7 +181,9 @@ export const download = async (srcBucket: string, src: string, filename: string,
   const getCommand = new GetObjectCommand(params);
   const { Body } = await s3.send(getCommand);
 
-  const writeStream = createWriteStream(`/mnt/efs/${process.env.SFN_ID}/${filename}`);
+  const path = filename.startsWith('/') ? filename : `/mnt/efs/${process.env.SFN_ID}/${filename}`;
+
+  const writeStream = createWriteStream(path);
 
   await new Promise((resolve, reject) => {
     (Body as Readable)

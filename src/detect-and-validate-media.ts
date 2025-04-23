@@ -1,7 +1,5 @@
 import * as Sentry from '@sentry/aws-serverless';
 
-import fs from 'node:fs';
-
 import type { Handler } from 'aws-lambda';
 import { FileMagic } from '@npcz/magic';
 import { fileTypeFromTokenizer } from 'file-type/core';
@@ -14,7 +12,6 @@ import { lookupMimetypeFromExtension } from './lib/media.js';
 import { download } from './lib/s3.js';
 
 type Event = {
-  id: string;
   notes: string[];
   principalId: string;
   bucketName: string;
@@ -140,9 +137,6 @@ const allowedMimetypeException = (detected: string, actual: string) => {
 
 export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
   console.debug('Event:', JSON.stringify(event, null, 2));
-
-  process.env.SFN_ID = event.id;
-  fs.mkdirSync(`/mnt/efs/${process.env.SFN_ID}`);
 
   const {
     notes,
