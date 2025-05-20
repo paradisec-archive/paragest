@@ -134,18 +134,18 @@ export class ParagestStack extends cdk.Stack {
       return subnet;
     });
 
-    // NOTE: We are temp hard coding in prod till we get subnet sizes sorted out
-    // if (env === 'prod') {
-    //   dataSubnets.pop();
-    //   dataSubnets.pop();
-    //   dataSubnets.pop();
-    //   dataSubnets.push(
-    //     ec2.Subnet.fromSubnetAttributes(this, 'DataSubnetTemp', {
-    //       subnetId: 'subnet-02b44912323b6bb2d',
-    //       availabilityZone: 'ap-southeast-2a',
-    //     }),
-    //   );
-    // }
+    // NOTE: We have a special larger subnet in prod
+    if (env === 'prod') {
+      dataSubnets.pop();
+      dataSubnets.pop();
+      dataSubnets.pop();
+      dataSubnets.push(
+        ec2.Subnet.fromSubnetAttributes(this, 'DataSubnetLarge', {
+          subnetId: 'subnet-04ae1ab6bd26154b3',
+          availabilityZone: 'ap-southeast-2a',
+        }),
+      );
+    }
 
     const fileSystem = new efs.FileSystem(this, 'FargateFileSystem', {
       vpc,
