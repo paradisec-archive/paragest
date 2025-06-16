@@ -501,16 +501,15 @@ export class ParagestStack extends cdk.Stack {
       },
     });
 
-    // const currentFileFlow = sfn.Chain.start(damsmartAddToCatalogStep2);
+    const currentFileFlow = sfn.Chain.start(damsmartAddToCatalogStep2);
     // const otherFileFlow = sfn.Chain.start(prepareOtherFileEventStep).next(damsmartDetectAndValidateMediaStep);
     //
-    // const parallelDAMSmartProcessing = new sfn.Parallel(this, 'ParallelDAMSmartProcessing');
-    // parallelDAMSmartProcessing.branch(currentFileFlow);
+    const parallelDAMSmartProcessing = new sfn.Parallel(this, 'ParallelDAMSmartProcessing');
+    parallelDAMSmartProcessing.branch(currentFileFlow);
     // parallelDAMSmartProcessing.branch(otherFileFlow);
 
-    // const damSmartParallelFlow = sfn.Chain.start(parallelDAMSmartProcessing)
-    const damSmartParallelFlow = sfn.Chain.start(damsmartDetectAndValidateMediaStep)
-      // .next(damsmartDetectAndValidateMediaStep)
+    const damSmartParallelFlow = sfn.Chain.start(parallelDAMSmartProcessing)
+      .next(damsmartDetectAndValidateMediaStep)
       .next(damsmartAddToCatalogStep);
 
     const damSmartFlow = sfn.Chain.start(checkForOtherDAMSmartFile).next(
