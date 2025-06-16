@@ -572,10 +572,15 @@ export class ParagestStack extends cdk.Stack {
     stateMachine.grantStartExecution(processS3Event);
     ingestBucket.grantRead(processS3Event);
 
-    const s3EventSource = new eventsources.S3EventSource(ingestBucket, {
+    const s3IncomingEventSource = new eventsources.S3EventSource(ingestBucket, {
       events: [s3.EventType.OBJECT_CREATED],
-      filters: [{ prefix: 'incoming/' }, { prefix: 'damsmart/' }],
+      filters: [{ prefix: 'incoming/' }],
     });
-    processS3Event.addEventSource(s3EventSource);
+    processS3Event.addEventSource(s3IncomingEventSource);
+    const s3DAMSmartEventSource = new eventsources.S3EventSource(ingestBucket, {
+      events: [s3.EventType.OBJECT_CREATED],
+      filters: [{ prefix: 'damsmart/' }],
+    });
+    processS3Event.addEventSource(s3DAMSmartEventSource);
   }
 }
