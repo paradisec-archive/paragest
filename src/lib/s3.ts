@@ -96,7 +96,7 @@ const bigCopy = async (
 };
 
 export const head = async (bucket: string, key: string) => {
-  console.log('🪚 💜 HEAD');
+  console.log('🪚 💜 HEAD', bucket, key);
   try {
     const headObject = await s3.send(
       new HeadObjectCommand({
