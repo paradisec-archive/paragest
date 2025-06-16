@@ -43,7 +43,9 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
       throw new StepError(`Unsupported file extension: ${extension}`, event, { objectKey });
   }
 
-  const otherFilename = filename.replace(new RegExp(`.${extension}$`), `/.${otherExtension}$/`);
+  console.log('🪚 💜');
+  const otherFilename = filename.replace(new RegExp(`.${extension}$`), `.${otherExtension}`);
+  console.log('🪚 🟩');
   if (otherFilename === filename) {
     throw new StepError(
       `Filename ${filename} does not match expected pattern for extension ${extension} ${otherExtension}`,
@@ -52,7 +54,8 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
     );
   }
 
-  const exists = await head(bucketName, otherFilename);
+  const exists = await head(bucketName, `damsmart/${otherFilename}`);
+  console.log('🪚 ⭐');
 
   if (!exists) {
     notes.push("damsmart-other-check: The other file doesn't exist yet");

@@ -104,14 +104,11 @@ export const head = async (bucket: string, key: string) => {
         Key: key,
       }),
     );
-    console.log('🪚 🟩');
 
     return headObject;
   } catch (err: unknown) {
-    console.log('🪚 ⭐');
     const e = err as Error;
     if (e.name === 'NotFound') {
-      console.log('🪚 ⭕');
       return false;
     }
 
