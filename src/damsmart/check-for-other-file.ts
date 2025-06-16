@@ -43,7 +43,7 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
       throw new StepError(`Unsupported file extension: ${extension}`, event, { objectKey });
   }
 
-  const otherFilename = filename.replace(`/.${extension}$/`, `/.${otherExtension}$/`);
+  const otherFilename = filename.replace(new RegExp(`.${extension}$`), `/.${otherExtension}$/`);
   if (otherFilename === filename) {
     throw new StepError(
       `Filename ${filename} does not match expected pattern for extension ${extension} ${otherExtension}`,
