@@ -482,6 +482,16 @@ export class ParagestStack extends cdk.Stack {
       },
     );
 
+    const damsmartAddToCatalogStep = paragestFargateStep('DAMSmartAddToCatalog', 'add-to-catalog.ts', {
+      grantFunc: (role) => {
+        ingestBucket.grantRead(role);
+        ingestBucket.grantDelete(role);
+        catalogBucket.grantPut(role);
+        catalogBucket.grantRead(role);
+        nabuOauthSecret.grantRead(role);
+      },
+    });
+
     const currentFileFlow = new sfn.Pass(this, 'NoOp');
     const otherFileFlow = sfn.Chain.start(prepareOtherFileEventStep).next(detectAndValidateMediaStep);
 
@@ -491,7 +501,7 @@ export class ParagestStack extends cdk.Stack {
 
     const damSmartParallelFlow = sfn.Chain.start(parallelDAMSmartProcessing)
       .next(damsmartDetectAndValidateMediaStep)
-      .next(addToCatalogStep);
+      .next(damsmartAddToCatalogStep);
 
     const damSmartFlow = sfn.Chain.start(checkForOtherDAMSmartFile).next(
       new sfn.Choice(this, 'Is Other file ready?')
