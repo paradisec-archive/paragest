@@ -312,6 +312,10 @@ export class ParagestStack extends cdk.Stack {
       grantFunc: (role) => nabuOauthSecret.grantRead(role),
     });
 
+    const checkIsDAMSmartStep = paragestStep('CheckIfDAMSmart', 'src/check-if-damsmart.ts', {
+      grantFunc: (role) => nabuOauthSecret.grantRead(role),
+    });
+
     // /////////////////////////////
     // Add to Catalog Steps
     // /////////////////////////////
@@ -440,23 +444,70 @@ export class ParagestStack extends cdk.Stack {
         catalogBucket.grantRead(role);
       },
     });
-
     const processOtherFlow = sfn.Chain.start(createOtherArchivalStep).next(addToCatalogFlow);
+
+    // /////////////////////////////
+    // DamSmart
+    // /////////////////////////////
+
+    const checkForOtherDAMSmartFile = paragestStep(
+      'CheckForOtherDAMSmartFile',
+      'src/damsmart/check-for-other-file.ts',
+      {
+        grantFunc: (role) => {
+          ingestBucket.grantReadWrite(role);
+          nabuOauthSecret.grantRead(role);
+        },
+      },
+    );
+
+    const prepareOtherFileEventStep = paragestStep(
+      'PrepareOtherFileEvent',
+      'src/damsmart/prepare-other-file-event.ts',
+      {
+        grantFunc: (role) => {
+          ingestBucket.grantRead(role);
+        },
+      },
+    );
+
+    const currentFileFlow = new sfn.Pass(this, 'NoOp');
+    const otherFileFlow = sfn.Chain.start(prepareOtherFileEventStep).next(detectAndValidateMediaStep);
+
+    const parallelDAMSmartProcessing = new sfn.Parallel(this, 'ParallelDAMSmartProcessing');
+    parallelDAMSmartProcessing.branch(currentFileFlow);
+    parallelDAMSmartProcessing.branch(otherFileFlow);
+
+    const damSmartParallelFlow = sfn.Chain.start(parallelDAMSmartProcessing).next(processSuccessStep);
+
+    const damSmartFlow = sfn.Chain.start(checkForOtherDAMSmartFile)
+      .next(
+        new sfn.Choice(this, 'Is Other file ready?')
+          .when(sfn.Condition.booleanEquals('$.isDAMSmartOtherPresent', false), processSuccessStep)
+          .when(sfn.Condition.booleanEquals('$.isDAMSmartOtherPresent', true), damSmartParallelFlow),
+      )
+      .next(detectAndValidateMediaStep)
+      .next(addToCatalogStep);
 
     // /////////////////////////////
     // MediaFlow
     // /////////////////////////////
 
-    const mediaFlow = sfn.Chain.start(checkCatalogForItemStep)
+    const mediaFlow = new sfn.Choice(this, 'Media Type')
+      .when(sfn.Condition.stringEquals('$.mediaType', 'audio'), processAudioFlow)
+      .when(sfn.Condition.stringEquals('$.mediaType', 'video'), processVideoFlow)
+      .when(sfn.Condition.stringEquals('$.mediaType', 'image'), processImageFlow)
+      .when(sfn.Condition.stringEquals('$.mediaType', 'other'), processOtherFlow);
+
+    const metadataChecksFlow = sfn.Chain.start(checkCatalogForItemStep)
       .next(checkItemIdentifierLengthStep)
       .next(detectAndValidateMediaStep)
       .next(checkMetadataReadyStep)
+      .next(checkIsDAMSmartStep)
       .next(
-        new sfn.Choice(this, 'Media Type')
-          .when(sfn.Condition.stringEquals('$.mediaType', 'audio'), processAudioFlow)
-          .when(sfn.Condition.stringEquals('$.mediaType', 'video'), processVideoFlow)
-          .when(sfn.Condition.stringEquals('$.mediaType', 'image'), processImageFlow)
-          .when(sfn.Condition.stringEquals('$.mediaType', 'other'), processOtherFlow),
+        new sfn.Choice(this, 'Is DAMSmart Folder?')
+          .when(sfn.Condition.booleanEquals('$.isDAMSmart', true), damSmartFlow)
+          .when(sfn.Condition.booleanEquals('$.isDAMSmart', false), mediaFlow),
       );
 
     const handleSpecialFlow = sfn.Chain.start(handleSpecialStep).next(processSuccessStep);
@@ -466,7 +517,7 @@ export class ParagestStack extends cdk.Stack {
       .next(
         new sfn.Choice(this, 'Is Special File?')
           .when(sfn.Condition.booleanEquals('$.isSpecialFile', true), handleSpecialFlow)
-          .when(sfn.Condition.booleanEquals('$.isSpecialFile', false), mediaFlow),
+          .when(sfn.Condition.booleanEquals('$.isSpecialFile', false), metadataChecksFlow),
       );
 
     const parallel = new sfn.Parallel(this, 'ParallelErrorCatcher');
@@ -501,7 +552,7 @@ export class ParagestStack extends cdk.Stack {
 
     const s3EventSource = new eventsources.S3EventSource(ingestBucket, {
       events: [s3.EventType.OBJECT_CREATED],
-      filters: [{ prefix: 'incoming/' }],
+      filters: [{ prefix: 'incoming/' }, { prefix: 'damsmart/' }],
     });
     processS3Event.addEventSource(s3EventSource);
   }

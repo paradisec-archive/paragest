@@ -95,13 +95,31 @@ const bigCopy = async (
   );
 };
 
+export const head = async (bucket: string, key: string) => {
+  try {
+    const headObject = await s3.send(
+      new HeadObjectCommand({
+        Bucket: bucket,
+        Key: key,
+      }),
+    );
+
+    return headObject;
+  } catch (err: unknown) {
+    const e = err as Error;
+    if (e.name === 'NotFound') {
+      return false;
+    }
+
+    throw err;
+  }
+};
+
 export const copy = async (srcBucket: string, src: string, dstBucket: string, dst: string) => {
-  const headObject = await s3.send(
-    new HeadObjectCommand({
-      Bucket: srcBucket,
-      Key: src,
-    }),
-  );
+  const headObject = await head(srcBucket, src);
+  if (!headObject) {
+    throw new Error(`Source object ${srcBucket}:${src} does not exist`);
+  }
 
   const objectSize = headObject.ContentLength || 0;
   const partSize = 5 * 1024 * 1024 * 1024;
