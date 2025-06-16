@@ -482,16 +482,6 @@ export class ParagestStack extends cdk.Stack {
       },
     );
 
-    const damsmartAddToCatalogStep = paragestFargateStep('DAMSmartAddToCatalog', 'add-to-catalog.ts', {
-      grantFunc: (role) => {
-        ingestBucket.grantRead(role);
-        ingestBucket.grantDelete(role);
-        catalogBucket.grantPut(role);
-        catalogBucket.grantRead(role);
-        nabuOauthSecret.grantRead(role);
-      },
-    });
-
     const currentFileFlow = sfn.Chain.start(new sfn.Pass(this, 'NoOp2'));
     const otherFileFlow = sfn.Chain.start(prepareOtherFileEventStep);
 
@@ -503,11 +493,50 @@ export class ParagestStack extends cdk.Stack {
       .next(damsmartDetectAndValidateMediaStep)
       .next(addToCatalogStep);
 
-    const damSmartFlow = sfn.Chain.start(checkForOtherDAMSmartFile).next(
+    const DAMSMART_RETRIES = 10;
+
+    const damsmartCounter = new sfn.Pass(this, 'DAMSmarCounter', {
+      result: sfn.Result.fromObject({ retryCount: 0 }),
+      resultPath: '$.meta',
+    });
+
+    const damsmartIncrement = new sfn.Pass(this, 'DamsmartIncrement', {
+      parameters: {
+        'meta.retryCount.$': 'States.MathAdd($.meta.retryCount, 1)',
+        'isDAMSmartOtherPresent.$': '$.isDAMSmartOtherPresent',
+      },
+      resultPath: '$',
+    });
+
+    const damsmartWait = new sfn.Wait(this, 'DamsmartWait', {
+      time: sfn.WaitTime.duration(cdk.Duration.minutes(2)),
+    });
+
+    const damsmartLoopEnd = new sfn.Fail(this, 'Too Many Retries', {
+      cause: 'Exceeded maximum retries',
+      error: 'RetryLimitExceeded',
+    });
+
+    const damsmartRetryChoice = new sfn.Choice(this, 'DAMSmart Retry Again?');
+
+    const checkForOtherDAMSmartFileState = sfn.Chain.start(checkForOtherDAMSmartFile).next(
       new sfn.Choice(this, 'Is Other file ready?')
-        .when(sfn.Condition.booleanEquals('$.isDAMSmartOtherPresent', false), processSuccessStep)
-        .when(sfn.Condition.booleanEquals('$.isDAMSmartOtherPresent', true), damSmartParallelFlow),
+        .when(sfn.Condition.stringEquals('$.isDAMSmartOtherPresent', 'small-file'), processSuccessStep)
+        .when(sfn.Condition.stringEquals('$.isDAMSmartOtherPresent', 'big-file'), damSmartParallelFlow)
+        .when(
+          sfn.Condition.stringEquals('$.isDAMSmartOtherPresent', 'wait'),
+          damsmartIncrement.next(damsmartRetryChoice),
+        ),
     );
+
+    damsmartRetryChoice
+      .when(
+        sfn.Condition.numberLessThan('$.meta.retryCount', DAMSMART_RETRIES),
+        damsmartWait.next(checkForOtherDAMSmartFileState),
+      )
+      .otherwise(damsmartLoopEnd);
+
+    const damSmartFlow = sfn.Chain.start(damsmartCounter).next(checkForOtherDAMSmartFileState);
 
     // /////////////////////////////
     // MediaFlow

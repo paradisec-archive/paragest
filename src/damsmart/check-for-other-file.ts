@@ -25,16 +25,20 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
     objectKey,
   } = event;
 
+  if (['mp3', 'mp4'].includes(extension)) {
+    notes.push('damsmart-other-check: small file');
+    console.log('🪚 ⭐');
+
+    return {
+      ...event,
+      isDAMSmartOtherPresent: 'small-file',
+    };
+  }
+
   let otherExtension: string;
   switch (extension) {
-    case 'mp3':
-      otherExtension = 'wav';
-      break;
     case 'wav':
       otherExtension = 'mp3';
-      break;
-    case 'mp4':
-      otherExtension = 'mkv';
       break;
     case 'mkv':
       otherExtension = 'mp4';
@@ -43,9 +47,7 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
       throw new StepError(`Unsupported file extension: ${extension}`, event, { objectKey });
   }
 
-  console.log('🪚 💜');
   const otherFilename = filename.replace(new RegExp(`.${extension}$`), `.${otherExtension}`);
-  console.log('🪚 🟩');
   if (otherFilename === filename) {
     throw new StepError(
       `Filename ${filename} does not match expected pattern for extension ${extension} ${otherExtension}`,
@@ -55,21 +57,22 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
   }
 
   const exists = await head(bucketName, `damsmart/${otherFilename}`);
-  console.log('🪚 ⭐');
 
   if (!exists) {
-    notes.push("damsmart-other-check: The other file doesn't exist yet");
+    notes.push("damsmart-other-check: The big file doesn't exist yet");
+    console.log('🪚 🔲');
 
     return {
       ...event,
-      isDAMSmartOtherPresent: false,
+      isDAMSmartOtherPresent: 'wait',
     };
   }
 
-  notes.push('damsmart-other-check: Other file is present');
+  notes.push('damsmart-other-check: Other big file is present');
+  console.log('🪚 🟩');
 
   return {
     ...event,
-    isDAMSmartOtherPresent: true,
+    isDAMSmartOtherPresent: 'big-file',
   };
 });
