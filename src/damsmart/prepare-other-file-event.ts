@@ -68,4 +68,3 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
     },
   };
 });
-

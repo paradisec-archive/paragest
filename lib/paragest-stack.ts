@@ -495,6 +495,28 @@ export class ParagestStack extends cdk.Stack {
       },
     );
 
+    const damsmartCreateOtherArchivalBigStep = paragestStep(
+      'DamsmartCreateOtherArchivalBig',
+      'src/other/create-archival.ts',
+      {
+        grantFunc: (role) => {
+          ingestBucket.grantReadWrite(role);
+          nabuOauthSecret.grantRead(role);
+        },
+      },
+    );
+
+    const damsmartCreateOtherArchivalSmallStep = paragestStep(
+      'DamsmartCreateOtherArchivalSmall',
+      'src/other/create-archival.ts',
+      {
+        grantFunc: (role) => {
+          ingestBucket.grantReadWrite(role);
+          nabuOauthSecret.grantRead(role);
+        },
+      },
+    );
+
     const addToCatalogBigStep = paragestFargateStep('AddToCatalogBig', 'add-to-catalog.ts', {
       grantFunc: (role) => {
         ingestBucket.grantRead(role);
@@ -515,9 +537,12 @@ export class ParagestStack extends cdk.Stack {
       },
     });
 
-    const bigFileFlow = sfn.Chain.start(damsmartDetectAndValidateMediaBigStep).next(addToCatalogBigStep);
+    const bigFileFlow = sfn.Chain.start(damsmartDetectAndValidateMediaBigStep)
+      .next(damsmartCreateOtherArchivalBigStep)
+      .next(addToCatalogBigStep);
     const smallFileFlow = sfn.Chain.start(prepareOtherFileEventStep)
       .next(damsmartDetectAndValidateMediaSmallStep)
+      .next(damsmartCreateOtherArchivalSmallStep)
       .next(addToCatalogSmallStep);
 
     const parallelDAMSmartProcessing = new sfn.Parallel(this, 'ParallelDAMSmartProcessing');
