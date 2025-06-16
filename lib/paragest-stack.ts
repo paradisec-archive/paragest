@@ -482,16 +482,16 @@ export class ParagestStack extends cdk.Stack {
       },
     );
 
-    const currentFileFlow = sfn.Chain.start(new sfn.Pass(this, 'NoOp2'));
-    const otherFileFlow = sfn.Chain.start(prepareOtherFileEventStep);
+    const currentFileFlow = sfn.Chain.start(damsmartDetectAndValidateMediaStep).next(addToCatalogStep);
+    const otherFileFlow = sfn.Chain.start(prepareOtherFileEventStep)
+      .next(damsmartDetectAndValidateMediaStep)
+      .next(addToCatalogStep);
 
     const parallelDAMSmartProcessing = new sfn.Parallel(this, 'ParallelDAMSmartProcessing');
     parallelDAMSmartProcessing.branch(currentFileFlow);
     parallelDAMSmartProcessing.branch(otherFileFlow);
 
-    const damSmartParallelFlow = sfn.Chain.start(parallelDAMSmartProcessing)
-      .next(damsmartDetectAndValidateMediaStep)
-      .next(addToCatalogStep);
+    const damSmartParallelFlow = sfn.Chain.start(parallelDAMSmartProcessing);
 
     const DAMSMART_RETRIES = 10;
 
