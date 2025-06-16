@@ -507,17 +507,16 @@ export class ParagestStack extends cdk.Stack {
     // const parallelDAMSmartProcessing = new sfn.Parallel(this, 'ParallelDAMSmartProcessing');
     // parallelDAMSmartProcessing.branch(currentFileFlow);
     // parallelDAMSmartProcessing.branch(otherFileFlow);
-    //
+
     // const damSmartParallelFlow = sfn.Chain.start(parallelDAMSmartProcessing)
-    //   .next(damsmartDetectAndValidateMediaStep)
-    //   .next(damsmartAddToCatalogStep);
+    const damSmartParallelFlow = sfn.Chain.start(damsmartDetectAndValidateMediaStep)
+      // .next(damsmartDetectAndValidateMediaStep)
+      .next(damsmartAddToCatalogStep);
 
     const damSmartFlow = sfn.Chain.start(checkForOtherDAMSmartFile).next(
-      new sfn.Choice(this, 'Is Other file ready?').when(
-        sfn.Condition.booleanEquals('$.isDAMSmartOtherPresent', false),
-        processSuccessStep,
-      ),
-      // .when(sfn.Condition.booleanEquals('$.isDAMSmartOtherPresent', true), damSmartParallelFlow),
+      new sfn.Choice(this, 'Is Other file ready?')
+        .when(sfn.Condition.booleanEquals('$.isDAMSmartOtherPresent', false), processSuccessStep)
+        .when(sfn.Condition.booleanEquals('$.isDAMSmartOtherPresent', true), damSmartParallelFlow),
     );
 
     // /////////////////////////////
