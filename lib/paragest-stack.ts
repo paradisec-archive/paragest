@@ -491,17 +491,26 @@ export class ParagestStack extends cdk.Stack {
         nabuOauthSecret.grantRead(role);
       },
     });
+    const damsmartAddToCatalogStep2 = paragestFargateStep('DAMSmartAddToCatalog2', 'add-to-catalog.ts', {
+      grantFunc: (role) => {
+        ingestBucket.grantRead(role);
+        ingestBucket.grantDelete(role);
+        catalogBucket.grantPut(role);
+        catalogBucket.grantRead(role);
+        nabuOauthSecret.grantRead(role);
+      },
+    });
 
-    // const currentFileFlow = sfn.Chain.start(new sfn.Pass(this, 'NoOp2'));
-    const otherFileFlow = sfn.Chain.start(prepareOtherFileEventStep).next(damsmartDetectAndValidateMediaStep);
-
-    const parallelDAMSmartProcessing = new sfn.Parallel(this, 'ParallelDAMSmartProcessing');
+    // const currentFileFlow = sfn.Chain.start(damsmartAddToCatalogStep2);
+    // const otherFileFlow = sfn.Chain.start(prepareOtherFileEventStep).next(damsmartDetectAndValidateMediaStep);
+    //
+    // const parallelDAMSmartProcessing = new sfn.Parallel(this, 'ParallelDAMSmartProcessing');
     // parallelDAMSmartProcessing.branch(currentFileFlow);
-    parallelDAMSmartProcessing.branch(otherFileFlow);
-
-    const damSmartParallelFlow = sfn.Chain.start(parallelDAMSmartProcessing)
-      .next(damsmartDetectAndValidateMediaStep)
-      .next(damsmartAddToCatalogStep);
+    // parallelDAMSmartProcessing.branch(otherFileFlow);
+    //
+    // const damSmartParallelFlow = sfn.Chain.start(parallelDAMSmartProcessing)
+    //   .next(damsmartDetectAndValidateMediaStep)
+    //   .next(damsmartAddToCatalogStep);
 
     const damSmartFlow = sfn.Chain.start(checkForOtherDAMSmartFile).next(
       new sfn.Choice(this, 'Is Other file ready?').when(
