@@ -17,7 +17,9 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
 
   const { objectKey } = event;
 
-  const md = objectKey.match(/^incoming\/([A-Za-z0-9][a-zA-Z0-9_]+)-([A-Za-z0-9][a-zA-Z0-9_]+)-(.*)\.([^.]+)$/);
+  const md = objectKey.match(
+    /^(?:incoming|damsmart)\/([A-Za-z0-9][a-zA-Z0-9_]+)-([A-Za-z0-9][a-zA-Z0-9_]+)-(.*)\.([^.]+)$/,
+  );
   if (!md) {
     throw new StepError(`Object key ${objectKey} does not match expected pattern`, event, { objectKey });
   }

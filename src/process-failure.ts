@@ -13,7 +13,7 @@ type Event = {
 };
 type ErrorData = {
   message: string;
-  event: Record<string, string> & { bucketName: string, objectKey: string, principalId: string; notes: string[] };
+  event: Record<string, string> & { bucketName: string; objectKey: string; principalId: string; notes: string[] };
   data: Record<string, string>;
 };
 
@@ -34,13 +34,13 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
   }
 
   console.debug('Copying object to rejected bucket');
-  await copy(bucketName, objectKey, bucketName, objectKey.replace(/^incoming/, 'rejected'));
+  await copy(bucketName, objectKey, bucketName, objectKey.replace(/^(incoming|damsmart)/, 'rejected'));
 
-  console.debug('Deleting object from incoming bucket');
+  console.debug('Deleting object from inbound bucket');
   await destroy(bucketName, objectKey);
 
   console.debug('Deleting any output files');
-  const prefix = objectKey.replace(/^incoming/, 'output');
+  const prefix = objectKey.replace(/^(incoming|damsmart)/, 'output');
   const objects = await list(bucketName, prefix);
 
   await Promise.all(objects.map((object) => object.Key && destroy(bucketName, object.Key)));

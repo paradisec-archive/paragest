@@ -16,7 +16,7 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
   console.debug('Event:', JSON.stringify(event, null, 2));
   const { objectKey } = event;
 
-  const md = objectKey.match(/^incoming\/([A-Za-z0-9][a-zA-Z0-9_]+)-deposit\.pdf$/);
+  const md = objectKey.match(/^(?:incoming|damsmart)\/([A-Za-z0-9][a-zA-Z0-9_]+)-deposit\.pdf$/);
   if (!md) {
     return {
       ...event,

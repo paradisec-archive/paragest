@@ -15,6 +15,6 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
 
   return {
     ...event,
-    isDASmart: objectKey.startsWith('damsmart/'),
+    isDAMSmart: objectKey.startsWith('damsmart/'),
   };
 });
