@@ -47,7 +47,7 @@ export class ParagestStack extends cdk.Stack {
         NODE_OPTIONS: '--enable-source-maps',
         CONCURRENCY_TABLE_NAME: concurrencyTable.tableName,
       },
-      runtime: lambda.Runtime.NODEJS_20_X,
+      runtime: lambda.Runtime.NODEJS_22_X,
       memorySize: 2048,
       ephemeralStorageSize: cdk.Size.gibibytes(10),
       timeout: cdk.Duration.seconds(120),
