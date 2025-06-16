@@ -450,6 +450,8 @@ export class ParagestStack extends cdk.Stack {
     // DamSmart
     // /////////////////////////////
 
+    // TODO: The below is all super messy refactor it one day
+
     const checkForOtherDAMSmartFile = paragestStep(
       'CheckForOtherDAMSmartFile',
       'src/damsmart/check-for-other-file.ts',
@@ -471,7 +473,7 @@ export class ParagestStack extends cdk.Stack {
       },
     );
 
-    const damsmartDetectAndValidateMediaStep = paragestStep(
+    const damsmartDetectAndValidateMediaBigStep = paragestStep(
       'damsmartDetectAndValidateMedia',
       'src/detect-and-validate-media.ts',
       {
@@ -482,14 +484,45 @@ export class ParagestStack extends cdk.Stack {
       },
     );
 
-    const currentFileFlow = sfn.Chain.start(damsmartDetectAndValidateMediaStep).next(addToCatalogStep);
-    const otherFileFlow = sfn.Chain.start(prepareOtherFileEventStep)
-      .next(damsmartDetectAndValidateMediaStep)
-      .next(addToCatalogStep);
+    const damsmartDetectAndValidateMediaSmallStep = paragestStep(
+      'damsmartDetectAndValidateMedia',
+      'src/detect-and-validate-media.ts',
+      {
+        grantFunc: (role) => {
+          ingestBucket.grantRead(role);
+        },
+        lambdaProps: { nodeModules: ['@npcz/magic'], memorySize: 10240, timeout: cdk.Duration.minutes(15) },
+      },
+    );
+
+    const addToCatalogBigStep = paragestFargateStep('AddToCatalogBig', 'add-to-catalog.ts', {
+      grantFunc: (role) => {
+        ingestBucket.grantRead(role);
+        ingestBucket.grantDelete(role);
+        catalogBucket.grantPut(role);
+        catalogBucket.grantRead(role);
+        nabuOauthSecret.grantRead(role);
+      },
+    });
+
+    const addToCatalogSmallStep = paragestFargateStep('AddToCatalogSmall', 'add-to-catalog.ts', {
+      grantFunc: (role) => {
+        ingestBucket.grantRead(role);
+        ingestBucket.grantDelete(role);
+        catalogBucket.grantPut(role);
+        catalogBucket.grantRead(role);
+        nabuOauthSecret.grantRead(role);
+      },
+    });
+
+    const bigFileFlow = sfn.Chain.start(damsmartDetectAndValidateMediaBigStep).next(addToCatalogBigStep);
+    const smallFileFlow = sfn.Chain.start(prepareOtherFileEventStep)
+      .next(damsmartDetectAndValidateMediaSmallStep)
+      .next(addToCatalogSmallStep);
 
     const parallelDAMSmartProcessing = new sfn.Parallel(this, 'ParallelDAMSmartProcessing');
-    parallelDAMSmartProcessing.branch(currentFileFlow);
-    parallelDAMSmartProcessing.branch(otherFileFlow);
+    parallelDAMSmartProcessing.branch(bigFileFlow);
+    parallelDAMSmartProcessing.branch(smallFileFlow);
 
     const damSmartParallelFlow = sfn.Chain.start(parallelDAMSmartProcessing);
 
