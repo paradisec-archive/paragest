@@ -471,6 +471,17 @@ export class ParagestStack extends cdk.Stack {
       },
     );
 
+    const damsmartDetectAndValidateMediaStep = paragestStep(
+      'damsmartDetectAndValidateMedia',
+      'src/detect-and-validate-media.ts',
+      {
+        grantFunc: (role) => {
+          ingestBucket.grantRead(role);
+        },
+        lambdaProps: { nodeModules: ['@npcz/magic'], memorySize: 10240, timeout: cdk.Duration.minutes(15) },
+      },
+    );
+
     const currentFileFlow = new sfn.Pass(this, 'NoOp');
     const otherFileFlow = sfn.Chain.start(prepareOtherFileEventStep).next(detectAndValidateMediaStep);
 
@@ -479,7 +490,7 @@ export class ParagestStack extends cdk.Stack {
     parallelDAMSmartProcessing.branch(otherFileFlow);
 
     const damSmartParallelFlow = sfn.Chain.start(parallelDAMSmartProcessing)
-      .next(detectAndValidateMediaStep)
+      .next(damsmartDetectAndValidateMediaStep)
       .next(addToCatalogStep);
 
     const damSmartFlow = sfn.Chain.start(checkForOtherDAMSmartFile).next(
