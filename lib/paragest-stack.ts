@@ -474,7 +474,7 @@ export class ParagestStack extends cdk.Stack {
     );
 
     const damsmartDetectAndValidateMediaBigStep = paragestStep(
-      'damsmartDetectAndValidateMedia',
+      'damsmartDetectAndValidateMediaBig',
       'src/detect-and-validate-media.ts',
       {
         grantFunc: (role) => {
@@ -485,7 +485,7 @@ export class ParagestStack extends cdk.Stack {
     );
 
     const damsmartDetectAndValidateMediaSmallStep = paragestStep(
-      'damsmartDetectAndValidateMedia',
+      'damsmartDetectAndValidateMediaSmall',
       'src/detect-and-validate-media.ts',
       {
         grantFunc: (role) => {
