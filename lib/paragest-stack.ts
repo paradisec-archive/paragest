@@ -504,9 +504,11 @@ export class ParagestStack extends cdk.Stack {
       .next(damsmartAddToCatalogStep);
 
     const damSmartFlow = sfn.Chain.start(checkForOtherDAMSmartFile).next(
-      new sfn.Choice(this, 'Is Other file ready?')
-        .when(sfn.Condition.booleanEquals('$.isDAMSmartOtherPresent', false), processSuccessStep)
-        .when(sfn.Condition.booleanEquals('$.isDAMSmartOtherPresent', true), damSmartParallelFlow),
+      new sfn.Choice(this, 'Is Other file ready?').when(
+        sfn.Condition.booleanEquals('$.isDAMSmartOtherPresent', false),
+        processSuccessStep,
+      ),
+      // .when(sfn.Condition.booleanEquals('$.isDAMSmartOtherPresent', true), damSmartParallelFlow),
     );
 
     // /////////////////////////////
