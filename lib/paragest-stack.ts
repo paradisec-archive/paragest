@@ -501,7 +501,7 @@ export class ParagestStack extends cdk.Stack {
 
     const damSmartParallelFlow = sfn.Chain.start(parallelDAMSmartProcessing)
       .next(damsmartDetectAndValidateMediaStep)
-      .next(damsmartAddToCatalogStep);
+      .next(addToCatalogStep);
 
     const damSmartFlow = sfn.Chain.start(checkForOtherDAMSmartFile).next(
       new sfn.Choice(this, 'Is Other file ready?')
