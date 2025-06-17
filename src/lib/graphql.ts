@@ -17,9 +17,7 @@ console.log('🪚 🟩');
 console.log('🪚 apiUrl:', JSON.stringify(apiUrl, null, 2));
 
 const tlsHostname =
-  process.env.PARAGEST_ENV === 'prod'
-    ? 'https://catalog.nabu-prod.paradisec.org.au'
-    : 'https://catalog.nabu-stage.paradisec.org.au';
+  process.env.PARAGEST_ENV === 'prod' ? 'catalog.nabu-prod.paradisec.org.au' : 'catalog.nabu-stage.paradisec.org.au';
 
 const agent = new https.Agent({
   servername: tlsHostname,
