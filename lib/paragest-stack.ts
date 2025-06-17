@@ -94,7 +94,6 @@ export class ParagestStack extends cdk.Stack {
       subnets: {
         subnets,
       },
-      privateDnsEnabled: true,
     });
 
     // /////////////////////////////
