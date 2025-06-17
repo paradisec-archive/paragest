@@ -34,7 +34,6 @@ const increment = async () => {
     },
     ExpressionAttributeValues: {
       ':inc': { N: '1' },
-      ':limit': { N: CONCURRENCY_LIMIT.toString() },
       ':zero': { N: '0' },
     },
     ReturnValues: 'UPDATED_NEW',
