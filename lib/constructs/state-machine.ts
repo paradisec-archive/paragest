@@ -379,8 +379,8 @@ export class StateMachine extends Construct {
       .next(checkIsDAMSmartStep.task)
       .next(
         new sfn.Choice(this, 'Is DAMSmart Folder?')
-          .when(sfn.Condition.booleanEquals('$.isDAMSmart', true), damSmartFlow)
-          .when(sfn.Condition.booleanEquals('$.isDAMSmart', false), mediaFlow),
+          .when(sfn.Condition.booleanEquals('$.isDamsmart', true), damSmartFlow)
+          .when(sfn.Condition.booleanEquals('$.isDamsmart', false), mediaFlow),
       );
 
     const handleSpecialFlow = sfn.Chain.start(handleSpecialStep.task).next(processSuccessStep.task);
