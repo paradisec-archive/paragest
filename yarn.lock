@@ -9711,6 +9711,7 @@ __metadata:
     jest: "npm:^29.7.0"
     knip: "npm:^5.61.1"
     mime-types: "npm:^3.0.1"
+    node-fetch: "npm:^3.3.2"
     source-map-support: "npm:^0.5.21"
     ts-jest: "npm:^29.4.0"
     ts-node: "npm:^10.9.2"

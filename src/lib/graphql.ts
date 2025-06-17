@@ -1,4 +1,4 @@
-import https from 'node:https';
+import fetch from 'node-fetch';
 
 import { Client, fetchExchange } from '@urql/core';
 
@@ -17,57 +17,6 @@ const apiUrl = `https://${process.env.NABU_DNS_NAME}`;
 const tlsHostname =
   process.env.PARAGEST_ENV === 'prod' ? 'catalog.nabu-prod.paradisec.org.au' : 'catalog.nabu-stage.paradisec.org.au';
 
-const customFetch: typeof fetch = (url, options = {}) => {
-  return new Promise((resolve, reject) => {
-    const parsedUrl = new URL(url);
-
-    const requestOptions: https.RequestOptions = {
-      hostname: parsedUrl.hostname,
-      port: parsedUrl.port,
-      path: parsedUrl.pathname + parsedUrl.search,
-      method: options.method || 'GET',
-      headers: options.headers as https.RequestOptions['headers'],
-    };
-
-    const req = https.request(requestOptions, (res) => {
-      let data = '';
-
-      res.on('data', (chunk) => {
-        data += chunk;
-      });
-
-      res.on('end', () => {
-        console.log('🪚 💜');
-        console.log(`Response from ${url}: ${res.statusCode} ${res.statusMessage}`);
-        console.log(`Response headers: ${JSON.stringify(res.headers)}`);
-        console.log(`Response body: ${data}`);
-        const response = {
-          status: res.statusCode,
-          statusText: res.statusMessage,
-          headers: res.headers,
-          ok: res.statusCode && res.statusCode >= 200 && res.statusCode < 300,
-          text: () => Promise.resolve(data),
-          json: () => Promise.resolve(JSON.parse(data)),
-          blob: () => Promise.resolve(Buffer.from(data)),
-          arrayBuffer: () => Promise.resolve(Buffer.from(data).buffer),
-        };
-        resolve(response as unknown as Awaited<ReturnType<typeof fetch>>);
-      });
-    });
-
-    req.on('error', (error) => {
-      reject(error);
-    });
-
-    // Handle request body if provided
-    if (options.body) {
-      req.write(options.body);
-    }
-
-    req.end();
-  });
-};
-
 const getAccessToken = async (credentials: OAuthSecret): Promise<string> => {
   const tokenUrl = `${apiUrl}/oauth/token`;
   const tokenRequestData = {
@@ -78,7 +27,7 @@ const getAccessToken = async (credentials: OAuthSecret): Promise<string> => {
   };
 
   try {
-    const tokenResponse = await customFetch(tokenUrl, {
+    const tokenResponse = await fetch(tokenUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -112,7 +61,7 @@ export const getGraphQLClient = async () => {
     fetchOptions: () => ({
       headers: { authorization: `Bearer ${accessToken}`, host: tlsHostname },
     }),
-    fetch: customFetch,
+    fetch: fetch as unknown as typeof globalThis.fetch,
   });
 
   return client;

@@ -82,6 +82,7 @@
     "graphql": "^16.11.0",
     "inquirer": "^12.6.3",
     "mime-types": "^3.0.1",
+    "node-fetch": "^3.3.2",
     "source-map-support": "^0.5.21",
     "uuid": "^11.1.0",
     "zod": "^3.25.64"
