@@ -4,6 +4,7 @@ import type { Construct } from 'constructs';
 import * as batch from 'aws-cdk-lib/aws-batch';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
+import * as elbv2 from 'aws-cdk-lib/aws-elasticloadbalancingv2';
 import * as efs from 'aws-cdk-lib/aws-efs';
 import * as eventsources from 'aws-cdk-lib/aws-lambda-event-sources';
 import * as nodejs from 'aws-cdk-lib/aws-lambda-nodejs';
@@ -21,6 +22,10 @@ export class ParagestStack extends cdk.Stack {
     super(scope, id, props);
 
     const env = props?.env?.account === '618916419351' ? 'prod' : 'stage';
+
+    // /////////////////////////////
+    // Database
+    // /////////////////////////////
 
     const concurrencyTable = new dynamodb.TableV2(this, 'ConcurrencyTable', {
       tableName: 'ConcurrencyTable',
@@ -44,16 +49,18 @@ export class ParagestStack extends cdk.Stack {
     });
 
     // /////////////////////////////
-    // Batch
+    // Network
     // /////////////////////////////
 
+    // NOTE: Service Policy prevents us from creating a VPC from CF (it shoudn't but it does)
+    // so we generate it in the console and import it here
     const vpc = ec2.Vpc.fromLookup(this, 'FargateVPC', {
-      vpcId: ssm.StringParameter.valueFromLookup(this, '/usyd/resources/vpc-id'),
+      vpcId: ssm.StringParameter.valueFromLookup(this, '/paragest/resources/vpc-id'),
     });
-    const dataSubnets = ['a', 'b', 'c'].map((az, index) => {
+    const subnets = ['a', 'b', 'c'].map((az, index) => {
       const subnetId = ssm.StringParameter.valueForStringParameter(
         this,
-        `/usyd/resources/subnets/isolated/apse2${az}-id`,
+        `/paragest/resources/subnets/private/apse2${az}-id`,
       );
       const availabilityZone = `ap-southeast-2${az}`;
       const subnet = ec2.Subnet.fromSubnetAttributes(this, `DataSubnet${index}`, { subnetId, availabilityZone });
@@ -62,23 +69,24 @@ export class ParagestStack extends cdk.Stack {
       return subnet;
     });
 
-    // NOTE: We have a special larger subnet in prod
-    if (env === 'prod') {
-      dataSubnets.pop();
-      dataSubnets.pop();
-      dataSubnets.pop();
-      dataSubnets.push(
-        ec2.Subnet.fromSubnetAttributes(this, 'DataSubnetLarge', {
-          subnetId: 'subnet-04ae1ab6bd26154b3',
-          availabilityZone: 'ap-southeast-2a',
-        }),
-      );
-    }
+    const nabuServiceName = ssm.StringParameter.valueFromLookup(this, '/nabu/resources/nlb-endpoint/service-name');
+    const nabuVpcEndpoint = new ec2.InterfaceVpcEndpoint(this, 'NabuNLBInterfaceEndpoint', {
+      vpc,
+      service: new ec2.InterfaceVpcEndpointService(nabuServiceName, 443),
+      subnets: {
+        subnets,
+      },
+    });
+    const nabuDnsName = cdk.Fn.select(0, nabuVpcEndpoint.vpcEndpointDnsEntries);
+
+    // /////////////////////////////
+    // Filesystem
+    // /////////////////////////////
 
     const fileSystem = new efs.FileSystem(this, 'FargateFileSystem', {
       vpc,
       vpcSubnets: {
-        subnets: dataSubnets,
+        subnets,
       },
     });
 
@@ -95,19 +103,9 @@ export class ParagestStack extends cdk.Stack {
       },
     });
 
-    const batchEnv = new batch.FargateComputeEnvironment(this, 'FargateBatch', {
-      vpc,
-      vpcSubnets: {
-        subnets: dataSubnets,
-      },
-      updateToLatestImageVersion: true,
-      // spot: true,
-      // NOTE: Leaving this at default of 256 means because we allocate 8 vCPUs per task, we can only run 32 tasks at a time
-      // NOTE: This helps us not run out of IPs
-      // maxvCpus: 256
-    });
-    fileSystem.connections.allowDefaultPortFrom(batchEnv.securityGroups[0]);
-
+    // /////////////////////////////
+    // Batch
+    // /////////////////////////////
     const volume = batch.EcsVolume.efs({
       name: 'efs',
       fileSystem,
@@ -116,6 +114,19 @@ export class ParagestStack extends cdk.Stack {
       enableTransitEncryption: true,
       useJobRole: true,
     });
+
+    const batchEnv = new batch.FargateComputeEnvironment(this, 'FargateBatch', {
+      vpc,
+      vpcSubnets: {
+        subnets,
+      },
+      updateToLatestImageVersion: true,
+      // spot: true,
+      // NOTE: Leaving this at default of 256 means because we allocate 8 vCPUs per task, we can only run 32 tasks at a time
+      // NOTE: This helps us not run out of IPs
+      // maxvCpus: 256
+    });
+    fileSystem.connections.allowDefaultPortFrom(batchEnv.securityGroups[0]);
 
     const jobQueue = new batch.JobQueue(this, 'BatchQueue', {
       priority: 1,
@@ -140,7 +151,8 @@ export class ParagestStack extends cdk.Stack {
       jobQueue,
       concurrencyTable,
       vpc,
-      subnets: dataSubnets,
+      subnets,
+      nabuDnsName,
     };
 
     const stateMachine = new StateMachine(this, 'ParagestStateMachine', {

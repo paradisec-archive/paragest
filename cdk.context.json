@@ -173,5 +173,46 @@
       }
     ]
   },
-  "acknowledged-issue-numbers": [32775]
+  "acknowledged-issue-numbers": [
+    32775
+  ],
+  "availability-zones:account=847483222616:region=ap-southeast-2": [
+    "ap-southeast-2a",
+    "ap-southeast-2b",
+    "ap-southeast-2c"
+  ],
+  "ssm:account=847483222616:parameterName=/paragest/resources/vpc-id:region=ap-southeast-2": "vpc-00fa43cdfb1daa88d",
+  "vpc-provider:account=847483222616:filter.vpc-id=vpc-00fa43cdfb1daa88d:region=ap-southeast-2:returnAsymmetricSubnets=true": {
+    "vpcId": "vpc-00fa43cdfb1daa88d",
+    "vpcCidrBlock": "10.17.0.0/16",
+    "ownerAccountId": "847483222616",
+    "availabilityZones": [],
+    "subnetGroups": [
+      {
+        "name": "Isolated",
+        "type": "Isolated",
+        "subnets": [
+          {
+            "subnetId": "subnet-0d33147a3ef39cc54",
+            "cidr": "10.17.128.0/24",
+            "availabilityZone": "ap-southeast-2a",
+            "routeTableId": "rtb-0cd3672cbf7518887"
+          },
+          {
+            "subnetId": "subnet-084e00de74713e87e",
+            "cidr": "10.17.144.0/24",
+            "availabilityZone": "ap-southeast-2b",
+            "routeTableId": "rtb-0e7105d4cddc835b3"
+          },
+          {
+            "subnetId": "subnet-0b3c3358cdbc45ff3",
+            "cidr": "10.17.160.0/24",
+            "availabilityZone": "ap-southeast-2c",
+            "routeTableId": "rtb-03f39046d72b0db7d"
+          }
+        ]
+      }
+    ]
+  },
+  "ssm:account=847483222616:parameterName=/nabu/resources/nlb-endpoint/service-name:region=ap-southeast-2": "com.amazonaws.vpce.ap-southeast-2.vpce-svc-04aedcefa72bcbabb"
 }

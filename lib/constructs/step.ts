@@ -28,6 +28,7 @@ export type SharedProps = {
   accessPoint: efs.AccessPoint;
   vpc: ec2.IVpc;
   subnets: ec2.ISubnet[];
+  nabuDnsName: string;
 };
 
 type LambdaStepProps = {
@@ -52,6 +53,7 @@ const commonEnv = (src: string, shared: SharedProps) => ({
   SENTRY_DSN: 'https://e36e8aa3d034861a3803d2edbd4773ff@o4504801902985216.ingest.sentry.io/4506375864254464',
   SENTRY_RELEASE: JSON.stringify(getGitSha(src)),
   CONCURRENCY_TABLE_NAME: shared.concurrencyTable.tableName,
+  NABU_DNS_NAME: shared.nabuDnsName,
 });
 
 export const genLambdaProps = (

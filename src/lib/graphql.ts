@@ -1,3 +1,5 @@
+import https from 'node:https';
+
 import { Client, fetchExchange } from '@urql/core';
 
 import { getSecret } from './secrets.js';
@@ -10,10 +12,18 @@ type OAuthSecret = {
 if (!process.env.PARAGEST_ENV) {
   throw new Error('PARAGEST_ENV is not set');
 }
-const apiUrl =
+const apiUrl = `https://${process.env.NABU_DNS_NAME}`;
+console.log('🪚 🟩');
+console.log('🪚 apiUrl:', JSON.stringify(apiUrl, null, 2));
+
+const tlsHostname =
   process.env.PARAGEST_ENV === 'prod'
-    ? 'https://catalog.paradisec.org.au'
+    ? 'https://catalog.nabu-prod.paradisec.org.au'
     : 'https://catalog.nabu-stage.paradisec.org.au';
+
+const agent = new https.Agent({
+  servername: tlsHostname,
+});
 
 const getAccessToken = async (credentials: OAuthSecret): Promise<string> => {
   const tokenUrl = `${apiUrl}/oauth/token`;
@@ -55,7 +65,7 @@ export const getGraphQLClient = async () => {
     url: `${apiUrl}/api/v1/graphql`,
     exchanges: [fetchExchange],
     fetchOptions: () => ({
-      headers: { authorization: `Bearer ${accessToken}` },
+      headers: { authorization: `Bearer ${accessToken}`, host: tlsHostname },
     }),
   });
 
