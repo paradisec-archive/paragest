@@ -1,20 +1,12 @@
-import fs from 'node:fs';
-
 import '../lib/sentry-node.js';
 
 import { processBatch } from '../lib/batch.js';
 import { execute } from '../lib/command.js';
-import { download, upload } from '../lib/s3.js';
+import { getPath } from '../lib/s3.js';
 
 type Event = {
   notes: string[];
-  principalId: string;
-  bucketName: string;
-  objectKey: string;
-  objectSize: number;
   details: {
-    itemIdentifier: string;
-    collectionIdentifier: string;
     filename: string;
     extension: string;
   };
@@ -22,25 +14,16 @@ type Event = {
 
 export const handler = async (event: Event) => {
   console.debug('Event: ', JSON.stringify(event, null, 2));
+
   const {
     notes,
     details: { filename, extension },
-    bucketName,
-    objectKey,
   } = event;
 
-  fs.mkdirSync(`/mnt/efs/${process.env.SFN_ID}`);
+  const src = getPath('input');
+  const dst = getPath(`output/${filename.replace(new RegExp(`.${extension}$`), '.tif')}`);
 
-  await download(bucketName, objectKey, 'input');
-
-  execute('convert input -compress lzw output.tif', event);
-
-  await upload(
-    'output.tif',
-    bucketName,
-    `output/${filename}/${filename.replace(new RegExp(`.${extension}$`), '.tif')}`,
-    'image/tiff',
-  );
+  execute(`convert '${src}' -compress lzw '${dst}'`, event);
 
   notes.push('create-archival: created TIFF');
 

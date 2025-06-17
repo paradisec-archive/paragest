@@ -62,13 +62,10 @@ export class StateMachine extends Construct {
       shared,
       src: 'common/reject-empty-files.ts',
     });
-    const checkItemIdentifierLengthStep = new LambdaStep(this, 'CheckItemIdentifierLength', {
-      shared,
-      src: 'check-item-identifier-length.ts',
-    });
+
     const checkCatalogForItemStep = new LambdaStep(this, 'CheckCatalogForItem', {
       shared,
-      src: 'check-catalog-for-item.ts',
+      src: 'common/check-catalog-for-item.ts',
       grantFunc: (role) => nabuOauthSecret.grantRead(role),
     });
 
@@ -80,8 +77,7 @@ export class StateMachine extends Construct {
 
     const checkIsDAMSmartStep = new LambdaStep(this, 'CheckIfDAMSmart', {
       shared,
-      src: 'check-if-damsmart.ts',
-      grantFunc: (role) => nabuOauthSecret.grantRead(role),
+      src: 'common/check-if-damsmart.ts',
     });
 
     // /////////////////////////////
@@ -101,9 +97,18 @@ export class StateMachine extends Construct {
 
     const addToCatalogFlow = sfn.Chain.start(addToCatalogStep.task).next(processSuccessStep.task);
 
+    const downloadMediaStep = new LambdaStep(this, 'downloadMedia', {
+      shared,
+      src: 'common/download-media.ts',
+      grantFunc: (role) => {
+        ingestBucket.grantRead(role);
+      },
+      lambdaProps: { memorySize: 10240, timeout: cdk.Duration.minutes(5) },
+    });
+
     const detectAndValidateMediaStep = new LambdaStep(this, 'detectAndValidateMedia', {
       shared,
-      src: 'detect-and-validate-media.ts',
+      src: 'common/detect-and-validate-media.ts',
       grantFunc: (role) => {
         ingestBucket.grantRead(role);
       },
@@ -113,7 +118,7 @@ export class StateMachine extends Construct {
 
     const checkMetadataReadyStep = new LambdaStep(this, 'CheckMetadataReady', {
       shared,
-      src: 'check-metadata-ready.ts',
+      src: 'common/check-metadata-ready.ts',
       grantFunc: (role) => {
         nabuOauthSecret.grantRead(role);
       },
@@ -137,15 +142,15 @@ export class StateMachine extends Construct {
       src: 'audio/set-max-volume.ts',
       grantFunc: (role) => ingestBucket.grantReadWrite(role),
     });
-    const createBWFStep = new FargateStep(this, 'CreateBWF', {
+    const createAudioArchivalStep = new FargateStep(this, 'CreateAudioArchivalStep', {
       shared,
-      src: 'audio/create-bwf.ts',
+      src: 'audio/create-archival.ts',
       grantFunc: (role) => {
         ingestBucket.grantReadWrite(role);
         nabuOauthSecret.grantRead(role);
       },
     });
-    const createPresentationStep = new FargateStep(this, 'CreatePresentationStep', {
+    const createAudioPresentationStep = new FargateStep(this, 'CreateAudioPresentationStep', {
       shared,
       src: 'audio/create-presentation.ts',
       grantFunc: (role) => {
@@ -156,8 +161,8 @@ export class StateMachine extends Construct {
     const processAudioFlow = sfn.Chain.start(convertAudioStep.task)
       .next(fixSilenceStep.task)
       .next(setMaxVolumeStep.task)
-      .next(createBWFStep.task)
-      .next(createPresentationStep.task)
+      .next(createAudioArchivalStep.task)
+      .next(createAudioPresentationStep.task)
       .next(addToCatalogFlow);
 
     // /////////////////////////////
@@ -298,7 +303,7 @@ export class StateMachine extends Construct {
 
     const addToCatalogBigStep = new FargateStep(this, 'AddToCatalogBig', {
       shared,
-      src: 'add-to-catalog.ts',
+      src: 'common/add-to-catalog.ts',
       grantFunc: (role) => {
         ingestBucket.grantRead(role);
         ingestBucket.grantDelete(role);
@@ -390,7 +395,7 @@ export class StateMachine extends Construct {
       .when(sfn.Condition.stringEquals('$.mediaType', 'other'), processOtherFlow);
 
     const metadataChecksFlow = sfn.Chain.start(checkCatalogForItemStep.task)
-      .next(checkItemIdentifierLengthStep.task)
+      .next(downloadMediaStep.task)
       .next(detectAndValidateMediaStep.task)
       .next(checkMetadataReadyStep.task)
       .next(checkIsDAMSmartStep.task)

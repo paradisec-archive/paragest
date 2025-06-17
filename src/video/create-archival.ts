@@ -1,11 +1,9 @@
-import fs from 'node:fs';
-
 import '../lib/sentry-node.js';
 
-import { getMediaMetadata } from '../lib/media.js';
-import { execute } from '../lib/command.js';
-import { download, upload } from '../lib/s3.js';
 import { processBatch } from '../lib/batch.js';
+import { execute } from '../lib/command.js';
+import { getMediaMetadata } from '../lib/media.js';
+import { getPath } from '../lib/s3.js';
 
 type Event = {
   notes: string[];
@@ -28,18 +26,14 @@ export const handler = async (event: Event) => {
   const {
     notes,
     details: { filename, extension },
-    bucketName,
-    objectKey,
   } = event;
 
-  fs.mkdirSync(`/mnt/efs/${process.env.SFN_ID}`);
+  const src = getPath('input');
+  const dst = getPath(`output/${filename.replace(new RegExp(`.${extension}$`), '.mkv')}`);
 
-  await download(bucketName, objectKey, 'input');
-
-  // TODO maybe refactor later as this accesses via S3 and we've already downloaded
   const {
     other: { bitDepth, scanType, generalFormat, audioCodecId, videoCodecId },
-  } = await getMediaMetadata(bucketName, objectKey, event);
+  } = await getMediaMetadata(src, event);
 
   const is10Bit = bitDepth === 10;
   const isInterlaced = scanType === 'Interlaced';
@@ -52,23 +46,18 @@ export const handler = async (event: Event) => {
   notes.push(`create-archival: Is acceptable presentation format: ${isAcceptablePresentationInput}`);
 
   if (isAcceptablePresentationInput) {
-    execute('mv input output.mkv', event);
+    execute(`mv '${src}' '${dst}'`, event);
+
     notes.push('create-archival: Copied MKV file');
-  } else {
-    execute(
-      'ffmpeg -y -hide_banner -i input -sn -map 0 -dn -c:v ffv1 -level 3 -g 1 -slicecrc 1 -slices 16 -c:a flac output.mkv',
-      event,
-    );
-    notes.push('create-archival: Created MKV file');
+
+    return event;
   }
 
-  await upload(
-    'output.mkv',
-    bucketName,
-    `output/${filename}/${filename.replace(new RegExp(`.${extension}$`), '.mkv')}`,
-    'application/mkv',
-    true,
+  execute(
+    `ffmpeg -y -hide_banner -i '${src}' -sn -map 0 -dn -c:v ffv1 -level 3 -g 1 -slicecrc 1 -slices 16 -c:a flac '${dst}'`,
+    event,
   );
+  notes.push('create-archival: Created MKV file');
 
   return event;
 };

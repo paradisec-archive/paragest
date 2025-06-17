@@ -2,10 +2,10 @@ import type { Handler } from 'aws-lambda';
 
 import * as Sentry from '@sentry/aws-serverless';
 
-import './lib/sentry.js';
+import '../lib/sentry.js';
 
-import { StepError } from './lib/errors.js';
-import { getItem } from './models/item.js';
+import { StepError } from '../lib/errors.js';
+import { getItem } from '../models/item.js';
 
 type Event = {
   notes: string[];

@@ -3,7 +3,7 @@ import '../lib/sentry-node.js';
 import { processBatch } from '../lib/batch.js';
 import { execute } from '../lib/command.js';
 import { StepError } from '../lib/errors.js';
-import { download, upload } from '../lib/s3.js';
+import { getPath } from '../lib/s3.js';
 
 type Event = {
   notes: string[];
@@ -41,20 +41,13 @@ const getVolume = (stats: string, event: Event) => {
 
 export const handler = async (event: Event) => {
   console.debug('Event: ', JSON.stringify(event, null, 2));
-  const {
-    notes,
-    details: { filename, extension },
-    bucketName,
-  } = event;
+  const { notes } = event;
 
-  await download(
-    bucketName,
-    `output/${filename}/${filename.replace(new RegExp(`.${extension}$`), '.wav')}`,
-    'input.wav',
-  );
+  const src = getPath('unsilences.wav');
+  const dst = getPath('volume-maxed.wav');
 
   const analysis = execute(
-    'ffmpeg -i input.wav -filter:a volumedetect -f null /dev/null 2>&1 | grep volumedetect | sed "s/^.*] //"',
+    `ffmpeg -i '${src}' -filter:a volumedetect -f null /dev/null 2>&1 | grep volumedetect | sed "s/^.*] //"`,
     event,
   );
   const maxVolume = getVolume(analysis.toString(), event);
@@ -66,14 +59,7 @@ export const handler = async (event: Event) => {
   }
 
   notes.push(`setMaxVolume: Adjusting by ${diff} dB`);
-  execute(`ffmpeg -y -i input.wav -af "volume=${diff}dB" -ac 2 -ar 96000 -c:a pcm_s24le -rf64 auto output.wav`, event);
-
-  await upload(
-    'output.wav',
-    bucketName,
-    `output/${filename}/${filename.replace(new RegExp(`.${extension}$`), '.wav')}`,
-    'audio/wav',
-  );
+  execute(`ffmpeg -y -i '${src}' -af "volume=${diff}dB" -ac 2 -ar 96000 -c:a pcm_s24le -rf64 auto '${dst}'`, event);
 
   return event;
 };

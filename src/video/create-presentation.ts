@@ -1,9 +1,9 @@
 import '../lib/sentry-node.js';
 
-import { getMediaMetadata } from '../lib/media.js';
-import { execute } from '../lib/command.js';
-import { download, upload } from '../lib/s3.js';
 import { processBatch } from '../lib/batch.js';
+import { execute } from '../lib/command.js';
+import { getMediaMetadata } from '../lib/media.js';
+import { getPath } from '../lib/s3.js';
 
 type Event = {
   notes: string[];
@@ -12,8 +12,6 @@ type Event = {
   objectKey: string;
   objectSize: number;
   details: {
-    itemIdentifier: string;
-    collectionIdentifier: string;
     filename: string;
     extension: string;
   };
@@ -25,16 +23,14 @@ export const handler = async (event: Event) => {
   const {
     notes,
     details: { filename, extension },
-    bucketName,
-    objectKey,
   } = event;
 
-  await download(bucketName, objectKey, 'input');
+  const src = getPath('input');
+  const dst = getPath(`output/${filename.replace(new RegExp(`.${extension}$`), '.mp4')}`);
 
-  // TODO maybe refactor later as this accesses via S3 and we've already downloaded
   const {
     other: { bitDepth, scanType, generalCodecId, audioCodecId, videoCodecId },
-  } = await getMediaMetadata(bucketName, objectKey, event);
+  } = await getMediaMetadata(src, event);
 
   const is10Bit = bitDepth === 10;
   const isInterlaced = scanType === 'Interlaced';
@@ -47,22 +43,19 @@ export const handler = async (event: Event) => {
   notes.push(`create-presentation: Is acceptable presentation format: ${isAcceptablePresentationInput}`);
 
   if (isAcceptablePresentationInput) {
-    execute('mv input output.mp4', event);
+    execute(`mv '${src}' '${dst}'`, event);
+
     notes.push('create-presentation: Copied MP4 file');
-  } else {
-    execute(
-      `ffmpeg -y -hide_banner -i input -sn -c:v libx264 -pix_fmt yuv420p ${isInterlaced ? '-vf yadif' : ''} -preset slower -crf 15 -ac 2 -c:a aac output.mp4`,
-      event,
-    );
-    notes.push('create-presentation: Created MP4 file');
+
+    return event;
   }
 
-  await upload(
-    'output.mp4',
-    bucketName,
-    `output/${filename}/${filename.replace(new RegExp(`.${extension}$`), '.mp4')}`,
-    'video/mp4',
+  execute(
+    `ffmpeg -y -hide_banner -i '${src}' -sn -c:v libx264 -pix_fmt yuv420p ${isInterlaced ? '-vf yadif' : ''} -preset slower -crf 15 -ac 2 -c:a aac '${dst}'`,
+    event,
   );
+
+  notes.push('create-presentation: Created MP4 file');
 
   return event;
 };

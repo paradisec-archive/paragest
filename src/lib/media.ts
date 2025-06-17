@@ -1,6 +1,4 @@
 import { z } from 'zod';
-import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { execute } from './command';
 
 const GeneralTrack = z.object({
@@ -234,22 +232,10 @@ export const lookupMimetypeFromExtension = (extension: string) => {
   }
 };
 
-const s3 = new S3Client();
-
-export const getMediaMetadata = async (
-  bucketName: string,
-  objectKey: string,
-  event: Record<string, string | number | object>,
-) => {
-  const getObjectCommand = new GetObjectCommand({
-    Bucket: bucketName,
-    Key: objectKey,
-  });
-
-  const signedUrl = await getSignedUrl(s3, getObjectCommand, { expiresIn: 300 });
-
-  const output = execute(`mediainfo --output=JSON '${signedUrl}'`, event);
+export const getMediaMetadata = async (filename: string, event: Record<string, string | number | object>) => {
+  const output = execute(`mediainfo --output=JSON '${filename}'`, event);
   console.debug('MediaInfo output:', output);
+
   const metadata = MediaInfoSchema.parse(JSON.parse(output));
   console.debug('Metadata:', JSON.stringify(metadata, null, 2));
 

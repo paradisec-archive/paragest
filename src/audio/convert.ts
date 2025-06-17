@@ -1,10 +1,8 @@
-import fs from 'node:fs';
-
 import '../lib/sentry-node.js';
 
-import { execute } from '../lib/command.js';
-import { download, upload } from '../lib/s3.js';
 import { processBatch } from '../lib/batch.js';
+import { execute } from '../lib/command.js';
+import { getPath } from '../lib/s3.js';
 
 type Event = {
   notes: string[];
@@ -19,26 +17,13 @@ type Event = {
 export const handler = async (event: Event) => {
   console.debug('Event: ', JSON.stringify(event, null, 2));
 
-  const {
-    notes,
-    details: { filename, extension },
-    bucketName,
-    objectKey,
-  } = event;
+  const { notes } = event;
 
-  fs.mkdirSync(`/mnt/efs/${process.env.SFN_ID}`);
-
-  await download(bucketName, objectKey, 'input');
+  const src = getPath('input');
+  const dst = getPath('converted.wav');
 
   // Stereo, 96kHz, 24-bit
-  execute('ffmpeg -y -i input -ac 2 -ar 96000 -c:a pcm_s24le -rf64 auto output.wav', event);
-
-  await upload(
-    'output.wav',
-    bucketName,
-    `output/${filename}/${filename.replace(new RegExp(`.${extension}$`), '.wav')}`,
-    'audio/wav',
-  );
+  execute(`ffmpeg -y -i '${src}' -ac 2 -ar 96000 -c:a pcm_s24le -rf64 auto '${dst}'`, event);
 
   notes.push('convert: Converted to WAV');
 

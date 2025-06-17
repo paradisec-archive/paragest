@@ -16,6 +16,7 @@ import * as sfn from 'aws-cdk-lib/aws-stepfunctions';
 import * as tasks from 'aws-cdk-lib/aws-stepfunctions-tasks';
 
 import type * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
+import type * as efs from 'aws-cdk-lib/aws-efs';
 import type { IRole } from 'aws-cdk-lib/aws-iam';
 
 export type SharedProps = {
@@ -23,6 +24,7 @@ export type SharedProps = {
   concurrencyTable: dynamodb.TableV2;
   volume: batch.EfsVolume;
   jobQueue: batch.JobQueue;
+  accessPoint: efs.AccessPoint;
 };
 
 type LambdaStepProps = {
@@ -96,7 +98,10 @@ export class LambdaStep extends Construct {
     super(scope, id);
 
     const funcProps = genLambdaProps(props);
-    this.func = new nodejs.NodejsFunction(this, `${id}StepLambda`, funcProps);
+    this.func = new nodejs.NodejsFunction(this, `${id}StepLambda`, {
+      ...funcProps,
+      filesystem: lambda.FileSystem.fromEfsAccessPoint(props.shared.accessPoint, '/mnt/efs'),
+    });
     grantFunc?.(this.func);
 
     props.shared.concurrencyTable.grantReadWriteData(this.func);

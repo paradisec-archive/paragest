@@ -10,7 +10,7 @@ import {
   GetObjectTaggingCommand,
   type GetObjectCommandInput,
   HeadObjectCommand,
-  ListObjectsV2Command,
+  // ListObjectsV2Command,
   type PutObjectCommandInput,
   S3Client,
   type Tag,
@@ -116,7 +116,7 @@ export const head = async (bucket: string, key: string) => {
   }
 };
 
-export const copy = async (srcBucket: string, src: string, dstBucket: string, dst: string) => {
+const copy = async (srcBucket: string, src: string, dstBucket: string, dst: string) => {
   const headObject = await head(srcBucket, src);
   if (!headObject) {
     throw new Error(`Source object ${srcBucket}:${src} does not exist`);
@@ -161,6 +161,9 @@ export const move = async (srcBucket: string, src: string, dstBucket: string, ds
   await destroy(srcBucket, src);
 };
 
+export const getPath = (filename: string) =>
+  filename.startsWith('/') ? filename : `/mnt/efs/${process.env.SFN_ID}/${filename}`;
+
 export const upload = async (
   filename: string,
   dstBucket: string,
@@ -168,7 +171,8 @@ export const upload = async (
   mimetype: string,
   archiveTag = false,
 ) => {
-  const readStream = createReadStream(`/mnt/efs/${process.env.SFN_ID}/${filename}`);
+  const path = getPath(filename);
+  const readStream = createReadStream(path);
 
   const params: PutObjectCommandInput = {
     Bucket: dstBucket,
@@ -200,7 +204,7 @@ export const download = async (srcBucket: string, src: string, filename: string,
   const getCommand = new GetObjectCommand(params);
   const { Body } = await s3.send(getCommand);
 
-  const path = filename.startsWith('/') ? filename : `/mnt/efs/${process.env.SFN_ID}/${filename}`;
+  const path = getPath(filename);
 
   const writeStream = createWriteStream(path);
 
@@ -212,13 +216,13 @@ export const download = async (srcBucket: string, src: string, filename: string,
   });
 };
 
-export const list = async (bucketName: string, prefix: string) => {
-  const listCommand = new ListObjectsV2Command({
-    Bucket: bucketName,
-    Prefix: prefix,
-  });
-
-  const response = await s3.send(listCommand);
-
-  return response.Contents || [];
-};
+// export const list = async (bucketName: string, prefix: string) => {
+//   const listCommand = new ListObjectsV2Command({
+//     Bucket: bucketName,
+//     Prefix: prefix,
+//   });
+//
+//   const response = await s3.send(listCommand);
+//
+//   return response.Contents || [];
+// };

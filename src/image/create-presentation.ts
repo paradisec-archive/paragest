@@ -2,7 +2,7 @@ import '../lib/sentry-node.js';
 
 import { processBatch } from '../lib/batch.js';
 import { execute } from '../lib/command.js';
-import { download, upload } from '../lib/s3.js';
+import { download, getPath } from '../lib/s3.js';
 
 type Event = {
   notes: string[];
@@ -29,16 +29,12 @@ export const handler = async (event: Event) => {
 
   await download(bucketName, objectKey, 'input');
 
-  execute('convert input -quality 85 output.jpg', event);
+  const src = getPath('input');
+  const dst = getPath(`output/${filename.replace(new RegExp(`.${extension}$`), '.jpg')}`);
 
-  await upload(
-    'output.jpg',
-    bucketName,
-    `output/${filename}/${filename.replace(new RegExp(`.${extension}$`), '.jpg')}`,
-    'image/jpeg',
-  );
+  execute(`convert '${src}' -quality 85 '${dst}'`, event);
 
-  notes.push('createPresentation: Created MP4 file');
+  notes.push('create-presentation: Created JPG');
 
   return event;
 };

@@ -3,7 +3,7 @@ import '../lib/sentry-node.js';
 import { processBatch } from '../lib/batch.js';
 import { execute } from '../lib/command.js';
 import { StepError } from '../lib/errors.js';
-import { download, upload } from '../lib/s3.js';
+import { getPath } from '../lib/s3.js';
 
 type Event = {
   notes: string[];
@@ -51,26 +51,19 @@ const checkSilence = (stats: string, event: Event) => {
 
 export const handler = async (event: Event) => {
   console.debug('Event: ', JSON.stringify(event, null, 2));
-  const {
-    notes,
-    details: { filename, extension },
-    bucketName,
-  } = event;
+  const { notes } = event;
 
-  await download(
-    bucketName,
-    `output/${filename}/${filename.replace(new RegExp(`.${extension}$`), '.wav')}`,
-    'input.wav',
-  );
+  const src = getPath('converted.wav');
+  const dst = getPath('unsilenced.wav');
 
   const left = execute(
-    'ffmpeg -y -i input.wav -filter_complex "[0:a]pan=mono|c0=c0,volumedetect" -f null /dev/null 2>&1 | grep volumedetect_ | sed "s/^.*] //"',
+    `ffmpeg -y -i '${src}' -filter_complex "[0:a]pan=mono|c0=c0,volumedetect" -f null /dev/null 2>&1 | grep volumedetect_ | sed "s/^.*] //"`,
     event,
   );
   const leftSilent = checkSilence(left.toString(), event);
 
   const right = execute(
-    'ffmpeg -y -i input.wav -filter_complex "[0:a]pan=mono|c0=c1,volumedetect" -f null /dev/null 2>&1 | grep volumedetect_ | sed "s/^.*] //"',
+    `ffmpeg -y -i '${src}' -filter_complex "[0:a]pan=mono|c0=c1,volumedetect" -f null /dev/null 2>&1 | grep volumedetect_ | sed "s/^.*] //"`,
     event,
   );
   const rightSilent = checkSilence(right.toString(), event);
@@ -83,6 +76,8 @@ export const handler = async (event: Event) => {
     notes.push('fixSilence: Neither channel is silent');
     console.debug('Both channels have audio, not doing anything');
 
+    execute(`cp '${src}' '${dst}'`, event);
+
     return event;
   }
 
@@ -92,15 +87,8 @@ export const handler = async (event: Event) => {
 
   const filter = leftSilent ? 'c0=c1|c1=c1' : 'c0=c0|c1=c0';
   execute(
-    `ffmpeg -y -i input.wav -filter_complex "pan=stereo|${filter}" -ac 2 -ar 96000 -c:a pcm_s24le -rf64 auto output.wav`,
+    `ffmpeg -y -i '${src}' -filter_complex "pan=stereo|${filter}" -ac 2 -ar 96000 -c:a pcm_s24le -rf64 auto '${dst}'`,
     event,
-  );
-
-  await upload(
-    'output.wav',
-    bucketName,
-    `output/${filename}/${filename.replace(new RegExp(`.${extension}$`), '.wav')}`,
-    'audio/wav',
   );
 
   return event;

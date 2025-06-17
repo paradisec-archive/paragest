@@ -5,7 +5,7 @@ import '../lib/sentry-node.js';
 import { processBatch } from '../lib/batch.js';
 import { execute } from '../lib/command.js';
 import { StepError } from '../lib/errors.js';
-import { download, upload } from '../lib/s3.js';
+import { getPath } from '../lib/s3.js';
 import { getItemId3 } from '../models/item.js';
 
 type Event = {
@@ -27,7 +27,6 @@ export const handler = async (event: Event) => {
   const {
     notes,
     details: { collectionIdentifier, itemIdentifier, filename, extension },
-    bucketName,
     objectKey,
   } = event;
 
@@ -37,25 +36,15 @@ export const handler = async (event: Event) => {
   }
   writeFileSync('/tmp/id3.txt', txt);
 
-  await download(
-    bucketName,
-    `output/${filename}/${filename.replace(new RegExp(`.${extension}$`), '.wav')}`,
-    'input.wav',
-  );
+  const src = getPath('volume-maxed.wav');
+  const dst = getPath(`output/${filename.replace(new RegExp(`.${extension}$`), '.mp3')}`);
 
   // NOTE: we convert to MP3 and also set max volume to 0dB
   // We assume we are already at -6dB from previous step in pipeline
   // Due to lossy nature we don't get exactly 0dB
   execute(
-    'ffmpeg -y -i input.wav -i /tmp/id3.txt -map_metadata 1 -write_id3v2 1 -filter:a "volume=6dB" -codec:a libmp3lame -ar 44100 -b:a 128k output.mp3',
+    `ffmpeg -y -i '${src}' -i /tmp/id3.txt -map_metadata 1 -write_id3v2 1 -filter:a "volume=6dB" -codec:a libmp3lame -ar 44100 -b:a 128k '${dst}'`,
     event,
-  );
-
-  await upload(
-    'output.mp3',
-    bucketName,
-    `output/${filename}/${filename.replace(new RegExp(`.${extension}$`), '.mp3')}`,
-    'audio/mpeg',
   );
 
   notes.push('createPresentation: Created MP3 file');
