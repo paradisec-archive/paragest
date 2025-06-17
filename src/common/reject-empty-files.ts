@@ -2,9 +2,9 @@ import type { Handler } from 'aws-lambda';
 
 import * as Sentry from '@sentry/aws-serverless';
 
-import './lib/sentry.js';
+import '../lib/sentry.js';
 
-import { StepError } from './lib/errors.js';
+import { StepError } from '../lib/errors.js';
 
 type Event = {
   objectKey: string;
@@ -36,5 +36,9 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
     return event;
   }
 
-  throw new StepError(`File ${objectKey} is empty and not in allowed extensions [${ALLOWED_ZERO_SIZE_EXTENSIONS.join(',')}]`, event, { objectKey });
+  throw new StepError(
+    `File ${objectKey} is empty and not in allowed extensions [${ALLOWED_ZERO_SIZE_EXTENSIONS.join(',')}]`,
+    event,
+    { objectKey },
+  );
 });

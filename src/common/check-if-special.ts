@@ -2,10 +2,10 @@ import type { Handler } from 'aws-lambda';
 
 import * as Sentry from '@sentry/aws-serverless';
 
-import './lib/sentry.js';
+import '../lib/sentry.js';
 
-import { StepError } from './lib/errors.js';
-import { getCollection } from './models/collection.js';
+import { StepError } from '../lib/errors.js';
+import { getCollection } from '../models/collection.js';
 
 type Event = {
   bucketName: string;
