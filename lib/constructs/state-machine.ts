@@ -106,7 +106,7 @@ export class StateMachine extends Construct {
       lambdaProps: { memorySize: 10240, timeout: cdk.Duration.minutes(5) },
     });
 
-    const detectAndValidateMediaStep = new LambdaStep(this, 'detectAndValidateMedia', {
+    const detectAndValidateMediaStep = new LambdaStep(this, 'DetectAndValidateMedia', {
       shared,
       src: 'common/detect-and-validate-media.ts',
       grantFunc: (role) => {
@@ -263,26 +263,6 @@ export class StateMachine extends Construct {
       },
     });
 
-    const damsmartDetectAndValidateMediaBigStep = new LambdaStep(this, 'damsmartDetectAndValidateMediaBig', {
-      shared,
-      src: 'detect-and-validate-media.ts',
-      grantFunc: (role) => {
-        ingestBucket.grantRead(role);
-      },
-      lambdaProps: { memorySize: 10240, timeout: cdk.Duration.minutes(15) },
-      nodeModules: ['@npcz/magic'],
-    });
-
-    const damsmartDetectAndValidateMediaSmallStep = new LambdaStep(this, 'damsmartDetectAndValidateMediaSmall', {
-      shared,
-      src: 'detect-and-validate-media.ts',
-      grantFunc: (role) => {
-        ingestBucket.grantRead(role);
-      },
-      lambdaProps: { memorySize: 10240, timeout: cdk.Duration.minutes(15) },
-      nodeModules: ['@npcz/magic'],
-    });
-
     const damsmartCreateOtherArchivalBigStep = new LambdaStep(this, 'DamsmartCreateOtherArchivalBig', {
       shared,
       src: 'other/create-archival.ts',
@@ -325,11 +305,8 @@ export class StateMachine extends Construct {
       },
     });
 
-    const bigFileFlow = sfn.Chain.start(damsmartDetectAndValidateMediaBigStep.task)
-      .next(damsmartCreateOtherArchivalBigStep.task)
-      .next(addToCatalogBigStep.task);
+    const bigFileFlow = sfn.Chain.start(damsmartCreateOtherArchivalBigStep.task).next(addToCatalogBigStep.task);
     const smallFileFlow = sfn.Chain.start(prepareOtherFileEventStep.task)
-      .next(damsmartDetectAndValidateMediaSmallStep.task)
       .next(damsmartCreateOtherArchivalSmallStep.task)
       .next(addToCatalogSmallStep.task);
 

@@ -7,8 +7,8 @@ import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 
 import * as batch from 'aws-cdk-lib/aws-batch';
-import * as ecs from 'aws-cdk-lib/aws-ecs';
 import * as ecrAssets from 'aws-cdk-lib/aws-ecr-assets';
+import * as ecs from 'aws-cdk-lib/aws-ecs';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as nodejs from 'aws-cdk-lib/aws-lambda-nodejs';
@@ -16,6 +16,7 @@ import * as sfn from 'aws-cdk-lib/aws-stepfunctions';
 import * as tasks from 'aws-cdk-lib/aws-stepfunctions-tasks';
 
 import type * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
+import type * as ec2 from 'aws-cdk-lib/aws-ec2';
 import type * as efs from 'aws-cdk-lib/aws-efs';
 import type { IRole } from 'aws-cdk-lib/aws-iam';
 
@@ -25,6 +26,8 @@ export type SharedProps = {
   volume: batch.EfsVolume;
   jobQueue: batch.JobQueue;
   accessPoint: efs.AccessPoint;
+  vpc: ec2.IVpc;
+  subnets: ec2.ISubnet[];
 };
 
 type LambdaStepProps = {
@@ -100,6 +103,8 @@ export class LambdaStep extends Construct {
     const funcProps = genLambdaProps(props);
     this.func = new nodejs.NodejsFunction(this, `${id}StepLambda`, {
       ...funcProps,
+      vpc: props.shared.vpc,
+      vpcSubnets: { subnets: props.shared.subnets },
       filesystem: lambda.FileSystem.fromEfsAccessPoint(props.shared.accessPoint, '/mnt/efs'),
     });
     grantFunc?.(this.func);

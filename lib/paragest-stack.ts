@@ -139,6 +139,8 @@ export class ParagestStack extends cdk.Stack {
       accessPoint,
       jobQueue,
       concurrencyTable,
+      vpc,
+      subnets: dataSubnets,
     };
 
     const stateMachine = new StateMachine(this, 'ParagestStateMachine', {
