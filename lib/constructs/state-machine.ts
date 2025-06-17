@@ -85,7 +85,7 @@ export class StateMachine extends Construct {
     // /////////////////////////////
     const addToCatalogStep = new FargateStep(this, 'AddToCatalog', {
       shared,
-      src: 'add-to-catalog.ts',
+      src: 'common/add-to-catalog.ts',
       grantFunc: (role) => {
         ingestBucket.grantRead(role);
         ingestBucket.grantDelete(role);
@@ -295,7 +295,7 @@ export class StateMachine extends Construct {
 
     const addToCatalogSmallStep = new FargateStep(this, 'AddToCatalogSmall', {
       shared,
-      src: 'add-to-catalog.ts',
+      src: 'common/add-to-catalog.ts',
       grantFunc: (role) => {
         ingestBucket.grantRead(role);
         ingestBucket.grantDelete(role);
