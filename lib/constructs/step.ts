@@ -18,7 +18,7 @@ import * as tasks from 'aws-cdk-lib/aws-stepfunctions-tasks';
 import type * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import type { IRole } from 'aws-cdk-lib/aws-iam';
 
-type SharedProps = {
+export type SharedProps = {
   env: string;
   concurrencyTable: dynamodb.TableV2;
   volume: batch.EfsVolume;
@@ -128,7 +128,7 @@ export class FargateStep extends Construct {
 
     const image = new ecrAssets.DockerImageAsset(this, `${id}StepDockerImage`, {
       directory: path.join(__dirname, '..'),
-      file: 'docker/fargate/Dockerfile',
+      file: '../docker/fargate/Dockerfile',
       buildArgs: {
         SOURCE_FILE: entry,
       },
