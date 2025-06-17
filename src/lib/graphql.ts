@@ -53,7 +53,6 @@ const getAccessToken = async (credentials: OAuthSecret): Promise<string> => {
 
     return tokenData.access_token;
   } catch (error) {
-  } catch (error) {
     const err = error as Error;
     console.log(error);
     throw new Error(`Failed to fetch access token: ${err.message}`);
