@@ -29,7 +29,6 @@ const increment = async () => {
       pk: { S: CONCURRENCY_KEY },
     },
     UpdateExpression: 'SET #count = if_not_exists(#count, :zero) + :inc',
-    ConditionExpression: 'if_not_exists(#count, :zero) < :limit',
     ExpressionAttributeNames: {
       '#count': CURRENT_COUNT_ATTRIBUTE,
     },
