@@ -70,8 +70,11 @@ export class ParagestStack extends cdk.Stack {
       lambdaProps?: nodejs.NodejsFunctionProps & { nodeModules?: string[] };
       grantFunc?: (lamdaFunc: nodejs.NodejsFunction) => void; // eslint-disable-line no-unused-vars
     };
-    const paragestStep = (stepId: string, entry: string, { lambdaProps, grantFunc }: paragestStepOpts = {}) => {
+    const paragestStep = (stepId: string, src: string, { lambdaProps, grantFunc }: paragestStepOpts = {}) => {
       const { nodeModules, ...lambdaPropsRest } = lambdaProps ?? {};
+
+      const entry = path.join('src', src);
+
       const lambdaFunction = new nodejs.NodejsFunction(this, `${stepId}Lambda`, {
         ...lambdaCommon,
         ...lambdaPropsRest,
@@ -273,7 +276,7 @@ export class ParagestStack extends cdk.Stack {
     const successState = new sfn.Succeed(this, 'SuccessState');
     const failureState = new sfn.Fail(this, 'FailureState');
 
-    const processFailureStep = paragestStep('ProcessFailure', 'src/process-failure.ts', {
+    const processFailureStep = paragestStep('ProcessFailure', 'process-failure.ts', {
       grantFunc: (lambdaFunc) => {
         lambdaFunc.addToRolePolicy(
           new iam.PolicyStatement({
@@ -286,7 +289,7 @@ export class ParagestStack extends cdk.Stack {
       },
     });
 
-    const processSuccessStep = paragestStep('ProcessSuccess', 'src/process-success.ts', {
+    const processSuccessStep = paragestStep('ProcessSuccess', 'process-success.ts', {
       grantFunc: (lambdaFunc) => {
         lambdaFunc.addToRolePolicy(
           new iam.PolicyStatement({
@@ -299,20 +302,17 @@ export class ParagestStack extends cdk.Stack {
       },
     });
 
-    const rejectEmptyFilesStep = paragestStep('RejectEmptyFiles', 'src/reject-empty-files.ts');
-    const checkItemIdentifierLengthStep = paragestStep(
-      'CheckItemIdentifierLength',
-      'src/check-item-identifier-length.ts',
-    );
-    const checkCatalogForItemStep = paragestStep('CheckCatalogForItem', 'src/check-catalog-for-item.ts', {
+    const rejectEmptyFilesStep = paragestStep('RejectEmptyFiles', 'common/reject-empty-files.ts');
+    const checkItemIdentifierLengthStep = paragestStep('CheckItemIdentifierLength', 'check-item-identifier-length.ts');
+    const checkCatalogForItemStep = paragestStep('CheckCatalogForItem', 'check-catalog-for-item.ts', {
       grantFunc: (role) => nabuOauthSecret.grantRead(role),
     });
 
-    const checkIfSpecialStep = paragestStep('CheckIfSpecial', 'src/check-if-special.ts', {
+    const checkIfSpecialStep = paragestStep('CheckIfSpecial', 'check-if-special.ts', {
       grantFunc: (role) => nabuOauthSecret.grantRead(role),
     });
 
-    const checkIsDAMSmartStep = paragestStep('CheckIfDAMSmart', 'src/check-if-damsmart.ts', {
+    const checkIsDAMSmartStep = paragestStep('CheckIfDAMSmart', 'check-if-damsmart.ts', {
       grantFunc: (role) => nabuOauthSecret.grantRead(role),
     });
 
@@ -331,14 +331,14 @@ export class ParagestStack extends cdk.Stack {
 
     const addToCatalogFlow = sfn.Chain.start(addToCatalogStep).next(processSuccessStep);
 
-    const detectAndValidateMediaStep = paragestStep('detectAndValidateMedia', 'src/detect-and-validate-media.ts', {
+    const detectAndValidateMediaStep = paragestStep('detectAndValidateMedia', 'detect-and-validate-media.ts', {
       grantFunc: (role) => {
         ingestBucket.grantRead(role);
       },
       lambdaProps: { nodeModules: ['@npcz/magic'], memorySize: 10240, timeout: cdk.Duration.minutes(15) },
     });
 
-    const checkMetadataReadyStep = paragestStep('CheckMetadataReady', 'src/check-metadata-ready.ts', {
+    const checkMetadataReadyStep = paragestStep('CheckMetadataReady', 'check-metadata-ready.ts', {
       grantFunc: (role) => {
         nabuOauthSecret.grantRead(role);
       },
@@ -428,14 +428,14 @@ export class ParagestStack extends cdk.Stack {
     // /////////////////////////////
     // Other Flow Steps
     // /////////////////////////////
-    const createOtherArchivalStep = paragestStep('CreateOtherArchival', 'src/other/create-archival.ts', {
+    const createOtherArchivalStep = paragestStep('CreateOtherArchival', 'other/create-archival.ts', {
       grantFunc: (role) => {
         ingestBucket.grantReadWrite(role);
         nabuOauthSecret.grantRead(role);
       },
     });
 
-    const handleSpecialStep = paragestStep('HandleSpecial', 'src/handle-special.ts', {
+    const handleSpecialStep = paragestStep('HandleSpecial', 'handle-special.ts', {
       grantFunc: (role) => {
         ingestBucket.grantReadWrite(role);
         ingestBucket.grantDelete(role);
@@ -452,30 +452,22 @@ export class ParagestStack extends cdk.Stack {
 
     // TODO: The below is all super messy refactor it one day
 
-    const checkForOtherDAMSmartFile = paragestStep(
-      'CheckForOtherDAMSmartFile',
-      'src/damsmart/check-for-other-file.ts',
-      {
-        grantFunc: (role) => {
-          ingestBucket.grantReadWrite(role);
-          nabuOauthSecret.grantRead(role);
-        },
+    const checkForOtherDAMSmartFile = paragestStep('CheckForOtherDAMSmartFile', 'damsmart/check-for-other-file.ts', {
+      grantFunc: (role) => {
+        ingestBucket.grantReadWrite(role);
+        nabuOauthSecret.grantRead(role);
       },
-    );
+    });
 
-    const prepareOtherFileEventStep = paragestStep(
-      'PrepareOtherFileEvent',
-      'src/damsmart/prepare-other-file-event.ts',
-      {
-        grantFunc: (role) => {
-          ingestBucket.grantRead(role);
-        },
+    const prepareOtherFileEventStep = paragestStep('PrepareOtherFileEvent', 'damsmart/prepare-other-file-event.ts', {
+      grantFunc: (role) => {
+        ingestBucket.grantRead(role);
       },
-    );
+    });
 
     const damsmartDetectAndValidateMediaBigStep = paragestStep(
       'damsmartDetectAndValidateMediaBig',
-      'src/detect-and-validate-media.ts',
+      'detect-and-validate-media.ts',
       {
         grantFunc: (role) => {
           ingestBucket.grantRead(role);
@@ -486,7 +478,7 @@ export class ParagestStack extends cdk.Stack {
 
     const damsmartDetectAndValidateMediaSmallStep = paragestStep(
       'damsmartDetectAndValidateMediaSmall',
-      'src/detect-and-validate-media.ts',
+      'detect-and-validate-media.ts',
       {
         grantFunc: (role) => {
           ingestBucket.grantRead(role);
@@ -497,7 +489,7 @@ export class ParagestStack extends cdk.Stack {
 
     const damsmartCreateOtherArchivalBigStep = paragestStep(
       'DamsmartCreateOtherArchivalBig',
-      'src/other/create-archival.ts',
+      'other/create-archival.ts',
       {
         grantFunc: (role) => {
           ingestBucket.grantReadWrite(role);
@@ -508,7 +500,7 @@ export class ParagestStack extends cdk.Stack {
 
     const damsmartCreateOtherArchivalSmallStep = paragestStep(
       'DamsmartCreateOtherArchivalSmall',
-      'src/other/create-archival.ts',
+      'other/create-archival.ts',
       {
         grantFunc: (role) => {
           ingestBucket.grantReadWrite(role);
@@ -641,12 +633,12 @@ export class ParagestStack extends cdk.Stack {
     });
 
     const processS3Event = new nodejs.NodejsFunction(this, 'ProcessS3EventLambda', {
-      entry: 'src/process-s3-event.ts',
+      entry: 'process-s3-event.ts',
       ...lambdaCommon,
       bundling: {
         ...lambdaCommon.bundling,
         define: {
-          'process.env.SENTRY_RELEASE': JSON.stringify(getGitSha('src/process-s3-event.ts')),
+          'process.env.SENTRY_RELEASE': JSON.stringify(getGitSha('process-s3-event.ts')),
         },
       },
       environment: {
