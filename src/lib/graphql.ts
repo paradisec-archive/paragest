@@ -13,15 +13,56 @@ if (!process.env.PARAGEST_ENV) {
   throw new Error('PARAGEST_ENV is not set');
 }
 const apiUrl = `https://${process.env.NABU_DNS_NAME}`;
-console.log('🪚 🟩');
-console.log('🪚 apiUrl:', JSON.stringify(apiUrl, null, 2));
 
 const tlsHostname =
   process.env.PARAGEST_ENV === 'prod' ? 'catalog.nabu-prod.paradisec.org.au' : 'catalog.nabu-stage.paradisec.org.au';
 
-const agent = new https.Agent({
-  servername: tlsHostname,
-});
+const customFetch: typeof fetch = (url, options = {}) => {
+  return new Promise((resolve, reject) => {
+    const parsedUrl = new URL(url);
+
+    const requestOptions: https.RequestOptions = {
+      hostname: parsedUrl.hostname,
+      port: parsedUrl.port,
+      path: parsedUrl.pathname + parsedUrl.search,
+      method: options.method || 'GET',
+      headers: options.headers as https.RequestOptions['headers'],
+    };
+
+    const req = https.request(requestOptions, (res) => {
+      let data = '';
+
+      res.on('data', (chunk) => {
+        data += chunk;
+      });
+
+      res.on('end', () => {
+        const response = {
+          status: res.statusCode,
+          statusText: res.statusMessage,
+          headers: res.headers,
+          ok: res.statusCode && res.statusCode >= 200 && res.statusCode < 300,
+          text: () => Promise.resolve(data),
+          json: () => Promise.resolve(JSON.parse(data)),
+          blob: () => Promise.resolve(Buffer.from(data)),
+          arrayBuffer: () => Promise.resolve(Buffer.from(data).buffer),
+        };
+        resolve(response as unknown as Awaited<ReturnType<typeof fetch>>);
+      });
+    });
+
+    req.on('error', (error) => {
+      reject(error);
+    });
+
+    // Handle request body if provided
+    if (options.body) {
+      req.write(options.body);
+    }
+
+    req.end();
+  });
+};
 
 const getAccessToken = async (credentials: OAuthSecret): Promise<string> => {
   console.log('🪚 🔵 GA');
@@ -35,7 +76,7 @@ const getAccessToken = async (credentials: OAuthSecret): Promise<string> => {
 
   try {
     console.log('🪚 ⭕');
-    const tokenResponse = await fetch(tokenUrl, {
+    const tokenResponse = await customFetch(tokenUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -71,6 +112,7 @@ export const getGraphQLClient = async () => {
     fetchOptions: () => ({
       headers: { authorization: `Bearer ${accessToken}`, host: tlsHostname },
     }),
+    fetch: customFetch,
   });
 
   return client;
