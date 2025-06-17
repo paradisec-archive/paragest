@@ -59,14 +59,15 @@ const commonEnv = (src: string, shared: SharedProps) => ({
 export const genLambdaProps = (
   props: Pick<LambdaProps, 'src' | 'shared' | 'lambdaProps' | 'nodeModules'>,
 ): nodejs.NodejsFunctionProps => {
-  const { src, lambdaProps = { environment: {} }, nodeModules, shared } = props;
+  const { src, nodeModules, shared } = props;
+  const { environment = {}, ...lambdaProps } = props.lambdaProps ?? {};
 
   const entry = path.join('src', src);
 
   return {
     environment: {
       ...commonEnv(src, shared),
-      ...lambdaProps.environment,
+      ...environment,
     },
     runtime: lambda.Runtime.NODEJS_22_X,
     memorySize: 2048,
