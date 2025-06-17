@@ -14,7 +14,7 @@ RUN corepack enable && \
 COPY src/ /function/src/
 
 RUN ./node_modules/.bin/esbuild \
-  --bundle src/${SOURCE_FILE} \
+  --bundle ${SOURCE_FILE} \
   --target=esnext \
   --platform=node \
   --format=esm \
