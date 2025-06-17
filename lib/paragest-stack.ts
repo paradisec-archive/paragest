@@ -4,7 +4,6 @@ import type { Construct } from 'constructs';
 import * as batch from 'aws-cdk-lib/aws-batch';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
-import * as elbv2 from 'aws-cdk-lib/aws-elasticloadbalancingv2';
 import * as efs from 'aws-cdk-lib/aws-efs';
 import * as eventsources from 'aws-cdk-lib/aws-lambda-event-sources';
 import * as nodejs from 'aws-cdk-lib/aws-lambda-nodejs';
@@ -82,6 +81,15 @@ export class ParagestStack extends cdk.Stack {
 
     new ec2.InterfaceVpcEndpoint(this, 'SecretsManagerEndpoint', {
       service: ec2.InterfaceVpcEndpointAwsService.SECRETS_MANAGER,
+      vpc,
+      subnets: {
+        subnets,
+      },
+      privateDnsEnabled: true,
+    });
+
+    new ec2.InterfaceVpcEndpoint(this, 'DynamoDbEndpoint', {
+      service: ec2.InterfaceVpcEndpointAwsService.DYNAMODB,
       vpc,
       subnets: {
         subnets,
