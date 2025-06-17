@@ -94,6 +94,7 @@ export class ParagestStack extends cdk.Stack {
       subnets: {
         subnets,
       },
+      privateDnsEnabled: false,
     });
     const dynamodbDnsName = cdk.Fn.select(
       1,
