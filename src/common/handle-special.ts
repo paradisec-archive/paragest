@@ -4,10 +4,10 @@ import * as Sentry from '@sentry/aws-serverless';
 
 import type { Handler } from 'aws-lambda';
 
-import './lib/sentry.js';
-import { StepError } from './lib/errors.js';
-import { download, getPath, upload } from './lib/s3.js';
-import { setHasDepositForm } from './models/collection.js';
+import '../lib/sentry.js';
+import { StepError } from '../lib/errors.js';
+import { download, getPath, upload } from '../lib/s3.js';
+import { setHasDepositForm } from '../models/collection.js';
 
 if (!process.env.PARAGEST_ENV) {
   throw new Error('PARAGEST_ENV not set');
@@ -29,6 +29,7 @@ type Event = {
 
 export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
   console.debug('Event: ', JSON.stringify(event, null, 2));
+
   const {
     notes,
     bucketName,

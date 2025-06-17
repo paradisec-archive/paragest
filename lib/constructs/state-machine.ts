@@ -229,7 +229,7 @@ export class StateMachine extends Construct {
 
     const handleSpecialStep = new LambdaStep(this, 'HandleSpecial', {
       shared,
-      src: 'handle-special.ts',
+      src: 'common/handle-special.ts',
       grantFunc: (role) => {
         ingestBucket.grantReadWrite(role);
         ingestBucket.grantDelete(role);
