@@ -71,14 +71,23 @@ export class ParagestStack extends cdk.Stack {
 
     const nabuServiceName = ssm.StringParameter.valueFromLookup(this, '/nabu/resources/nlb-endpoint/service-name');
     const nabuVpcEndpoint = new ec2.InterfaceVpcEndpoint(this, 'NabuNLBInterfaceEndpoint', {
-      vpc,
       service: new ec2.InterfaceVpcEndpointService(nabuServiceName, 443),
+      vpc,
       subnets: {
         subnets,
       },
       open: true,
     });
     const nabuDnsName = cdk.Fn.select(0, nabuVpcEndpoint.vpcEndpointDnsEntries);
+
+    new ec2.InterfaceVpcEndpoint(stack, 'SecretsManagerEndpoint', {
+      service: ec2.InterfaceVpcEndpointAwsService.SECRETS_MANAGER,
+      vpc,
+      subnets: {
+        subnets,
+      },
+      privateDnsEnabled: true,
+    });
 
     // /////////////////////////////
     // Filesystem
