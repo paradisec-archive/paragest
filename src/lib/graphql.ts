@@ -61,6 +61,7 @@ const getAccessToken = async (credentials: OAuthSecret): Promise<string> => {
 };
 
 export const getGraphQLClient = async () => {
+  console.log('🪚 💜');
   const oauthCredentials = await getSecret<OAuthSecret>('/paragest/nabu/oauth');
 
   const accessToken = await getAccessToken(oauthCredentials);

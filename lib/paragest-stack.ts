@@ -80,7 +80,7 @@ export class ParagestStack extends cdk.Stack {
     });
     const nabuDnsName = cdk.Fn.select(0, nabuVpcEndpoint.vpcEndpointDnsEntries);
 
-    new ec2.InterfaceVpcEndpoint(stack, 'SecretsManagerEndpoint', {
+    new ec2.InterfaceVpcEndpoint(this, 'SecretsManagerEndpoint', {
       service: ec2.InterfaceVpcEndpointAwsService.SECRETS_MANAGER,
       vpc,
       subnets: {
