@@ -16,7 +16,6 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
   console.debug('Event:', JSON.stringify(event, null, 2));
   const { objectKey } = event;
 
-  console.log('🪚 ⭐ MOO');
   const md = objectKey.match(/^(?:incoming|damsmart)\/([A-Za-z0-9][a-zA-Z0-9_]+)-deposit\.pdf$/);
   if (!md) {
     return {
@@ -25,16 +24,13 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
     };
   }
 
-  console.log('🪚 🔵');
   const [, collectionIdentifier] = md;
   if (!collectionIdentifier) {
     throw new StepError(`Object key ${objectKey} does not match expected pattern`, event, { objectKey });
   }
 
-  console.log('🪚 💜');
   const filename = `${collectionIdentifier}-deposit.pdf`;
   const collection = await getCollection(collectionIdentifier);
-  console.log('🪚 🟩');
 
   if (!collection) {
     throw new StepError(
@@ -43,7 +39,6 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
       { objectKey },
     );
   }
-  console.log('🪚 🔲');
 
   const details = {
     collectionIdentifier,

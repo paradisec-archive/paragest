@@ -28,14 +28,15 @@ const increment = async () => {
     Key: {
       pk: { S: CONCURRENCY_KEY },
     },
-    UpdateExpression: 'ADD #count :inc',
-    ConditionExpression: '#count < :limit',
+    UpdateExpression: 'SET #count = if_not_exists(#count, :zero) + :inc',
+    ConditionExpression: 'if_not_exists(#count, :zero) < :limit',
     ExpressionAttributeNames: {
       '#count': CURRENT_COUNT_ATTRIBUTE,
     },
     ExpressionAttributeValues: {
       ':inc': { N: '1' },
       ':limit': { N: CONCURRENCY_LIMIT.toString() },
+      ':zero': { N: '0' },
     },
     ReturnValues: 'UPDATED_NEW',
   };
@@ -50,11 +51,13 @@ const decrement = async () => {
       pk: { S: CONCURRENCY_KEY },
     },
     UpdateExpression: 'ADD #count :dec',
+    ConditionExpression: '#count > :zero',
     ExpressionAttributeNames: {
       '#count': CURRENT_COUNT_ATTRIBUTE,
     },
     ExpressionAttributeValues: {
       ':dec': { N: '-1' },
+      ':zero': { N: '0' },
     },
     ReturnValues: 'UPDATED_NEW',
   };
@@ -77,7 +80,7 @@ type AnyFunction = (...args: any[]) => Promise<any>;
 export const throttle =
   <T extends AnyFunction>(func: T) =>
   async (...args: Parameters<T>): Promise<ReturnType<T>> => {
-    let retires = 0;
+    let retries = 0;
 
     while (true) {
       try {
@@ -91,16 +94,16 @@ export const throttle =
           throw err;
         }
 
-        if (retires >= MAX_RETRIES) {
+        if (retries >= MAX_RETRIES) {
           throw new Error('Too many retries');
         }
 
-        const delay = BASE_DELAY * 2 ** retires;
+        const delay = BASE_DELAY * 2 ** retries;
         const jitter = Math.random() * 100;
         console.log(`Retrying in ${delay + jitter}ms`);
         await sleep(delay + jitter);
 
-        retires += 1;
+        retries += 1;
       }
     }
 

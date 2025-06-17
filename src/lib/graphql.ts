@@ -65,7 +65,6 @@ const customFetch: typeof fetch = (url, options = {}) => {
 };
 
 const getAccessToken = async (credentials: OAuthSecret): Promise<string> => {
-  console.log('🪚 🔵 GA');
   const tokenUrl = `${apiUrl}/oauth/token`;
   const tokenRequestData = {
     grant_type: 'client_credentials',
@@ -75,7 +74,6 @@ const getAccessToken = async (credentials: OAuthSecret): Promise<string> => {
   };
 
   try {
-    console.log('🪚 ⭕');
     const tokenResponse = await customFetch(tokenUrl, {
       method: 'POST',
       headers: {
@@ -84,7 +82,6 @@ const getAccessToken = async (credentials: OAuthSecret): Promise<string> => {
       },
       body: JSON.stringify(tokenRequestData),
     });
-    console.log('🪚 ⭐');
 
     const tokenData = (await tokenResponse.json()) as { access_token: string };
 
@@ -101,7 +98,6 @@ const getAccessToken = async (credentials: OAuthSecret): Promise<string> => {
 };
 
 export const getGraphQLClient = async () => {
-  console.log('🪚 💜');
   const oauthCredentials = await getSecret<OAuthSecret>('/paragest/nabu/oauth');
 
   const accessToken = await getAccessToken(oauthCredentials);
