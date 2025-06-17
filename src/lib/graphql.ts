@@ -26,6 +26,7 @@ const agent = new https.Agent({
 });
 
 const getAccessToken = async (credentials: OAuthSecret): Promise<string> => {
+  console.log('🪚 🔵 GA');
   const tokenUrl = `${apiUrl}/oauth/token`;
   const tokenRequestData = {
     grant_type: 'client_credentials',
@@ -35,13 +36,16 @@ const getAccessToken = async (credentials: OAuthSecret): Promise<string> => {
   };
 
   try {
+    console.log('🪚 ⭕');
     const tokenResponse = await fetch(tokenUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        Host: tlsHostname,
       },
       body: JSON.stringify(tokenRequestData),
     });
+    console.log('🪚 ⭐');
 
     const tokenData = (await tokenResponse.json()) as { access_token: string };
 

@@ -16,7 +16,9 @@ export const getCollection = throttle(async (identifier: string) => {
     }
   `);
 
+  console.log('🪚 ⭐ GC');
   const response = await gqlClient.query(CollectionQuery, { identifier });
+  console.log('🪚 🔲 GC');
   console.debug('Response:', JSON.stringify(response, null, 2));
 
   return response.data?.collection;

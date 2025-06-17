@@ -76,6 +76,7 @@ export class ParagestStack extends cdk.Stack {
       subnets: {
         subnets,
       },
+      open: true,
     });
     const nabuDnsName = cdk.Fn.select(0, nabuVpcEndpoint.vpcEndpointDnsEntries);
 

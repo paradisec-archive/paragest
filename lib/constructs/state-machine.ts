@@ -72,6 +72,7 @@ export class StateMachine extends Construct {
     const checkIfSpecialStep = new LambdaStep(this, 'CheckIfSpecial', {
       shared,
       src: 'common/check-if-special.ts',
+      lambdaProps: { memorySize: 10240, timeout: cdk.Duration.minutes(5) },
       grantFunc: (role) => nabuOauthSecret.grantRead(role),
     });
 
