@@ -88,13 +88,17 @@ export class ParagestStack extends cdk.Stack {
       privateDnsEnabled: true,
     });
 
-    new ec2.InterfaceVpcEndpoint(this, 'DynamoDbEndpoint', {
+    const dynamodbVpcEndpoint = new ec2.InterfaceVpcEndpoint(this, 'DynamoDbEndpoint', {
       service: ec2.InterfaceVpcEndpointAwsService.DYNAMODB,
       vpc,
       subnets: {
         subnets,
       },
     });
+    const dynamodbDnsName = cdk.Fn.select(
+      1,
+      cdk.Fn.split(':', cdk.Fn.select(0, dynamodbVpcEndpoint.vpcEndpointDnsEntries)),
+    );
 
     // /////////////////////////////
     // Filesystem
@@ -170,6 +174,7 @@ export class ParagestStack extends cdk.Stack {
       vpc,
       subnets,
       nabuDnsName,
+      dynamodbDnsName,
     };
 
     const stateMachine = new StateMachine(this, 'ParagestStateMachine', {

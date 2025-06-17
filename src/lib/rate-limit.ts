@@ -4,12 +4,17 @@ const CONCURRENCY_KEY = 'pk';
 const CURRENT_COUNT_ATTRIBUTE = 'currentCount';
 const CONCURRENCY_LIMIT = 10;
 
+const DYNAMODB_ENDPOINT = process.env.DYNAMODB_ENDPOINT;
+if (!DYNAMODB_ENDPOINT) {
+  throw new Error('Missing env var: DYNAMODB_ENDPOINT');
+}
+
 const CONCURRENCY_TABLE = process.env.CONCURRENCY_TABLE_NAME;
 if (!CONCURRENCY_TABLE) {
   throw new Error('Missing env var: CONCURRENCY_TABLE');
 }
 
-const dbClient = new DynamoDBClient({ region: 'ap-southeast-2' });
+const dbClient = new DynamoDBClient({ region: 'ap-southeast-2', endpoint: `https://${DYNAMODB_ENDPOINT}` });
 
 // We use a DynamoDB conditional update:
 //   - ConditionExpression => #count < :limit

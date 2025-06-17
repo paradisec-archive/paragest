@@ -29,6 +29,7 @@ export type SharedProps = {
   vpc: ec2.IVpc;
   subnets: ec2.ISubnet[];
   nabuDnsName: string;
+  dynamodbDnsName: string;
 };
 
 type LambdaStepProps = {
@@ -54,6 +55,7 @@ const commonEnv = (src: string, shared: SharedProps) => ({
   SENTRY_RELEASE: JSON.stringify(getGitSha(src)),
   CONCURRENCY_TABLE_NAME: shared.concurrencyTable.tableName,
   NABU_DNS_NAME: shared.nabuDnsName,
+  DYNAMODB_ENDPOINT: shared.dynamodbDnsName,
 });
 
 export const genLambdaProps = (
