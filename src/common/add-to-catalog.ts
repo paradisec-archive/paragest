@@ -9,6 +9,7 @@ import { getPath, upload } from '../lib/s3.js';
 import { createEssence, getEssence, updateEssence } from '../models/essence.js';
 
 type Event = {
+  id: string;
   notes: string[];
   bucketName: string;
   objectKey: string;
@@ -65,6 +66,9 @@ const upsertEssence = async (
 
 export const handler = async (event: Event) => {
   console.debug('Event:', JSON.stringify(event, null, 2));
+
+  process.env.SFN_ID = event.id;
+
   const {
     notes,
     details: { collectionIdentifier, itemIdentifier },

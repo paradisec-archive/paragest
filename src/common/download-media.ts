@@ -8,6 +8,7 @@ import '../lib/sentry.js';
 import { download, getPath } from '../lib/s3.js';
 
 type Event = {
+  id: string;
   notes: string[];
   principalId: string;
   bucketName: string;
@@ -23,6 +24,8 @@ type Event = {
 
 export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
   console.debug('Event:', JSON.stringify(event, null, 2));
+
+  process.env.SFN_ID = event.id;
 
   const { notes, bucketName, objectKey } = event;
 

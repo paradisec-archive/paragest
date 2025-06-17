@@ -17,6 +17,7 @@ const env = process.env.PARAGEST_ENV;
 const destBucket = `nabu-catalog-${env}`;
 
 type Event = {
+  id: string;
   notes: string[];
   bucketName: string;
   objectKey: string;
@@ -29,6 +30,8 @@ type Event = {
 
 export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
   console.debug('Event: ', JSON.stringify(event, null, 2));
+
+  process.env.SFN_ID = event.id;
 
   const {
     notes,

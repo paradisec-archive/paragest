@@ -6,6 +6,7 @@ import { StepError } from '../lib/errors.js';
 import { getPath } from '../lib/s3.js';
 
 type Event = {
+  id: string;
   notes: string[];
   principalId: string;
   bucketName: string;
@@ -51,6 +52,9 @@ const checkSilence = (stats: string, event: Event) => {
 
 export const handler = async (event: Event) => {
   console.debug('Event: ', JSON.stringify(event, null, 2));
+
+  process.env.SFN_ID = event.id;
+
   const { notes } = event;
 
   const src = getPath('converted.wav');

@@ -7,6 +7,7 @@ import { execute } from '../lib/command.js';
 import { getPath } from '../lib/s3.js';
 
 type Event = {
+  id: string;
   notes: string[];
   details: {
     filename: string;
@@ -16,6 +17,9 @@ type Event = {
 
 export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
   console.debug('Event: ', JSON.stringify(event, null, 2));
+
+  process.env.SFN_ID = event.id;
+
   const {
     notes,
     details: { filename, extension },
