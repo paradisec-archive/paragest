@@ -37,6 +37,10 @@ const customFetch: typeof fetch = (url, options = {}) => {
       });
 
       res.on('end', () => {
+        console.log('🪚 💜');
+        console.log(`Response from ${url}: ${res.statusCode} ${res.statusMessage}`);
+        console.log(`Response headers: ${JSON.stringify(res.headers)}`);
+        console.log(`Response body: ${data}`);
         const response = {
           status: res.statusCode,
           statusText: res.statusMessage,
