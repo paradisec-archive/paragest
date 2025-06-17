@@ -1,33 +1,21 @@
-import * as path from 'node:path';
-import { execSync } from 'node:child_process';
-
 import * as cdk from 'aws-cdk-lib';
 import type { Construct } from 'constructs';
 
 import * as batch from 'aws-cdk-lib/aws-batch';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
-import * as ecs from 'aws-cdk-lib/aws-ecs';
-import * as ecrAssets from 'aws-cdk-lib/aws-ecr-assets';
 import * as efs from 'aws-cdk-lib/aws-efs';
 import * as eventsources from 'aws-cdk-lib/aws-lambda-event-sources';
 import * as iam from 'aws-cdk-lib/aws-iam';
-import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as nodejs from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import * as sfn from 'aws-cdk-lib/aws-stepfunctions';
 import * as ssm from 'aws-cdk-lib/aws-ssm';
-import * as tasks from 'aws-cdk-lib/aws-stepfunctions-tasks';
-import { SecretValue } from 'aws-cdk-lib';
-import type { IRole } from 'aws-cdk-lib/aws-iam';
+
+import { LambdaStep, FargateStep, genLambdaProps } from './constructs/step';
 
 // TODO: Be more specific on where functions can read and write
-
-function getGitSha(file: string) {
-  // We want the SHA to change only when the file or deps change
-  return execSync(`git log -1 --format=format:%h -- ${file} src/lib`).toString().trim();
-}
 
 export class ParagestStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -39,65 +27,6 @@ export class ParagestStack extends cdk.Stack {
       tableName: 'ConcurrencyTable',
       partitionKey: { name: 'pk', type: dynamodb.AttributeType.STRING },
     });
-
-    const lambdaCommon: nodejs.NodejsFunctionProps = {
-      environment: {
-        PARAGEST_ENV: env,
-        SENTRY_DSN: 'https://e36e8aa3d034861a3803d2edbd4773ff@o4504801902985216.ingest.sentry.io/4506375864254464',
-        NODE_OPTIONS: '--enable-source-maps',
-        CONCURRENCY_TABLE_NAME: concurrencyTable.tableName,
-      },
-      runtime: lambda.Runtime.NODEJS_22_X,
-      memorySize: 2048,
-      ephemeralStorageSize: cdk.Size.gibibytes(10),
-      timeout: cdk.Duration.seconds(120),
-      bundling: {
-        format: nodejs.OutputFormat.ESM,
-        target: 'esnext',
-        mainFields: ['module', 'main'],
-        // DIrty hack from https://github.com/evanw/esbuild/pull/2067
-        banner: "import { createRequire } from 'module';const require = createRequire(import.meta.url);",
-        loader: {
-          '.node': 'copy', // for sentry profiling library
-        },
-        sourceMap: true,
-        minify: true,
-      },
-    };
-
-    type paragestStepOpts = {
-      taskProps?: Partial<tasks.LambdaInvokeProps>;
-      lambdaProps?: nodejs.NodejsFunctionProps & { nodeModules?: string[] };
-      grantFunc?: (lamdaFunc: nodejs.NodejsFunction) => void; // eslint-disable-line no-unused-vars
-    };
-    const paragestStep = (stepId: string, src: string, { lambdaProps, grantFunc }: paragestStepOpts = {}) => {
-      const { nodeModules, ...lambdaPropsRest } = lambdaProps ?? {};
-
-      const entry = path.join('src', src);
-
-      const lambdaFunction = new nodejs.NodejsFunction(this, `${stepId}Lambda`, {
-        ...lambdaCommon,
-        ...lambdaPropsRest,
-        bundling: {
-          ...lambdaCommon.bundling,
-          nodeModules,
-          define: {
-            'process.env.SENTRY_RELEASE': JSON.stringify(getGitSha(entry)),
-          },
-        },
-        entry,
-      });
-      grantFunc?.(lambdaFunction);
-
-      concurrencyTable.grantReadWriteData(lambdaFunction);
-
-      const task = new tasks.LambdaInvoke(this, `${stepId}Task`, {
-        lambdaFunction,
-        outputPath: '$.Payload',
-      });
-
-      return task;
-    };
 
     const ingestBucket = new s3.Bucket(this, 'IngestBucket', {
       bucketName: `paragest-ingest-${env}`,
@@ -113,8 +42,8 @@ export class ParagestStack extends cdk.Stack {
       description: 'OAuth credentials for Nabu',
       secretName: '/paragest/nabu/oauth',
       secretObjectValue: {
-        clientId: SecretValue.unsafePlainText('FIXME'),
-        clientSecret: SecretValue.unsafePlainText('FIXME'),
+        clientId: cdk.SecretValue.unsafePlainText('FIXME'),
+        clientSecret: cdk.SecretValue.unsafePlainText('FIXME'),
       },
     });
 
@@ -183,6 +112,15 @@ export class ParagestStack extends cdk.Stack {
     });
     fileSystem.connections.allowDefaultPortFrom(batchEnv.securityGroups[0]);
 
+    const volume = batch.EcsVolume.efs({
+      name: 'efs',
+      fileSystem,
+      accessPointId: accessPoint.accessPointId,
+      containerPath: '/mnt/efs',
+      enableTransitEncryption: true,
+      useJobRole: true,
+    });
+
     const jobQueue = new batch.JobQueue(this, 'BatchQueue', {
       priority: 1,
       jobStateTimeLimitActions: [
@@ -196,87 +134,23 @@ export class ParagestStack extends cdk.Stack {
     });
     jobQueue.addComputeEnvironment(batchEnv, 1);
 
-    type ParagestFargateOpts = {
-      grantFunc?: (role: IRole) => void; // eslint-disable-line no-unused-vars
-      jobProps?: Partial<tasks.BatchSubmitJobProps>;
-    };
-    const paragestFargateStep = (stepId: string, source: string, { grantFunc, jobProps }: ParagestFargateOpts = {}) => {
-      // eslint-disable-line no-unused-vars
-      const image = new ecrAssets.DockerImageAsset(this, `${stepId}DockerImage`, {
-        directory: path.join(__dirname, '..'),
-        file: 'docker/fargate/Dockerfile',
-        buildArgs: {
-          SOURCE_FILE: source,
-        },
-      });
-      const jobRole = new iam.Role(this, `${stepId}JobRole`, {
-        assumedBy: new iam.ServicePrincipal('ecs-tasks.amazonaws.com'),
-      });
-
-      const jobDef = new batch.EcsJobDefinition(this, `${stepId}JobDef`, {
-        container: new batch.EcsFargateContainerDefinition(this, `${stepId}FargateContainer`, {
-          image: ecs.ContainerImage.fromDockerImageAsset(image),
-          memory: cdk.Size.gibibytes(32),
-          cpu: 16,
-          fargateCpuArchitecture: ecs.CpuArchitecture.X86_64,
-          fargateOperatingSystemFamily: ecs.OperatingSystemFamily.LINUX,
-          jobRole,
-          volumes: [
-            batch.EcsVolume.efs({
-              name: 'efs',
-              fileSystem,
-              accessPointId: accessPoint.accessPointId,
-              containerPath: '/mnt/efs',
-              enableTransitEncryption: true,
-              useJobRole: true,
-            }),
-          ],
-        }),
-      });
-
-      const task = new tasks.BatchSubmitJob(this, `${stepId}SubmitJob`, {
-        jobDefinitionArn: jobDef.jobDefinitionArn,
-        jobQueueArn: jobQueue.jobQueueArn,
-        jobName: `${stepId}Job`,
-        containerOverrides: {
-          environment: {
-            SFN_INPUT: sfn.JsonPath.jsonToString(sfn.JsonPath.stringAt('$')),
-            SFN_TASK_TOKEN: sfn.JsonPath.taskToken,
-            PARAGEST_ENV: env,
-            SENTRY_DSN: 'https://e36e8aa3d034861a3803d2edbd4773ff@o4504801902985216.ingest.sentry.io/4506375864254464',
-            SENTRY_RELEASE: JSON.stringify(getGitSha(source)),
-            CONCURRENCY_TABLE_NAME: concurrencyTable.tableName,
-          },
-        },
-        outputPath: '$',
-        taskTimeout: sfn.Timeout.duration(cdk.Duration.minutes(15)),
-        ...jobProps,
-      });
-
-      grantFunc?.(jobRole);
-
-      concurrencyTable.grantReadWriteData(jobRole);
-      fileSystem.grantReadWrite(jobRole);
-
-      jobRole.addToPolicy(
-        new iam.PolicyStatement({
-          actions: ['states:SendTaskSuccess', 'states:SendTaskFailure', 'states:SendTaskHeartbeat'],
-          // TODO: Make this more specific
-          resources: ['*'],
-        }),
-      );
-
-      return task;
-    };
-
     // /////////////////////////////
     // Common Steps
     // /////////////////////////////
+    const shared = {
+      env,
+      volume,
+      jobQueue,
+      concurrencyTable,
+    };
+
     const startState = new sfn.Pass(this, 'StartState');
     const successState = new sfn.Succeed(this, 'SuccessState');
     const failureState = new sfn.Fail(this, 'FailureState');
 
-    const processFailureStep = paragestStep('ProcessFailure', 'process-failure.ts', {
+    const processFailureStep = new LambdaStep(this, 'ProcessFailure', {
+      shared,
+      src: 'process-failure.ts',
       grantFunc: (lambdaFunc) => {
         lambdaFunc.addToRolePolicy(
           new iam.PolicyStatement({
@@ -289,7 +163,9 @@ export class ParagestStack extends cdk.Stack {
       },
     });
 
-    const processSuccessStep = paragestStep('ProcessSuccess', 'process-success.ts', {
+    const processSuccessStep = new LambdaStep(this, 'ProcessSuccess', {
+      shared,
+      src: 'process-success.ts',
       grantFunc: (lambdaFunc) => {
         lambdaFunc.addToRolePolicy(
           new iam.PolicyStatement({
@@ -302,24 +178,38 @@ export class ParagestStack extends cdk.Stack {
       },
     });
 
-    const rejectEmptyFilesStep = paragestStep('RejectEmptyFiles', 'common/reject-empty-files.ts');
-    const checkItemIdentifierLengthStep = paragestStep('CheckItemIdentifierLength', 'check-item-identifier-length.ts');
-    const checkCatalogForItemStep = paragestStep('CheckCatalogForItem', 'check-catalog-for-item.ts', {
+    const rejectEmptyFilesStep = new LambdaStep(this, 'RejectEmptyFiles', {
+      shared,
+      src: 'common/reject-empty-files.ts',
+    });
+    const checkItemIdentifierLengthStep = new LambdaStep(this, 'CheckItemIdentifierLength', {
+      shared,
+      src: 'check-item-identifier-length.ts',
+    });
+    const checkCatalogForItemStep = new LambdaStep(this, 'CheckCatalogForItem', {
+      shared,
+      src: 'check-catalog-for-item.ts',
       grantFunc: (role) => nabuOauthSecret.grantRead(role),
     });
 
-    const checkIfSpecialStep = paragestStep('CheckIfSpecial', 'check-if-special.ts', {
+    const checkIfSpecialStep = new LambdaStep(this, 'CheckIfSpecial', {
+      shared,
+      src: 'check-if-special.ts',
       grantFunc: (role) => nabuOauthSecret.grantRead(role),
     });
 
-    const checkIsDAMSmartStep = paragestStep('CheckIfDAMSmart', 'check-if-damsmart.ts', {
+    const checkIsDAMSmartStep = new LambdaStep(this, 'CheckIfDAMSmart', {
+      shared,
+      src: 'check-if-damsmart.ts',
       grantFunc: (role) => nabuOauthSecret.grantRead(role),
     });
 
     // /////////////////////////////
     // Add to Catalog Steps
     // /////////////////////////////
-    const addToCatalogStep = paragestFargateStep('AddToCatalog', 'add-to-catalog.ts', {
+    const addToCatalogStep = new FargateStep(this, 'AddToCatalog', {
+      shared,
+      src: 'add-to-catalog.ts',
       grantFunc: (role) => {
         ingestBucket.grantRead(role);
         ingestBucket.grantDelete(role);
@@ -329,16 +219,21 @@ export class ParagestStack extends cdk.Stack {
       },
     });
 
-    const addToCatalogFlow = sfn.Chain.start(addToCatalogStep).next(processSuccessStep);
+    const addToCatalogFlow = sfn.Chain.start(addToCatalogStep.task).next(processSuccessStep.task);
 
-    const detectAndValidateMediaStep = paragestStep('detectAndValidateMedia', 'detect-and-validate-media.ts', {
+    const detectAndValidateMediaStep = new LambdaStep(this, 'detectAndValidateMedia', {
+      shared,
+      src: 'detect-and-validate-media.ts',
       grantFunc: (role) => {
         ingestBucket.grantRead(role);
       },
-      lambdaProps: { nodeModules: ['@npcz/magic'], memorySize: 10240, timeout: cdk.Duration.minutes(15) },
+      lambdaProps: { memorySize: 10240, timeout: cdk.Duration.minutes(15) },
+      nodeModules: ['@npcz/magic'],
     });
 
-    const checkMetadataReadyStep = paragestStep('CheckMetadataReady', 'check-metadata-ready.ts', {
+    const checkMetadataReadyStep = new LambdaStep(this, 'CheckMetadataReady', {
+      shared,
+      src: 'check-metadata-ready.ts',
       grantFunc: (role) => {
         nabuOauthSecret.grantRead(role);
       },
@@ -347,38 +242,50 @@ export class ParagestStack extends cdk.Stack {
     // /////////////////////////////
     // Audio Flow Steps
     // /////////////////////////////
-    const convertAudioStep = paragestFargateStep('ConvertAudio', 'audio/convert.ts', {
+    const convertAudioStep = new FargateStep(this, 'ConvertAudio', {
+      shared,
+      src: 'audio/convert.ts',
       grantFunc: (role) => ingestBucket.grantReadWrite(role),
     });
-    const fixSilenceStep = paragestFargateStep('FixSilence', 'audio/fix-silence.ts', {
+    const fixSilenceStep = new FargateStep(this, 'FixSilence', {
+      shared,
+      src: 'audio/fix-silence.ts',
       grantFunc: (role) => ingestBucket.grantReadWrite(role),
     });
-    const setMaxVolumeStep = paragestFargateStep('SetMaxVolume', 'audio/set-max-volume.ts', {
+    const setMaxVolumeStep = new FargateStep(this, 'SetMaxVolume', {
+      shared,
+      src: 'audio/set-max-volume.ts',
       grantFunc: (role) => ingestBucket.grantReadWrite(role),
     });
-    const createBWFStep = paragestFargateStep('CreateBWF', 'audio/create-bwf.ts', {
+    const createBWFStep = new FargateStep(this, 'CreateBWF', {
+      shared,
+      src: 'audio/create-bwf.ts',
       grantFunc: (role) => {
         ingestBucket.grantReadWrite(role);
         nabuOauthSecret.grantRead(role);
       },
     });
-    const createPresentationStep = paragestFargateStep('CreatePresentationStep', 'audio/create-presentation.ts', {
+    const createPresentationStep = new FargateStep(this, 'CreatePresentationStep', {
+      shared,
+      src: 'audio/create-presentation.ts',
       grantFunc: (role) => {
         ingestBucket.grantReadWrite(role);
         nabuOauthSecret.grantRead(role);
       },
     });
-    const processAudioFlow = sfn.Chain.start(convertAudioStep)
-      .next(fixSilenceStep)
-      .next(setMaxVolumeStep)
-      .next(createBWFStep)
-      .next(createPresentationStep)
+    const processAudioFlow = sfn.Chain.start(convertAudioStep.task)
+      .next(fixSilenceStep.task)
+      .next(setMaxVolumeStep.task)
+      .next(createBWFStep.task)
+      .next(createPresentationStep.task)
       .next(addToCatalogFlow);
 
     // /////////////////////////////
     // Video Flow Steps
     // /////////////////////////////
-    const createVideoArchivalStep = paragestFargateStep('CreateVideoArchival', 'video/create-archival.ts', {
+    const createVideoArchivalStep = new FargateStep(this, 'CreateVideoArchival', {
+      shared,
+      src: 'video/create-archival.ts',
       grantFunc: (role) => {
         ingestBucket.grantReadWrite(role);
         nabuOauthSecret.grantRead(role);
@@ -386,56 +293,58 @@ export class ParagestStack extends cdk.Stack {
       jobProps: { taskTimeout: sfn.Timeout.duration(cdk.Duration.hours(7)) },
     });
 
-    const createVideoPresentationStep = paragestFargateStep(
-      'CreateVideoPresentationStep',
-      'video/create-presentation.ts',
-      {
-        grantFunc: (role) => {
-          ingestBucket.grantReadWrite(role);
-          nabuOauthSecret.grantRead(role);
-        },
-        jobProps: { taskTimeout: sfn.Timeout.duration(cdk.Duration.hours(7)) },
+    const createVideoPresentationStep = new FargateStep(this, 'CreateVideoPresentationStep', {
+      shared,
+      src: 'video/create-presentation.ts',
+      grantFunc: (role) => {
+        ingestBucket.grantReadWrite(role);
+        nabuOauthSecret.grantRead(role);
       },
-    );
-    const processVideoFlow = sfn.Chain.start(createVideoArchivalStep)
-      .next(createVideoPresentationStep)
+      jobProps: { taskTimeout: sfn.Timeout.duration(cdk.Duration.hours(7)) },
+    });
+    const processVideoFlow = sfn.Chain.start(createVideoArchivalStep.task)
+      .next(createVideoPresentationStep.task)
       .next(addToCatalogFlow);
 
     // /////////////////////////////
     // Image Flow Steps
     // /////////////////////////////
-    const createImageArchivalStep = paragestFargateStep('CreateImageArchival', 'image/create-archival.ts', {
+    const createImageArchivalStep = new FargateStep(this, 'CreateImageArchival', {
+      shared,
+      src: 'image/create-archival.ts',
       grantFunc: (role) => {
         ingestBucket.grantReadWrite(role);
         nabuOauthSecret.grantRead(role);
       },
     });
 
-    const createImagePresentationStep = paragestFargateStep(
-      'CreateImagePresentationStep',
-      'image/create-presentation.ts',
-      {
-        grantFunc: (role) => {
-          ingestBucket.grantReadWrite(role);
-          nabuOauthSecret.grantRead(role);
-        },
+    const createImagePresentationStep = new FargateStep(this, 'CreateImagePresentationStep', {
+      shared,
+      src: 'image/create-presentation.ts',
+      grantFunc: (role) => {
+        ingestBucket.grantReadWrite(role);
+        nabuOauthSecret.grantRead(role);
       },
-    );
-    const processImageFlow = sfn.Chain.start(createImageArchivalStep)
-      .next(createImagePresentationStep)
+    });
+    const processImageFlow = sfn.Chain.start(createImageArchivalStep.task)
+      .next(createImagePresentationStep.task)
       .next(addToCatalogFlow);
 
     // /////////////////////////////
     // Other Flow Steps
     // /////////////////////////////
-    const createOtherArchivalStep = paragestStep('CreateOtherArchival', 'other/create-archival.ts', {
+    const createOtherArchivalStep = new LambdaStep(this, 'CreateOtherArchival', {
+      shared,
+      src: 'other/create-archival.ts',
       grantFunc: (role) => {
         ingestBucket.grantReadWrite(role);
         nabuOauthSecret.grantRead(role);
       },
     });
 
-    const handleSpecialStep = paragestStep('HandleSpecial', 'handle-special.ts', {
+    const handleSpecialStep = new LambdaStep(this, 'HandleSpecial', {
+      shared,
+      src: 'handle-special.ts',
       grantFunc: (role) => {
         ingestBucket.grantReadWrite(role);
         ingestBucket.grantDelete(role);
@@ -444,7 +353,7 @@ export class ParagestStack extends cdk.Stack {
         catalogBucket.grantRead(role);
       },
     });
-    const processOtherFlow = sfn.Chain.start(createOtherArchivalStep).next(addToCatalogFlow);
+    const processOtherFlow = sfn.Chain.start(createOtherArchivalStep.task).next(addToCatalogFlow);
 
     // /////////////////////////////
     // DamSmart
@@ -452,64 +361,64 @@ export class ParagestStack extends cdk.Stack {
 
     // TODO: The below is all super messy refactor it one day
 
-    const checkForOtherDAMSmartFile = paragestStep('CheckForOtherDAMSmartFile', 'damsmart/check-for-other-file.ts', {
+    const checkForOtherDAMSmartFileStep = new LambdaStep(this, 'CheckForOtherDAMSmartFile', {
+      shared,
+      src: 'damsmart/check-for-other-file.ts',
       grantFunc: (role) => {
         ingestBucket.grantReadWrite(role);
         nabuOauthSecret.grantRead(role);
       },
     });
 
-    const prepareOtherFileEventStep = paragestStep('PrepareOtherFileEvent', 'damsmart/prepare-other-file-event.ts', {
+    const prepareOtherFileEventStep = new LambdaStep(this, 'PrepareOtherFileEvent', {
+      shared,
+      src: 'damsmart/prepare-other-file-event.ts',
       grantFunc: (role) => {
         ingestBucket.grantRead(role);
       },
     });
 
-    const damsmartDetectAndValidateMediaBigStep = paragestStep(
-      'damsmartDetectAndValidateMediaBig',
-      'detect-and-validate-media.ts',
-      {
-        grantFunc: (role) => {
-          ingestBucket.grantRead(role);
-        },
-        lambdaProps: { nodeModules: ['@npcz/magic'], memorySize: 10240, timeout: cdk.Duration.minutes(15) },
+    const damsmartDetectAndValidateMediaBigStep = new LambdaStep(this, 'damsmartDetectAndValidateMediaBig', {
+      shared,
+      src: 'detect-and-validate-media.ts',
+      grantFunc: (role) => {
+        ingestBucket.grantRead(role);
       },
-    );
+      lambdaProps: { memorySize: 10240, timeout: cdk.Duration.minutes(15) },
+      nodeModules: ['@npcz/magic'],
+    });
 
-    const damsmartDetectAndValidateMediaSmallStep = paragestStep(
-      'damsmartDetectAndValidateMediaSmall',
-      'detect-and-validate-media.ts',
-      {
-        grantFunc: (role) => {
-          ingestBucket.grantRead(role);
-        },
-        lambdaProps: { nodeModules: ['@npcz/magic'], memorySize: 10240, timeout: cdk.Duration.minutes(15) },
+    const damsmartDetectAndValidateMediaSmallStep = new LambdaStep(this, 'damsmartDetectAndValidateMediaSmall', {
+      shared,
+      src: 'detect-and-validate-media.ts',
+      grantFunc: (role) => {
+        ingestBucket.grantRead(role);
       },
-    );
+      lambdaProps: { memorySize: 10240, timeout: cdk.Duration.minutes(15) },
+      nodeModules: ['@npcz/magic'],
+    });
 
-    const damsmartCreateOtherArchivalBigStep = paragestStep(
-      'DamsmartCreateOtherArchivalBig',
-      'other/create-archival.ts',
-      {
-        grantFunc: (role) => {
-          ingestBucket.grantReadWrite(role);
-          nabuOauthSecret.grantRead(role);
-        },
+    const damsmartCreateOtherArchivalBigStep = new LambdaStep(this, 'DamsmartCreateOtherArchivalBig', {
+      shared,
+      src: 'other/create-archival.ts',
+      grantFunc: (role) => {
+        ingestBucket.grantReadWrite(role);
+        nabuOauthSecret.grantRead(role);
       },
-    );
+    });
 
-    const damsmartCreateOtherArchivalSmallStep = paragestStep(
-      'DamsmartCreateOtherArchivalSmall',
-      'other/create-archival.ts',
-      {
-        grantFunc: (role) => {
-          ingestBucket.grantReadWrite(role);
-          nabuOauthSecret.grantRead(role);
-        },
+    const damsmartCreateOtherArchivalSmallStep = new LambdaStep(this, 'DamsmartCreateOtherArchivalSmall', {
+      shared,
+      src: 'other/create-archival.ts',
+      grantFunc: (role) => {
+        ingestBucket.grantReadWrite(role);
+        nabuOauthSecret.grantRead(role);
       },
-    );
+    });
 
-    const addToCatalogBigStep = paragestFargateStep('AddToCatalogBig', 'add-to-catalog.ts', {
+    const addToCatalogBigStep = new FargateStep(this, 'AddToCatalogBig', {
+      shared,
+      src: 'add-to-catalog.ts',
       grantFunc: (role) => {
         ingestBucket.grantRead(role);
         ingestBucket.grantDelete(role);
@@ -519,7 +428,9 @@ export class ParagestStack extends cdk.Stack {
       },
     });
 
-    const addToCatalogSmallStep = paragestFargateStep('AddToCatalogSmall', 'add-to-catalog.ts', {
+    const addToCatalogSmallStep = new FargateStep(this, 'AddToCatalogSmall', {
+      shared,
+      src: 'add-to-catalog.ts',
       grantFunc: (role) => {
         ingestBucket.grantRead(role);
         ingestBucket.grantDelete(role);
@@ -529,13 +440,13 @@ export class ParagestStack extends cdk.Stack {
       },
     });
 
-    const bigFileFlow = sfn.Chain.start(damsmartDetectAndValidateMediaBigStep)
-      .next(damsmartCreateOtherArchivalBigStep)
-      .next(addToCatalogBigStep);
-    const smallFileFlow = sfn.Chain.start(prepareOtherFileEventStep)
-      .next(damsmartDetectAndValidateMediaSmallStep)
-      .next(damsmartCreateOtherArchivalSmallStep)
-      .next(addToCatalogSmallStep);
+    const bigFileFlow = sfn.Chain.start(damsmartDetectAndValidateMediaBigStep.task)
+      .next(damsmartCreateOtherArchivalBigStep.task)
+      .next(addToCatalogBigStep.task);
+    const smallFileFlow = sfn.Chain.start(prepareOtherFileEventStep.task)
+      .next(damsmartDetectAndValidateMediaSmallStep.task)
+      .next(damsmartCreateOtherArchivalSmallStep.task)
+      .next(addToCatalogSmallStep.task);
 
     const parallelDAMSmartProcessing = new sfn.Parallel(this, 'ParallelDAMSmartProcessing');
     parallelDAMSmartProcessing.branch(bigFileFlow);
@@ -569,9 +480,9 @@ export class ParagestStack extends cdk.Stack {
 
     const damsmartRetryChoice = new sfn.Choice(this, 'DAMSmart Retry Again?');
 
-    const checkForOtherDAMSmartFileState = sfn.Chain.start(checkForOtherDAMSmartFile).next(
+    const checkForOtherDAMSmartFileState = sfn.Chain.start(checkForOtherDAMSmartFileStep.task).next(
       new sfn.Choice(this, 'Is Other file ready?')
-        .when(sfn.Condition.stringEquals('$.isDAMSmartOtherPresent', 'small-file'), processSuccessStep)
+        .when(sfn.Condition.stringEquals('$.isDAMSmartOtherPresent', 'small-file'), processSuccessStep.task)
         .when(sfn.Condition.stringEquals('$.isDAMSmartOtherPresent', 'big-file'), damSmartParallelFlow)
         .when(
           sfn.Condition.stringEquals('$.isDAMSmartOtherPresent', 'wait'),
@@ -598,21 +509,21 @@ export class ParagestStack extends cdk.Stack {
       .when(sfn.Condition.stringEquals('$.mediaType', 'image'), processImageFlow)
       .when(sfn.Condition.stringEquals('$.mediaType', 'other'), processOtherFlow);
 
-    const metadataChecksFlow = sfn.Chain.start(checkCatalogForItemStep)
-      .next(checkItemIdentifierLengthStep)
-      .next(detectAndValidateMediaStep)
-      .next(checkMetadataReadyStep)
-      .next(checkIsDAMSmartStep)
+    const metadataChecksFlow = sfn.Chain.start(checkCatalogForItemStep.task)
+      .next(checkItemIdentifierLengthStep.task)
+      .next(detectAndValidateMediaStep.task)
+      .next(checkMetadataReadyStep.task)
+      .next(checkIsDAMSmartStep.task)
       .next(
         new sfn.Choice(this, 'Is DAMSmart Folder?')
           .when(sfn.Condition.booleanEquals('$.isDAMSmart', true), damSmartFlow)
           .when(sfn.Condition.booleanEquals('$.isDAMSmart', false), mediaFlow),
       );
 
-    const handleSpecialFlow = sfn.Chain.start(handleSpecialStep).next(processSuccessStep);
+    const handleSpecialFlow = sfn.Chain.start(handleSpecialStep.task).next(processSuccessStep.task);
 
-    const workflow = sfn.Chain.start(rejectEmptyFilesStep)
-      .next(checkIfSpecialStep)
+    const workflow = sfn.Chain.start(rejectEmptyFilesStep.task)
+      .next(checkIfSpecialStep.task)
       .next(
         new sfn.Choice(this, 'Is Special File?')
           .when(sfn.Condition.booleanEquals('$.isSpecialFile', true), handleSpecialFlow)
@@ -621,7 +532,7 @@ export class ParagestStack extends cdk.Stack {
 
     const parallel = new sfn.Parallel(this, 'ParallelErrorCatcher');
     parallel.branch(workflow);
-    const failure = sfn.Chain.start(processFailureStep).next(failureState);
+    const failure = sfn.Chain.start(processFailureStep.task).next(failureState);
     parallel.addCatch(failure);
 
     const definition = sfn.Chain.start(startState).next(parallel).next(successState);
@@ -632,20 +543,16 @@ export class ParagestStack extends cdk.Stack {
       timeout: cdk.Duration.hours(10),
     });
 
-    const processS3Event = new nodejs.NodejsFunction(this, 'ProcessS3EventLambda', {
-      entry: 'process-s3-event.ts',
-      ...lambdaCommon,
-      bundling: {
-        ...lambdaCommon.bundling,
-        define: {
-          'process.env.SENTRY_RELEASE': JSON.stringify(getGitSha('process-s3-event.ts')),
-        },
-      },
-      environment: {
-        ...lambdaCommon.environment,
-        STATE_MACHINE_ARN: stateMachine.stateMachineArn,
-      },
-    });
+    const processS3Event = new nodejs.NodejsFunction(
+      this,
+      'ProcessS3EventLambda',
+      genLambdaProps({
+        shared,
+        src: 'process-s3-event.ts',
+        lambdaProps: { environment: { STATE_MACHINE_ARN: stateMachine.stateMachineArn } },
+      }),
+    );
+
     stateMachine.grantStartExecution(processS3Event);
     ingestBucket.grantRead(processS3Event);
 
