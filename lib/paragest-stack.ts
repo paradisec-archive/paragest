@@ -130,13 +130,13 @@ export class ParagestStack extends cdk.Stack {
     });
 
     // Needed by fargate
-    new ec2.InterfaceVpcEndpoint(this, 'LogsEndpoint', {
-      service: ec2.InterfaceVpcEndpointAwsService.CLOUDWATCH_LOGS,
-      vpc,
-      subnets: {
-        subnets,
-      },
-    });
+    // new ec2.InterfaceVpcEndpoint(this, 'LogsEndpoint', {
+    //   service: ec2.InterfaceVpcEndpointAwsService.CLOUDWATCH_LOGS,
+    //   vpc,
+    //   subnets: {
+    //     subnets,
+    //   },
+    // });
 
     // /////////////////////////////
     // Filesystem
