@@ -54,10 +54,8 @@ export class ParagestStack extends cdk.Stack {
     // SES SMTP User
     // /////////////////////////////
 
-    const sesSmtpUser = new iam.User(this, 'SESSmtpUser', {
-      userName: `paragest-ses-smtp-user-${env}`,
-      managedPolicies: [iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonSESFullAccess')],
-    });
+    // We can't create this here due to USyud SCP
+    const sesSmtpUser = iam.User.fromUserName(this, 'SESSmtpUser', 'paragest-ses-smtp');
 
     const sesSmtpAccessKey = new iam.AccessKey(this, 'SESSmtpAccessKey', {
       user: sesSmtpUser,
