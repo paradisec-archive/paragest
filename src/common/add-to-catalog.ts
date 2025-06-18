@@ -32,7 +32,6 @@ const upsertEssence = async (
   collectionIdentifier: string,
   itemIdentifier: string,
   filename: string,
-  src: string,
   size: number,
   mimetype: string,
   event: Event,
@@ -43,7 +42,7 @@ const upsertEssence = async (
   };
 
   if (mimetype.startsWith('audio') || mimetype.startsWith('video')) {
-    const { other, ...mediaAttributes } = await getMediaMetadata(getPath(src), event); // eslint-disable-line @typescript-eslint/no-unused-vars
+    const { other, ...mediaAttributes } = await getMediaMetadata(getPath(`output/${filename}`), event); // eslint-disable-line @typescript-eslint/no-unused-vars
     Object.assign(attributes, mediaAttributes);
   }
 
@@ -100,7 +99,7 @@ export const handler = async (event: Event) => {
 
     await upload(src, destBucket, dst, mimetype, ['wav', 'mkv'].includes(extension));
 
-    const created = await upsertEssence(collectionIdentifier, itemIdentifier, filename, dst, size, mimetype, event);
+    const created = await upsertEssence(collectionIdentifier, itemIdentifier, filename, size, mimetype, event);
 
     notes.push(`addMediaMetadata: ${created ? 'Created' : 'Updated'} essence`);
   });
