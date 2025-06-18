@@ -101,6 +101,14 @@ export class ParagestStack extends cdk.Stack {
       cdk.Fn.split(':', cdk.Fn.select(0, dynamodbVpcEndpoint.vpcEndpointDnsEntries)),
     );
 
+    new ec2.InterfaceVpcEndpoint(this, 'ECREndpoint', {
+      service: ec2.InterfaceVpcEndpointAwsService.ECR,
+      vpc,
+      subnets: {
+        subnets,
+      },
+    });
+
     // /////////////////////////////
     // Filesystem
     // /////////////////////////////
