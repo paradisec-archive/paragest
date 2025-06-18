@@ -52,6 +52,7 @@
     "@types/jest": "^29.5.14",
     "@types/mime-types": "^3.0.1",
     "@types/node": "^22.15.32",
+    "@types/nodemailer": "^6.4.17",
     "@typescript-eslint/eslint-plugin": "^8.34.0",
     "@typescript-eslint/parser": "^8.34.0",
     "aws-cdk": "2.1018.1",
@@ -86,6 +87,7 @@
     "inquirer": "^12.6.3",
     "mime-types": "^3.0.1",
     "node-fetch": "^3.3.2",
+    "nodemailer": "^7.0.3",
     "source-map-support": "^0.5.21",
     "uuid": "^11.1.0",
     "zod": "^3.25.64"

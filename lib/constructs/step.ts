@@ -18,6 +18,7 @@ import * as tasks from 'aws-cdk-lib/aws-stepfunctions-tasks';
 import type * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import type * as ec2 from 'aws-cdk-lib/aws-ec2';
 import type * as efs from 'aws-cdk-lib/aws-efs';
+import type * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import type { IRole } from 'aws-cdk-lib/aws-iam';
 
 export type SharedProps = {
@@ -30,6 +31,7 @@ export type SharedProps = {
   subnets: ec2.ISubnet[];
   nabuDnsName: string;
   dynamodbDnsName: string;
+  sesSmtpSecret: secretsmanager.ISecret;
 };
 
 type LambdaStepProps = {
@@ -56,6 +58,7 @@ const commonEnv = (src: string, shared: SharedProps) => ({
   CONCURRENCY_TABLE_NAME: shared.concurrencyTable.tableName,
   NABU_DNS_NAME: shared.nabuDnsName,
   DYNAMODB_ENDPOINT: shared.dynamodbDnsName,
+  SES_SMTP_SECRET_ARN: shared.sesSmtpSecret.secretArn,
 });
 
 export const genLambdaProps = (
@@ -115,6 +118,7 @@ export class LambdaStep extends Construct {
     grantFunc?.(this.func);
 
     props.shared.concurrencyTable.grantReadWriteData(this.func);
+    props.shared.sesSmtpSecret?.grantRead(this.func);
 
     this.task = new tasks.LambdaInvoke(this, `${id}StepTask`, {
       lambdaFunction: this.func,
@@ -186,6 +190,7 @@ export class FargateStep extends Construct {
 
     shared.concurrencyTable.grantReadWriteData(jobRole);
     shared.volume.fileSystem.grantReadWrite(jobRole);
+    shared.sesSmtpSecret?.grantRead(jobRole);
 
     jobRole.addToPolicy(
       new iam.PolicyStatement({

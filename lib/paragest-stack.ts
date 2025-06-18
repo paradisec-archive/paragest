@@ -6,6 +6,7 @@ import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as efs from 'aws-cdk-lib/aws-efs';
 import * as events from 'aws-cdk-lib/aws-events';
+import * as iam from 'aws-cdk-lib/aws-iam';
 import * as targets from 'aws-cdk-lib/aws-events-targets';
 import * as eventsources from 'aws-cdk-lib/aws-lambda-event-sources';
 import * as nodejs from 'aws-cdk-lib/aws-lambda-nodejs';
@@ -46,6 +47,29 @@ export class ParagestStack extends cdk.Stack {
       secretObjectValue: {
         clientId: cdk.SecretValue.unsafePlainText('FIXME'),
         clientSecret: cdk.SecretValue.unsafePlainText('FIXME'),
+      },
+    });
+
+    // /////////////////////////////
+    // SES SMTP User
+    // /////////////////////////////
+
+    const sesSmtpUser = new iam.User(this, 'SESSmtpUser', {
+      userName: `paragest-ses-smtp-user-${env}`,
+      managedPolicies: [iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonSESFullAccess')],
+    });
+
+    const sesSmtpAccessKey = new iam.AccessKey(this, 'SESSmtpAccessKey', {
+      user: sesSmtpUser,
+    });
+
+    const sesSmtpSecret = new secretsmanager.Secret(this, 'SESSmtpSecret', {
+      description: 'SES SMTP credentials for email sending',
+      secretName: '/paragest/ses/smtp',
+      secretObjectValue: {
+        username: cdk.SecretValue.unsafePlainText(sesSmtpAccessKey.accessKeyId),
+        password: sesSmtpAccessKey.secretAccessKey,
+        endpoint: cdk.SecretValue.unsafePlainText(`email-smtp.${this.region}.amazonaws.com`),
       },
     });
 
@@ -224,6 +248,7 @@ export class ParagestStack extends cdk.Stack {
       subnets,
       nabuDnsName,
       dynamodbDnsName,
+      sesSmtpSecret,
     };
 
     const stateMachine = new StateMachine(this, 'ParagestStateMachine', {
