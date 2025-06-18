@@ -47,7 +47,7 @@ export const handler = async (event: Event) => {
 
   const { notes } = event;
 
-  const src = getPath('unsilences.wav');
+  const src = getPath('unsilenced.wav');
   const dst = getPath('volume-maxed.wav');
 
   const analysis = execute(
