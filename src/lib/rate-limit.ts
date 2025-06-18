@@ -29,11 +29,13 @@ const increment = async () => {
       pk: { S: CONCURRENCY_KEY },
     },
     UpdateExpression: 'SET #count = if_not_exists(#count, :zero) + :inc',
+    ConditionExpression: '#count < :limit',
     ExpressionAttributeNames: {
       '#count': CURRENT_COUNT_ATTRIBUTE,
     },
     ExpressionAttributeValues: {
       ':inc': { N: '1' },
+      ':limit': { N: CONCURRENCY_LIMIT.toString() },
       ':zero': { N: '0' },
     },
     ReturnValues: 'UPDATED_NEW',
@@ -86,7 +88,7 @@ export const throttle =
 
         break;
       } catch (err: unknown) {
-        console.error('Failed to increment  concurrency counter', err);
+        console.error('Failed to increment concurrency counter', err);
         const error = err as Error;
         if (error.name !== 'ConditionalCheckFailedException') {
           throw err;
