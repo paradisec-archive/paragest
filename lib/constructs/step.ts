@@ -91,7 +91,7 @@ export const genLambdaProps = (
       },
       sourceMap: true,
       minify: true,
-      nodeModules,
+      nodeModules: ['nodemailer', ...(nodeModules ?? [])],
       define: {
         'process.env.SENTRY_RELEASE': getGitSha(entry),
       },
