@@ -326,10 +326,9 @@ export class StateMachine extends Construct {
 
     const damsmartIncrement = new sfn.Pass(this, 'DamsmartIncrement', {
       parameters: {
-        'meta.retryCount.$': 'States.MathAdd($.meta.retryCount, 1)',
-        'isDAMSmartOtherPresent.$': '$.isDAMSmartOtherPresent',
+        'retryCount.$': 'States.MathAdd($.meta.retryCount, 1)',
       },
-      resultPath: '$',
+      resultPath: '$.meta',
     });
 
     const damsmartWait = new sfn.Wait(this, 'DamsmartWait', {
