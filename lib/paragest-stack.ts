@@ -136,8 +136,10 @@ export class ParagestStack extends cdk.Stack {
     });
 
     // Our code
-    new ec2.InterfaceVpcEndpoint(this, 'SESEndpoint', {
-      service: ec2.InterfaceVpcEndpointAwsService.EMAIL_SMTP,
+    const sesEndpoint = new ec2.InterfaceVpcEndpoint(this, 'SESEndpoint', {
+      // NOTE: upstream doesn't set the port
+      // service: ec2.InterfaceVpcEndpointAwsService.EMAIL_SMTP,
+      service: new ec2.InterfaceVpcEndpointAwsService('email-smtp', undefined, 587),
       vpc,
       subnets: {
         subnets,
