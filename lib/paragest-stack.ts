@@ -103,7 +103,7 @@ export class ParagestStack extends cdk.Stack {
     );
 
     // Our code at end of batch
-    new ec2.InterfaceVpcEndpoint(this, 'LogsDockerEndpoint', {
+    new ec2.InterfaceVpcEndpoint(this, 'StepFunctionsEndpoint', {
       service: ec2.InterfaceVpcEndpointAwsService.STEP_FUNCTIONS,
       vpc,
       subnets: {
@@ -130,7 +130,7 @@ export class ParagestStack extends cdk.Stack {
     });
 
     // Needed by fargate
-    new ec2.InterfaceVpcEndpoint(this, 'LogsDockerEndpoint', {
+    new ec2.InterfaceVpcEndpoint(this, 'LogsEndpoint', {
       service: ec2.InterfaceVpcEndpointAwsService.CLOUDWATCH_LOGS,
       vpc,
       subnets: {
