@@ -79,6 +79,7 @@ export class ParagestStack extends cdk.Stack {
     });
     const nabuDnsName = cdk.Fn.select(1, cdk.Fn.split(':', cdk.Fn.select(0, nabuVpcEndpoint.vpcEndpointDnsEntries)));
 
+    // For our code
     new ec2.InterfaceVpcEndpoint(this, 'SecretsManagerEndpoint', {
       service: ec2.InterfaceVpcEndpointAwsService.SECRETS_MANAGER,
       vpc,
@@ -87,6 +88,7 @@ export class ParagestStack extends cdk.Stack {
       },
     });
 
+    // For our code
     const dynamodbVpcEndpoint = new ec2.InterfaceVpcEndpoint(this, 'DynamoDbEndpoint', {
       service: ec2.InterfaceVpcEndpointAwsService.DYNAMODB,
       vpc,
@@ -100,6 +102,16 @@ export class ParagestStack extends cdk.Stack {
       cdk.Fn.split(':', cdk.Fn.select(0, dynamodbVpcEndpoint.vpcEndpointDnsEntries)),
     );
 
+    // Our code at end of batch
+    new ec2.InterfaceVpcEndpoint(this, 'LogsDockerEndpoint', {
+      service: ec2.InterfaceVpcEndpointAwsService.STEP_FUNCTIONS,
+      vpc,
+      subnets: {
+        subnets,
+      },
+    });
+
+    // Needed by fargate
     new ec2.InterfaceVpcEndpoint(this, 'ECREndpoint', {
       service: ec2.InterfaceVpcEndpointAwsService.ECR,
       vpc,
@@ -108,6 +120,7 @@ export class ParagestStack extends cdk.Stack {
       },
     });
 
+    // Needed by fargate
     new ec2.InterfaceVpcEndpoint(this, 'ECRDockerEndpoint', {
       service: ec2.InterfaceVpcEndpointAwsService.ECR_DOCKER,
       vpc,
@@ -116,6 +129,7 @@ export class ParagestStack extends cdk.Stack {
       },
     });
 
+    // Needed by fargate
     new ec2.InterfaceVpcEndpoint(this, 'LogsDockerEndpoint', {
       service: ec2.InterfaceVpcEndpointAwsService.CLOUDWATCH_LOGS,
       vpc,
