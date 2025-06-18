@@ -7,6 +7,7 @@ import { StepError } from '../lib/errors.js';
 import { getMediaMetadata, lookupMimetypeFromExtension } from '../lib/media.js';
 import { getPath, upload } from '../lib/s3.js';
 import { createEssence, getEssence, updateEssence } from '../models/essence.js';
+import path from 'node:path';
 
 type Event = {
   id: string;
