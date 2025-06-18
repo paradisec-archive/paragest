@@ -113,6 +113,15 @@ export class ParagestStack extends cdk.Stack {
       },
     });
 
+    // Our code
+    new ec2.InterfaceVpcEndpoint(this, 'SESEndpoint', {
+      service: ec2.InterfaceVpcEndpointAwsService.EMAIL_SMTP,
+      vpc,
+      subnets: {
+        subnets,
+      },
+    });
+
     // Needed by fargate
     new ec2.InterfaceVpcEndpoint(this, 'ECREndpoint', {
       service: ec2.InterfaceVpcEndpointAwsService.ECR,
