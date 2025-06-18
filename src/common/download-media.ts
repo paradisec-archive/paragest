@@ -29,9 +29,9 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
 
   const { notes, bucketName, objectKey } = event;
 
-  const dir = getPath('');
+  const dir = getPath('output');
 
-  fs.mkdirSync(dir);
+  fs.mkdirSync(dir, { recursive: true });
 
   await download(bucketName, objectKey, 'input');
 
