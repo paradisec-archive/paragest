@@ -233,8 +233,12 @@ export const lookupMimetypeFromExtension = (extension: string) => {
 };
 
 export const getMediaMetadata = async (filename: string, event: Record<string, string | number | object>) => {
+  console.log('🪚 ⭕', event);
+  console.log('🪚 ⭕', filename);
+  console.log('🪚 🔲');
   const output = execute(`mediainfo --output=JSON '${filename}'`, event);
-  console.debug('MediaInfo output:', output);
+  console.log('🪚 💜');
+  execute('ls -lR /mnt/efs', event);
 
   const metadata = MediaInfoSchema.parse(JSON.parse(output));
   console.debug('Metadata:', JSON.stringify(metadata, null, 2));
