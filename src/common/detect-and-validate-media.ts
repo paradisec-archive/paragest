@@ -51,12 +51,18 @@ const getMagic = async () => {
 };
 
 const mimetypeMatchesExtension = (mimetype: string, actualExt: string) => {
+  console.log('🪚 🟩 MME');
+  console.log('🪚 mimetype:', JSON.stringify(mimetype, null, 2));
+  console.log('🪚 actualExt:', JSON.stringify(actualExt, null, 2));
   const possibleExt = mime.extensions[mimetype] || [];
+  console.log('🪚 possibleExt:', JSON.stringify(possibleExt, null, 2));
 
   if (possibleExt.includes(actualExt)) {
+    console.log('🪚 🔲');
     return true;
   }
 
+  console.log('🪚 💜');
   switch (true) {
     case mimetype === 'application/xml' && ['eaf', 'imdi', 'cmdi', 'opex'].includes(actualExt):
       return true;
@@ -65,6 +71,7 @@ const mimetypeMatchesExtension = (mimetype: string, actualExt: string) => {
     // case detected === 'mp4' && actual === 'm4a':
     //   return true;
     default:
+      console.log('🪚 🔵');
       return false;
   }
 };
