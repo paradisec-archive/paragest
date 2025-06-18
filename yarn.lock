@@ -3708,6 +3708,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@pepperize/cdk-ses-smtp-credentials@npm:^0.3.899":
+  version: 0.3.899
+  resolution: "@pepperize/cdk-ses-smtp-credentials@npm:0.3.899"
+  peerDependencies:
+    aws-cdk-lib: ^2.173.2
+    constructs: ^10.0.5
+  checksum: 10c0/644c8740db26531e22b8c6835149bd31f883746e0cb26dc8d4873fb5de48e11658d6b43a6cfd67caa7e48db8614268057d15859638baae1f107103809fec0e6b
+  languageName: node
+  linkType: hard
+
 "@pkgjs/parseargs@npm:^0.11.0":
   version: 0.11.0
   resolution: "@pkgjs/parseargs@npm:0.11.0"
@@ -9698,6 +9708,7 @@ __metadata:
     "@graphql-codegen/client-preset": "npm:^4.8.2"
     "@npcz/magic": "npm:^1.3.16"
     "@parcel/watcher": "npm:^2.5.1"
+    "@pepperize/cdk-ses-smtp-credentials": "npm:^0.3.899"
     "@sentry/aws-serverless": "npm:^9.29.0"
     "@sentry/cli": "npm:^2.46.0"
     "@sentry/node": "npm:^9.29.0"

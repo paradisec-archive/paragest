@@ -16,6 +16,7 @@ import * as ssm from 'aws-cdk-lib/aws-ssm';
 
 import { StateMachine } from './constructs/state-machine';
 import { genLambdaProps } from './constructs/step';
+import { SesSmtpCredentials } from '@pepperize/cdk-ses-smtp-credentials';
 
 // TODO: Be more specific on where functions can read and write
 
@@ -57,18 +58,18 @@ export class ParagestStack extends cdk.Stack {
     // We can't create this here due to USyud SCP
     const sesSmtpUser = iam.User.fromUserName(this, 'SESSmtpUser', 'paragest-ses-smtp');
 
-    const sesSmtpAccessKey = new iam.AccessKey(this, 'SESSmtpAccessKey', {
-      user: sesSmtpUser,
-    });
-
     const sesSmtpSecret = new secretsmanager.Secret(this, 'SESSmtpSecret', {
       description: 'SES SMTP credentials for email sending',
       secretName: '/paragest/ses/smtp',
-      secretObjectValue: {
-        username: cdk.SecretValue.unsafePlainText(sesSmtpAccessKey.accessKeyId),
-        password: sesSmtpAccessKey.secretAccessKey,
-        endpoint: cdk.SecretValue.unsafePlainText(`email-smtp.${this.region}.amazonaws.com`),
-      },
+      // secretObjectValue: {
+      //   username: cdk.SecretValue.unsafePlainText(smtpCredentials.secret),
+      //   password: sesSmtpAccessKey.secretAccessKey,
+      //   endpoint: cdk.SecretValue.unsafePlainText(`email-smtp.${this.region}.amazonaws.com`),
+      // },
+    });
+    new SesSmtpCredentials(this, 'SESSmtpCredentials', {
+      user: sesSmtpUser,
+      secret: sesSmtpSecret,
     });
 
     // /////////////////////////////
@@ -136,7 +137,7 @@ export class ParagestStack extends cdk.Stack {
     });
 
     // Our code
-    const sesEndpoint = new ec2.InterfaceVpcEndpoint(this, 'SESEndpoint', {
+    new ec2.InterfaceVpcEndpoint(this, 'SESEndpoint', {
       // NOTE: upstream doesn't set the port
       // service: ec2.InterfaceVpcEndpointAwsService.EMAIL_SMTP,
       service: new ec2.InterfaceVpcEndpointAwsService('email-smtp', undefined, 587),
