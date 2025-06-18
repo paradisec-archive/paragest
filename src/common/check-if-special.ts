@@ -10,14 +10,17 @@ import { getCollection } from '../models/collection.js';
 type Event = {
   bucketName: string;
   objectKey: string;
+  notes: string[];
 };
 
 export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
   console.debug('Event:', JSON.stringify(event, null, 2));
-  const { objectKey } = event;
+  const { objectKey, notes } = event;
 
   const md = objectKey.match(/^(?:incoming|damsmart)\/([A-Za-z0-9][a-zA-Z0-9_]+)-deposit\.pdf$/);
   if (!md) {
+    notes.push('isSpecial: false');
+
     return {
       ...event,
       isSpecialFile: false,
@@ -45,6 +48,8 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
     filename,
     extension: 'pdf',
   };
+
+  notes.push('isSpecial: true');
 
   return {
     ...event,
