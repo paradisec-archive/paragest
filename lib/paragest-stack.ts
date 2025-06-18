@@ -5,14 +5,16 @@ import * as batch from 'aws-cdk-lib/aws-batch';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as efs from 'aws-cdk-lib/aws-efs';
+import * as events from 'aws-cdk-lib/aws-events';
+import * as targets from 'aws-cdk-lib/aws-events-targets';
 import * as eventsources from 'aws-cdk-lib/aws-lambda-event-sources';
 import * as nodejs from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import * as ssm from 'aws-cdk-lib/aws-ssm';
 
-import { genLambdaProps } from './constructs/step';
 import { StateMachine } from './constructs/state-machine';
+import { genLambdaProps } from './constructs/step';
 
 // TODO: Be more specific on where functions can read and write
 
@@ -249,5 +251,27 @@ export class ParagestStack extends cdk.Stack {
       filters: [{ prefix: 'damsmart/' }],
     });
     processS3Event.addEventSource(s3DamsmartEventSource);
+
+    // /////////////////////////////
+    // EFS Directory Cleanup
+    // /////////////////////////////
+
+    const cleanupEfsDirectories = new nodejs.NodejsFunction(
+      this,
+      'CleanupEfsDirectoriesLambda',
+      genLambdaProps({
+        shared,
+        src: 'cron/cleanup-efs-directories.ts',
+        lambdaProps: {
+          timeout: cdk.Duration.minutes(10),
+        },
+      }),
+    );
+
+    const cleanupRule = new events.Rule(this, 'CleanupEfsDirectoriesRule', {
+      schedule: events.Schedule.cron({ minute: '0', hour: '2' }),
+      description: 'Daily cleanup of old EFS directories',
+    });
+    cleanupRule.addTarget(new targets.LambdaFunction(cleanupEfsDirectories));
   }
 }
