@@ -119,7 +119,7 @@ export const lookupMimetypeFromExtension = (extension: string) => {
     case 'mp3':
       return 'audio/mpeg';
     case 'wav':
-      return 'audio/vnd.wav';
+      return 'audio/wav';
 
     // /////////////////
     // Video
