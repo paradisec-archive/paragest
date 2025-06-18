@@ -242,126 +242,6 @@ export class StateMachine extends Construct {
     const processOtherFlow = sfn.Chain.start(createOtherArchivalStep.task).next(addToCatalogFlow);
 
     // /////////////////////////////
-    // DamSmart
-    // /////////////////////////////
-
-    // TODO: The below is all super messy refactor it one day
-
-    const checkForOtherDAMSmartFileStep = new LambdaStep(this, 'CheckForOtherDAMSmartFile', {
-      shared,
-      src: 'damsmart/check-for-other-file.ts',
-      grantFunc: (role) => {
-        ingestBucket.grantReadWrite(role);
-        nabuOauthSecret.grantRead(role);
-      },
-    });
-
-    const prepareOtherFileEventStep = new LambdaStep(this, 'PrepareOtherFileEvent', {
-      shared,
-      src: 'damsmart/prepare-other-file-event.ts',
-      grantFunc: (role) => {
-        ingestBucket.grantRead(role);
-      },
-    });
-
-    const damsmartCreateOtherArchivalBigStep = new LambdaStep(this, 'DamsmartCreateOtherArchivalBig', {
-      shared,
-      src: 'other/create-archival.ts',
-      grantFunc: (role) => {
-        ingestBucket.grantReadWrite(role);
-        nabuOauthSecret.grantRead(role);
-      },
-    });
-
-    const damsmartCreateOtherArchivalSmallStep = new LambdaStep(this, 'DamsmartCreateOtherArchivalSmall', {
-      shared,
-      src: 'other/create-archival.ts',
-      grantFunc: (role) => {
-        ingestBucket.grantReadWrite(role);
-        nabuOauthSecret.grantRead(role);
-      },
-    });
-
-    const addToCatalogBigStep = new FargateStep(this, 'AddToCatalogBig', {
-      shared,
-      src: 'common/add-to-catalog.ts',
-      grantFunc: (role) => {
-        ingestBucket.grantRead(role);
-        ingestBucket.grantDelete(role);
-        catalogBucket.grantPut(role);
-        catalogBucket.grantRead(role);
-        nabuOauthSecret.grantRead(role);
-      },
-    });
-
-    const addToCatalogSmallStep = new FargateStep(this, 'AddToCatalogSmall', {
-      shared,
-      src: 'common/add-to-catalog.ts',
-      grantFunc: (role) => {
-        ingestBucket.grantRead(role);
-        ingestBucket.grantDelete(role);
-        catalogBucket.grantPut(role);
-        catalogBucket.grantRead(role);
-        nabuOauthSecret.grantRead(role);
-      },
-    });
-
-    const bigFileFlow = sfn.Chain.start(damsmartCreateOtherArchivalBigStep.task).next(addToCatalogBigStep.task);
-    const smallFileFlow = sfn.Chain.start(prepareOtherFileEventStep.task)
-      .next(damsmartCreateOtherArchivalSmallStep.task)
-      .next(addToCatalogSmallStep.task);
-
-    const parallelDAMSmartProcessing = new sfn.Parallel(this, 'ParallelDAMSmartProcessing');
-    parallelDAMSmartProcessing.branch(bigFileFlow);
-    parallelDAMSmartProcessing.branch(smallFileFlow);
-
-    const damSmartParallelFlow = sfn.Chain.start(parallelDAMSmartProcessing);
-
-    const DAMSMART_RETRIES = 10;
-
-    const damsmartCounter = new sfn.Pass(this, 'DAMSmarCounter', {
-      result: sfn.Result.fromObject({ retryCount: 0 }),
-      resultPath: '$.meta',
-    });
-
-    const damsmartIncrement = new sfn.Pass(this, 'DamsmartIncrement', {
-      parameters: {
-        'retryCount.$': 'States.MathAdd($.meta.retryCount, 1)',
-      },
-      resultPath: '$.meta',
-    });
-
-    const damsmartWait = new sfn.Wait(this, 'DamsmartWait', {
-      time: sfn.WaitTime.duration(cdk.Duration.minutes(2)),
-    });
-
-    const damsmartLoopEnd = new sfn.Fail(this, 'Too Many Retries', {
-      cause: 'Exceeded maximum retries',
-      error: 'RetryLimitExceeded',
-    });
-
-    const damsmartRetryChoice = new sfn.Choice(this, 'DAMSmart Retry Again?');
-
-    const checkForOtherDAMSmartFileState = sfn.Chain.start(checkForOtherDAMSmartFileStep.task).next(
-      new sfn.Choice(this, 'Is Other file ready?')
-        .when(sfn.Condition.stringEquals('$.isDAMSmartOtherPresent', 'small-file'), processSuccessStep.task)
-        .when(sfn.Condition.stringEquals('$.isDAMSmartOtherPresent', 'big-file'), damSmartParallelFlow)
-        .when(
-          sfn.Condition.stringEquals('$.isDAMSmartOtherPresent', 'wait'),
-          damsmartIncrement.next(damsmartRetryChoice),
-        ),
-    );
-
-    damsmartRetryChoice
-      .when(
-        sfn.Condition.numberLessThan('$.meta.retryCount', DAMSMART_RETRIES),
-        damsmartWait.next(checkForOtherDAMSmartFileState),
-      )
-      .otherwise(damsmartLoopEnd);
-
-    const damSmartFlow = sfn.Chain.start(damsmartCounter).next(checkForOtherDAMSmartFileState);
-
-    // /////////////////////////////
     // MediaFlow
     // /////////////////////////////
 
@@ -378,7 +258,7 @@ export class StateMachine extends Construct {
       .next(checkIsDAMSmartStep.task)
       .next(
         new sfn.Choice(this, 'Is DAMSmart Folder?')
-          .when(sfn.Condition.booleanEquals('$.isDamsmart', true), damSmartFlow)
+          .when(sfn.Condition.booleanEquals('$.isDamsmart', true), processOtherFlow)
           .when(sfn.Condition.booleanEquals('$.isDamsmart', false), mediaFlow),
       );
 
