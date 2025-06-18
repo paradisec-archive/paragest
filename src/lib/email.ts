@@ -1,3 +1,4 @@
+import { createHmac } from 'node:crypto';
 import nodemailer from 'nodemailer';
 
 import { getUserByUnikey, type EmailUser } from '../models/user.js';
@@ -11,6 +12,15 @@ type SESSmtpCredentials = {
 
 let transport: nodemailer.Transporter | undefined;
 
+const convertToSmtpPassword = (secretAccessKey: string): string => {
+  const key = Buffer.from('SendRawEmail', 'utf8');
+  const message = Buffer.from(secretAccessKey, 'utf8');
+  const signature = createHmac('sha256', key).update(message).digest();
+  const version = Buffer.from([0x02]);
+  const smtpPassword = Buffer.concat([version, signature]).toString('base64');
+  return smtpPassword;
+};
+
 const getTransporter = async () => {
   if (transport) {
     return transport;
@@ -22,6 +32,7 @@ const getTransporter = async () => {
   }
 
   const credentials = await getSecret<SESSmtpCredentials>(secretArn);
+  const smtpPassword = convertToSmtpPassword(credentials.password);
 
   transport = nodemailer.createTransport({
     host: credentials.endpoint,
@@ -29,7 +40,7 @@ const getTransporter = async () => {
     secure: false,
     auth: {
       user: credentials.username,
-      pass: credentials.password,
+      pass: smtpPassword,
     },
   });
 
