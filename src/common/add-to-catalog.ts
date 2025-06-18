@@ -43,7 +43,7 @@ const upsertEssence = async (
   };
 
   if (mimetype.startsWith('audio') || mimetype.startsWith('video')) {
-    const { other, ...mediaAttributes } = await getMediaMetadata(src, event); // eslint-disable-line @typescript-eslint/no-unused-vars
+    const { other, ...mediaAttributes } = await getMediaMetadata(getPath(src), event); // eslint-disable-line @typescript-eslint/no-unused-vars
     Object.assign(attributes, mediaAttributes);
   }
 
