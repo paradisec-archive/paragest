@@ -109,6 +109,14 @@ export class ParagestStack extends cdk.Stack {
       },
     });
 
+    new ec2.InterfaceVpcEndpoint(this, 'ECRDockerEndpoint', {
+      service: ec2.InterfaceVpcEndpointAwsService.ECR_DOCKER,
+      vpc,
+      subnets: {
+        subnets,
+      },
+    });
+
     // /////////////////////////////
     // Filesystem
     // /////////////////////////////
