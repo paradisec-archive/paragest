@@ -85,7 +85,6 @@ export class ParagestStack extends cdk.Stack {
       subnets: {
         subnets,
       },
-      privateDnsEnabled: true,
     });
 
     const dynamodbVpcEndpoint = new ec2.InterfaceVpcEndpoint(this, 'DynamoDbEndpoint', {
@@ -111,6 +110,14 @@ export class ParagestStack extends cdk.Stack {
 
     new ec2.InterfaceVpcEndpoint(this, 'ECRDockerEndpoint', {
       service: ec2.InterfaceVpcEndpointAwsService.ECR_DOCKER,
+      vpc,
+      subnets: {
+        subnets,
+      },
+    });
+
+    new ec2.InterfaceVpcEndpoint(this, 'LogsDockerEndpoint', {
+      service: ec2.InterfaceVpcEndpointAwsService.CLOUDWATCH_LOGS,
       vpc,
       subnets: {
         subnets,
