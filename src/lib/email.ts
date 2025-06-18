@@ -4,8 +4,8 @@ import { getUserByUnikey, type EmailUser } from '../models/user.js';
 import { getSecret } from './secrets.js';
 
 type SESSmtpCredentials = {
-  USERNAME: string;
-  PASSWORD: string;
+  username: string;
+  password: string;
 };
 
 let transport: nodemailer.Transporter | undefined;
@@ -27,8 +27,8 @@ const getTransporter = async () => {
     port: 587,
     secure: false,
     auth: {
-      user: credentials.USERNAME,
-      pass: credentials.PASSWORD,
+      user: credentials.username,
+      pass: credentials.password,
     },
   });
 
