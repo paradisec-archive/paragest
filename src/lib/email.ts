@@ -21,6 +21,8 @@ const getTransporter = async () => {
   }
 
   const credentials = await getSecret<SESSmtpCredentials>(secretArn);
+  console.log('🪚 ⭕');
+  console.log('🪚 credentials:', JSON.stringify(credentials, null, 2));
 
   transport = nodemailer.createTransport({
     host: 'email-smtp.ap-southeast-2.amazonaws.com',
