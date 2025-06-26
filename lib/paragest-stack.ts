@@ -59,11 +59,6 @@ export class ParagestStack extends cdk.Stack {
     const sesSmtpSecret = new secretsmanager.Secret(this, 'SESSmtpSecret', {
       description: 'SES SMTP credentials for email sending',
       secretName: '/paragest/ses/smtp',
-      // secretObjectValue: {
-      //   username: cdk.SecretValue.unsafePlainText(smtpCredentials.secret),
-      //   password: sesSmtpAccessKey.secretAccessKey,
-      //   endpoint: cdk.SecretValue.unsafePlainText(`email-smtp.${this.region}.amazonaws.com`),
-      // },
     });
     new SesSmtpCredentials(this, 'SESSmtpCredentials', {
       user: sesSmtpUser,
