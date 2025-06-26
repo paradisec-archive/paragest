@@ -36,6 +36,7 @@
     "file:cmdi": "AWS_PROFILE=nabu-$ENV aws s3 cp samples/sample.cmdi s3://paragest-ingest-$ENV/incoming/JFTEST-001-cmdi.cmdi",
     "file:opex": "AWS_PROFILE=nabu-$ENV aws s3 cp samples/sample.opex s3://paragest-ingest-$ENV/incoming/JFTEST-001-oex.opex",
     "file:imdi": "AWS_PROFILE=nabu-$ENV aws s3 cp samples/sample.imdi s3://paragest-ingest-$ENV/incoming/JFTEST-001-imdi.imdi",
+    "file:srt": "AWS_PROFILE=nabu-$ENV aws s3 cp samples/sample.srt s3://paragest-ingest-$ENV/incoming/JFTEST-001-srt.srt",
     "knip": "knip"
   },
   "devDependencies": {
