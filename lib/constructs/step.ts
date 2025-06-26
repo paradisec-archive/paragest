@@ -4,22 +4,20 @@ import { execSync } from 'node:child_process';
 import * as path from 'node:path';
 
 import * as cdk from 'aws-cdk-lib';
-import { Construct } from 'constructs';
-
 import * as batch from 'aws-cdk-lib/aws-batch';
+import type * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
+import type * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as ecrAssets from 'aws-cdk-lib/aws-ecr-assets';
 import * as ecs from 'aws-cdk-lib/aws-ecs';
+import type * as efs from 'aws-cdk-lib/aws-efs';
+import type { IRole } from 'aws-cdk-lib/aws-iam';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as nodejs from 'aws-cdk-lib/aws-lambda-nodejs';
+import type * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import * as sfn from 'aws-cdk-lib/aws-stepfunctions';
 import * as tasks from 'aws-cdk-lib/aws-stepfunctions-tasks';
-
-import type * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
-import type * as ec2 from 'aws-cdk-lib/aws-ec2';
-import type * as efs from 'aws-cdk-lib/aws-efs';
-import type * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
-import type { IRole } from 'aws-cdk-lib/aws-iam';
+import { Construct } from 'constructs';
 
 export type SharedProps = {
   env: string;
@@ -30,6 +28,7 @@ export type SharedProps = {
   vpc: ec2.IVpc;
   subnets: ec2.ISubnet[];
   nabuDnsName: string;
+  sentryDnsName: string;
   dynamodbDnsName: string;
   sesSmtpSecret: secretsmanager.ISecret;
 };
@@ -47,23 +46,21 @@ type LambdaStepProps = {
 type LambdaProps = Pick<LambdaStepProps, 'src' | 'lambdaProps' | 'nodeModules' | 'shared'>;
 
 // We want the SHA to change only when the file or deps change
-const getGitSha = (file: string) =>
-  JSON.stringify(execSync(`git log -1 --format=format:%h -- ${file} src/lib`).toString().trim());
+const getGitSha = (file: string) => execSync(`git log -1 --format=format:%h -- ${file} src/lib`).toString().trim();
 
 const commonEnv = (src: string, shared: SharedProps) => ({
   NODE_OPTIONS: '--enable-source-maps',
   PARAGEST_ENV: shared.env,
-  SENTRY_DSN: 'https://e36e8aa3d034861a3803d2edbd4773ff@o4504801902985216.ingest.sentry.io/4506375864254464',
-  SENTRY_RELEASE: JSON.stringify(getGitSha(src)),
+  // SENTRY_DSN: 'https://e36e8aa3d034861a3803d2edbd4773ff@o4504801902985216.ingest.sentry.io/4506375864254464',
+  SENTRY_DSN: `http://e36e8aa3d034861a3803d2edbd4773ff@${shared.sentryDnsName}/sentry-relay/4506375864254464`,
+  SENTRY_RELEASE: getGitSha(src),
   CONCURRENCY_TABLE_NAME: shared.concurrencyTable.tableName,
   NABU_DNS_NAME: shared.nabuDnsName,
   DYNAMODB_ENDPOINT: shared.dynamodbDnsName,
   SES_SMTP_SECRET_ARN: shared.sesSmtpSecret.secretArn,
 });
 
-export const genLambdaProps = (
-  props: Pick<LambdaProps, 'src' | 'shared' | 'lambdaProps' | 'nodeModules'>,
-): nodejs.NodejsFunctionProps => {
+export const genLambdaProps = (props: Pick<LambdaProps, 'src' | 'shared' | 'lambdaProps' | 'nodeModules'>): nodejs.NodejsFunctionProps => {
   const { src, nodeModules, shared } = props;
   const { environment = {}, ...lambdaProps } = props.lambdaProps ?? {};
 
@@ -93,7 +90,7 @@ export const genLambdaProps = (
       minify: true,
       nodeModules: ['nodemailer', ...(nodeModules ?? [])],
       define: {
-        'process.env.SENTRY_RELEASE': getGitSha(entry),
+        'process.env.SENTRY_RELEASE': JSON.stringify(getGitSha(entry)),
       },
     },
     entry,

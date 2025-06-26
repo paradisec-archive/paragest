@@ -1,6 +1,5 @@
-import type { Handler } from 'aws-lambda';
-
 import * as Sentry from '@sentry/aws-serverless';
+import type { Handler } from 'aws-lambda';
 
 import '../lib/sentry.js';
 
@@ -27,7 +26,9 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
 
   const extension = objectKey.split('.').pop();
   if (!extension) {
-    throw new StepError(`File ${objectKey} does not have an extension`, event, { objectKey });
+    throw new StepError(`File ${objectKey} does not have an extension`, event, {
+      objectKey,
+    });
   }
 
   if (ALLOWED_ZERO_SIZE_EXTENSIONS.includes(extension)) {
@@ -36,9 +37,5 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
     return event;
   }
 
-  throw new StepError(
-    `File ${objectKey} is empty and not in allowed extensions [${ALLOWED_ZERO_SIZE_EXTENSIONS.join(',')}]`,
-    event,
-    { objectKey },
-  );
+  throw new StepError(`File ${objectKey} is empty and not in allowed extensions [${ALLOWED_ZERO_SIZE_EXTENSIONS.join(',')}]`, event, { objectKey });
 });

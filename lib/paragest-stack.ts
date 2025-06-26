@@ -1,24 +1,22 @@
-import * as cdk from 'aws-cdk-lib';
-import type { Construct } from 'constructs';
+import { SesSmtpCredentials } from '@pepperize/cdk-ses-smtp-credentials';
 
+import * as cdk from 'aws-cdk-lib';
 import * as batch from 'aws-cdk-lib/aws-batch';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as efs from 'aws-cdk-lib/aws-efs';
 import * as events from 'aws-cdk-lib/aws-events';
-import * as iam from 'aws-cdk-lib/aws-iam';
 import * as targets from 'aws-cdk-lib/aws-events-targets';
+import * as iam from 'aws-cdk-lib/aws-iam';
 import * as eventsources from 'aws-cdk-lib/aws-lambda-event-sources';
 import * as nodejs from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import * as ssm from 'aws-cdk-lib/aws-ssm';
+import type { Construct } from 'constructs';
 
 import { StateMachine } from './constructs/state-machine';
 import { genLambdaProps } from './constructs/step';
-import { SesSmtpCredentials } from '@pepperize/cdk-ses-smtp-credentials';
-
-// TODO: Be more specific on where functions can read and write
 
 export class ParagestStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -82,10 +80,7 @@ export class ParagestStack extends cdk.Stack {
       vpcId: ssm.StringParameter.valueFromLookup(this, '/paragest/resources/vpc-id'),
     });
     const subnets = ['a', 'b', 'c'].map((az, index) => {
-      const subnetId = ssm.StringParameter.valueForStringParameter(
-        this,
-        `/paragest/resources/subnets/private/apse2${az}-id`,
-      );
+      const subnetId = ssm.StringParameter.valueForStringParameter(this, `/paragest/resources/subnets/private/apse2${az}-id`);
       const availabilityZone = `ap-southeast-2${az}`;
       const subnet = ec2.Subnet.fromSubnetAttributes(this, `DataSubnet${index}`, { subnetId, availabilityZone });
       cdk.Annotations.of(subnet).acknowledgeWarning('@aws-cdk/aws-ec2:noSubnetRouteTableId');
@@ -94,6 +89,7 @@ export class ParagestStack extends cdk.Stack {
     });
 
     const nabuServiceName = ssm.StringParameter.valueFromLookup(this, '/nabu/resources/nlb-endpoint/service-name');
+
     const nabuVpcEndpoint = new ec2.InterfaceVpcEndpoint(this, 'NabuNLBInterfaceEndpoint', {
       service: new ec2.InterfaceVpcEndpointService(nabuServiceName, 443),
       vpc,
@@ -103,6 +99,16 @@ export class ParagestStack extends cdk.Stack {
       open: true,
     });
     const nabuDnsName = cdk.Fn.select(1, cdk.Fn.split(':', cdk.Fn.select(0, nabuVpcEndpoint.vpcEndpointDnsEntries)));
+
+    const sentryVpcEndpoint = new ec2.InterfaceVpcEndpoint(this, 'NabuNLBHTTPInterfaceEndpoint', {
+      service: new ec2.InterfaceVpcEndpointService(nabuServiceName, 80),
+      vpc,
+      subnets: {
+        subnets,
+      },
+      open: true,
+    });
+    const sentryDnsName = cdk.Fn.select(1, cdk.Fn.split(':', cdk.Fn.select(0, sentryVpcEndpoint.vpcEndpointDnsEntries)));
 
     // For our code
     new ec2.InterfaceVpcEndpoint(this, 'SecretsManagerEndpoint', {
@@ -122,10 +128,7 @@ export class ParagestStack extends cdk.Stack {
       },
       privateDnsEnabled: false,
     });
-    const dynamodbDnsName = cdk.Fn.select(
-      1,
-      cdk.Fn.split(':', cdk.Fn.select(0, dynamodbVpcEndpoint.vpcEndpointDnsEntries)),
-    );
+    const dynamodbDnsName = cdk.Fn.select(1, cdk.Fn.split(':', cdk.Fn.select(0, dynamodbVpcEndpoint.vpcEndpointDnsEntries)));
 
     // Our code at end of batch
     new ec2.InterfaceVpcEndpoint(this, 'StepFunctionsEndpoint', {
@@ -248,6 +251,7 @@ export class ParagestStack extends cdk.Stack {
       vpc,
       subnets,
       nabuDnsName,
+      sentryDnsName,
       dynamodbDnsName,
       sesSmtpSecret,
     };
@@ -268,7 +272,11 @@ export class ParagestStack extends cdk.Stack {
       genLambdaProps({
         shared,
         src: 'process-s3-event.ts',
-        lambdaProps: { environment: { STATE_MACHINE_ARN: stateMachine.stateMachine.stateMachineArn } },
+        lambdaProps: {
+          environment: {
+            STATE_MACHINE_ARN: stateMachine.stateMachine.stateMachineArn,
+          },
+        },
       }),
     );
 
