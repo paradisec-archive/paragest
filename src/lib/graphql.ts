@@ -1,6 +1,5 @@
-import fetch from 'node-fetch';
-
 import { Client, fetchExchange } from '@urql/core';
+import fetch from 'node-fetch';
 
 import { getSecret } from './secrets.js';
 
@@ -14,8 +13,7 @@ if (!process.env.PARAGEST_ENV) {
 }
 const apiUrl = `https://${process.env.NABU_DNS_NAME}`;
 
-const tlsHostname =
-  process.env.PARAGEST_ENV === 'prod' ? 'catalog.nabu-prod.paradisec.org.au' : 'catalog.nabu-stage.paradisec.org.au';
+const tlsHostname = process.env.PARAGEST_ENV === 'prod' ? 'catalog.nabu-prod.paradisec.org.au' : 'catalog.nabu-stage.paradisec.org.au';
 
 const getAccessToken = async (credentials: OAuthSecret): Promise<string> => {
   const tokenUrl = `${apiUrl}/oauth/token`;

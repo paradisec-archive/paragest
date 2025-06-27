@@ -1,4 +1,4 @@
-import { SecretsManager, type GetSecretValueCommandInput } from '@aws-sdk/client-secrets-manager';
+import { type GetSecretValueCommandInput, SecretsManager } from '@aws-sdk/client-secrets-manager';
 
 const secretsmanager = new SecretsManager({});
 

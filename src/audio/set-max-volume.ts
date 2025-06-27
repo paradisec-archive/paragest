@@ -50,10 +50,7 @@ export const handler = async (event: Event) => {
   const src = getPath('unsilenced.wav');
   const dst = getPath('volume-maxed.wav');
 
-  const analysis = execute(
-    `ffmpeg -i '${src}' -filter:a volumedetect -f null /dev/null 2>&1 | grep volumedetect | sed "s/^.*] //"`,
-    event,
-  );
+  const analysis = execute(`ffmpeg -i '${src}' -filter:a volumedetect -f null /dev/null 2>&1 | grep volumedetect | sed "s/^.*] //"`, event);
   const maxVolume = getVolume(analysis.toString(), event);
 
   notes.push(`setMaxVolume: Volume is at ${maxVolume} dB`);

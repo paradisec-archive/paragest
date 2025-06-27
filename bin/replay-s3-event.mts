@@ -1,20 +1,8 @@
 #!/usr/bin/env -S node --experimental-strip-types
 
-import {
-  S3Client,
-  HeadObjectCommand,
-  ListObjectsV2Command,
-  DeleteObjectCommand,
-  CopyObjectCommand,
-} from '@aws-sdk/client-s3';
 import { LambdaClient, ListFunctionsCommand } from '@aws-sdk/client-lambda';
-import {
-  SFNClient,
-  ListExecutionsCommand,
-  ListStateMachinesCommand,
-  GetExecutionHistoryCommand,
-  StartExecutionCommand,
-} from '@aws-sdk/client-sfn';
+import { CopyObjectCommand, DeleteObjectCommand, HeadObjectCommand, ListObjectsV2Command, S3Client } from '@aws-sdk/client-s3';
+import { GetExecutionHistoryCommand, ListExecutionsCommand, ListStateMachinesCommand, SFNClient, StartExecutionCommand } from '@aws-sdk/client-sfn';
 import inquirer from 'inquirer';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -66,9 +54,7 @@ const buildExecutionCache = async () => {
 
   // Give up after MAX_PAGINATION_ATTEMPTS
   if (paginationAttempts >= MAX_PAGINATION_ATTEMPTS) {
-    console.log(
-      `Reached maximum pagination attempts (${MAX_PAGINATION_ATTEMPTS}), giving up on further cache building`,
-    );
+    console.log(`Reached maximum pagination attempts (${MAX_PAGINATION_ATTEMPTS}), giving up on further cache building`);
     return;
   }
 
@@ -107,9 +93,7 @@ const buildExecutionCache = async () => {
       );
 
       // Find the execution started event which contains the input
-      const startedEvent = historyResponse.events?.find(
-        (event) => event.type === 'ExecutionStarted' && event.executionStartedEventDetails?.input,
-      );
+      const startedEvent = historyResponse.events?.find((event) => event.type === 'ExecutionStarted' && event.executionStartedEventDetails?.input);
 
       if (!startedEvent?.executionStartedEventDetails?.input) {
         continue;
@@ -166,9 +150,7 @@ const moveFileToIncoming = async (bucketName: string, path: string, key: string,
   if (size > 5 * 1024 * 1024 * 1024) {
     // For simplicity in this script, we're just warning about large files
     console.warn(`File is larger than 5GB (${size} bytes). You should use the AWS CLI to copy this file with tags:`);
-    console.warn(
-      `aws s3 cp s3://${bucketName}/${path}/${key} s3://${bucketName}/incoming/${key} --tagging "manual=true" --profile ${process.env.AWS_PROFILE}`,
-    );
+    console.warn(`aws s3 cp s3://${bucketName}/${path}/${key} s3://${bucketName}/incoming/${key} --tagging "manual=true" --profile ${process.env.AWS_PROFILE}`);
 
     const shouldContinue = await inquirer.prompt([
       {
@@ -184,9 +166,7 @@ const moveFileToIncoming = async (bucketName: string, path: string, key: string,
       process.exit(0);
     }
 
-    console.log(
-      'Continuing without moving the file. The Lambda will be invoked with the file in its current location.',
-    );
+    console.log('Continuing without moving the file. The Lambda will be invoked with the file in its current location.');
     return;
   }
 
@@ -244,9 +224,7 @@ const invokeLambdaWithS3Event = async (bucketName: string, path: string, key: st
   const listFunctionsCommand = new ListFunctionsCommand({});
   const listResponse = await lambda.send(listFunctionsCommand);
 
-  const funcName = listResponse.Functions?.find((func) =>
-    func.FunctionName?.startsWith('ParagestStack-ProcessS3EventLambda'),
-  )?.FunctionName;
+  const funcName = listResponse.Functions?.find((func) => func.FunctionName?.startsWith('ParagestStack-ProcessS3EventLambda'))?.FunctionName;
 
   if (!funcName) {
     console.error('Could not find the ProcessS3EventLambda function');

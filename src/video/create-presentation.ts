@@ -38,8 +38,7 @@ export const handler = async (event: Event) => {
 
   const is10Bit = bitDepth === 10;
   const isInterlaced = scanType === 'Interlaced';
-  const isAcceptablePresentationInput =
-    generalCodecId === 'isom (isom/iso2/avc1/mp41)' && audioCodecId === 'AAC LC' && videoCodecId === 'AVC';
+  const isAcceptablePresentationInput = generalCodecId === 'isom (isom/iso2/avc1/mp41)' && audioCodecId === 'AAC LC' && videoCodecId === 'AVC';
 
   notes.push(`create-presentation: Is 10-bit: ${is10Bit}`);
   notes.push(`create-presentation: Is interlaced: ${isInterlaced}`);

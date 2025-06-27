@@ -1,7 +1,6 @@
-import * as Sentry from '@sentry/aws-serverless';
-
-import type { Handler } from 'aws-lambda';
 import { FileMagic } from '@npcz/magic';
+import * as Sentry from '@sentry/aws-serverless';
+import type { Handler } from 'aws-lambda';
 import mime from 'mime-types';
 
 import '../lib/sentry.js';

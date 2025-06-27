@@ -41,8 +41,7 @@ export const handler = async (event: Event) => {
 
   const is10Bit = bitDepth === 10;
   const isInterlaced = scanType === 'Interlaced';
-  const isAcceptablePresentationInput =
-    generalFormat === 'Matroska' && audioCodecId === 'A_FLAC' && videoCodecId === 'V_MS/VFW/FOURCC / FFV1';
+  const isAcceptablePresentationInput = generalFormat === 'Matroska' && audioCodecId === 'A_FLAC' && videoCodecId === 'V_MS/VFW/FOURCC / FFV1';
 
   notes.push(`create-archival: Is 10-bit: ${is10Bit}`);
   notes.push(`create-archival: Is interlaced: ${isInterlaced}`);
@@ -57,10 +56,7 @@ export const handler = async (event: Event) => {
     return event;
   }
 
-  execute(
-    `ffmpeg -y -hide_banner -i '${src}' -sn -map 0 -dn -c:v ffv1 -level 3 -g 1 -slicecrc 1 -slices 16 -c:a flac '${dst}'`,
-    event,
-  );
+  execute(`ffmpeg -y -hide_banner -i '${src}' -sn -map 0 -dn -c:v ffv1 -level 3 -g 1 -slicecrc 1 -slices 16 -c:a flac '${dst}'`, event);
   notes.push('create-archival: Created MKV file');
 
   return event;

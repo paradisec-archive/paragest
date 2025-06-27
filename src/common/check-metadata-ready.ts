@@ -1,6 +1,5 @@
-import type { Handler } from 'aws-lambda';
-
 import * as Sentry from '@sentry/aws-serverless';
+import type { Handler } from 'aws-lambda';
 
 import '../lib/sentry.js';
 
@@ -38,19 +37,15 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
   const item = await getItem(collectionIdentifier, itemIdentifier);
 
   if (!item) {
-    throw new StepError(
-      `File ${filename} is for collection: ${collectionIdentifier} item: ${itemIdentifier} but that is not in the database`,
-      event,
-      { objectKey },
-    );
+    throw new StepError(`File ${filename} is for collection: ${collectionIdentifier} item: ${itemIdentifier} but that is not in the database`, event, {
+      objectKey,
+    });
   }
 
   if (!item.metadata_exportable) {
-    throw new StepError(
-      `The metadata for essence ${filename} of item ${collectionIdentifier}-${itemIdentifier} has not been marked as exportable`,
-      event,
-      { objectKey },
-    );
+    throw new StepError(`The metadata for essence ${filename} of item ${collectionIdentifier}-${itemIdentifier} has not been marked as exportable`, event, {
+      objectKey,
+    });
   }
 
   event.notes.push('checkIfExportable: Item is exportable');

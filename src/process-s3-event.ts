@@ -1,9 +1,8 @@
 import { GetObjectTaggingCommand, S3 } from '@aws-sdk/client-s3';
 import { SFN, type StartExecutionCommandInput } from '@aws-sdk/client-sfn';
+import * as Sentry from '@sentry/aws-serverless';
 import type { Handler, S3Event } from 'aws-lambda';
 import { v4 as uuidv4 } from 'uuid';
-
-import * as Sentry from '@sentry/aws-serverless';
 
 import './lib/sentry.js';
 

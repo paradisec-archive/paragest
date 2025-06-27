@@ -1,11 +1,9 @@
 import * as cdk from 'aws-cdk-lib';
-import { Construct } from 'constructs';
-
 import * as iam from 'aws-cdk-lib/aws-iam';
-import * as sfn from 'aws-cdk-lib/aws-stepfunctions';
-
 import type * as s3 from 'aws-cdk-lib/aws-s3';
 import type * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
+import * as sfn from 'aws-cdk-lib/aws-stepfunctions';
+import { Construct } from 'constructs';
 
 import { FargateStep, LambdaStep, type SharedProps } from './step';
 
@@ -188,9 +186,7 @@ export class StateMachine extends Construct {
       },
       jobProps: { taskTimeout: sfn.Timeout.duration(cdk.Duration.hours(7)) },
     });
-    const processVideoFlow = sfn.Chain.start(createVideoArchivalStep.task)
-      .next(createVideoPresentationStep.task)
-      .next(addToCatalogFlow);
+    const processVideoFlow = sfn.Chain.start(createVideoArchivalStep.task).next(createVideoPresentationStep.task).next(addToCatalogFlow);
 
     // /////////////////////////////
     // Image Flow Steps
@@ -212,9 +208,7 @@ export class StateMachine extends Construct {
         nabuOauthSecret.grantRead(role);
       },
     });
-    const processImageFlow = sfn.Chain.start(createImageArchivalStep.task)
-      .next(createImagePresentationStep.task)
-      .next(addToCatalogFlow);
+    const processImageFlow = sfn.Chain.start(createImageArchivalStep.task).next(createImagePresentationStep.task).next(addToCatalogFlow);
 
     // /////////////////////////////
     // Other Flow Steps

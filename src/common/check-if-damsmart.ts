@@ -1,6 +1,5 @@
-import type { Handler } from 'aws-lambda';
-
 import * as Sentry from '@sentry/aws-serverless';
+import type { Handler } from 'aws-lambda';
 
 import '../lib/sentry.js';
 

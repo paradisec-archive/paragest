@@ -44,9 +44,8 @@ export const getEssence = throttle(async (collectionIdentifier: string, itemIden
   return response.data?.essence;
 });
 
-export const createEssence = throttle(
-  async (collectionIdentifier: string, itemIdentifier: string, filename: string, attributes: Omit<Essence, 'id'>) => {
-    const EssenceCreateMutation = graphql(/* GraphQL */ `
+export const createEssence = throttle(async (collectionIdentifier: string, itemIdentifier: string, filename: string, attributes: Omit<Essence, 'id'>) => {
+  const EssenceCreateMutation = graphql(/* GraphQL */ `
       mutation EssenceCreateMutation($input: EssenceCreateInput!) {
         essenceCreate(input: $input) {
           essence {
@@ -56,32 +55,31 @@ export const createEssence = throttle(
       }
     `);
 
-    const { mimetype, size } = attributes;
-    if (!mimetype) {
-      throw new Error('Mimetype is required');
-    }
+  const { mimetype, size } = attributes;
+  if (!mimetype) {
+    throw new Error('Mimetype is required');
+  }
 
-    if (!size) {
-      throw new Error('Size is required');
-    }
+  if (!size) {
+    throw new Error('Size is required');
+  }
 
-    const params = {
-      collectionIdentifier,
-      itemIdentifier,
-      filename,
-      attributes: {
-        ...attributes,
-        mimetype,
-        size,
-      },
-    };
+  const params = {
+    collectionIdentifier,
+    itemIdentifier,
+    filename,
+    attributes: {
+      ...attributes,
+      mimetype,
+      size,
+    },
+  };
 
-    const createResponse = await gqlClient.mutation(EssenceCreateMutation, { input: params });
-    console.debug('CreateResponse:', JSON.stringify(createResponse, null, 2));
+  const createResponse = await gqlClient.mutation(EssenceCreateMutation, { input: params });
+  console.debug('CreateResponse:', JSON.stringify(createResponse, null, 2));
 
-    return [createResponse.data?.essenceCreate?.essence, createResponse.error];
-  },
-);
+  return [createResponse.data?.essenceCreate?.essence, createResponse.error];
+});
 
 export const updateEssence = throttle(async (id: string, attributes: EssenceAttributes) => {
   const EssenceUpdateMutation = graphql(/* GraphQL */ `

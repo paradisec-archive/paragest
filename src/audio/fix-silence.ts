@@ -90,10 +90,7 @@ export const handler = async (event: Event) => {
   notes.push(`Only ${file} channel has audio, copying to silent channel`);
 
   const filter = leftSilent ? 'c0=c1|c1=c1' : 'c0=c0|c1=c0';
-  execute(
-    `ffmpeg -y -i '${src}' -filter_complex "pan=stereo|${filter}" -ac 2 -ar 96000 -c:a pcm_s24le -rf64 auto '${dst}'`,
-    event,
-  );
+  execute(`ffmpeg -y -i '${src}' -filter_complex "pan=stereo|${filter}" -ac 2 -ar 96000 -c:a pcm_s24le -rf64 auto '${dst}'`, event);
 
   return event;
 };

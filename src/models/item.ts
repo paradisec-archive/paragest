@@ -25,9 +25,8 @@ export const getItem = throttle(async (collectionIdentifier: string, itemIdentif
   return response.data?.item;
 });
 
-export const getItemBwfCsv = throttle(
-  async (collectionIdentifier: string, itemIdentifier: string, filename: string) => {
-    const ItemBwfCsvQuery = graphql(/* GraphQL */ `
+export const getItemBwfCsv = throttle(async (collectionIdentifier: string, itemIdentifier: string, filename: string) => {
+  const ItemBwfCsvQuery = graphql(/* GraphQL */ `
     query GetItemBwfCsvQuery($fullIdentifier: ID!, $filename: String!) {
       itemBwfCsv(fullIdentifier: $fullIdentifier, filename: $filename) {
         csv
@@ -35,15 +34,14 @@ export const getItemBwfCsv = throttle(
     }
   `);
 
-    const response = await gqlClient.query(ItemBwfCsvQuery, {
-      fullIdentifier: `${collectionIdentifier}-${itemIdentifier}`,
-      filename,
-    });
-    console.debug('Response:', JSON.stringify(response, null, 2));
+  const response = await gqlClient.query(ItemBwfCsvQuery, {
+    fullIdentifier: `${collectionIdentifier}-${itemIdentifier}`,
+    filename,
+  });
+  console.debug('Response:', JSON.stringify(response, null, 2));
 
-    return response.data?.itemBwfCsv?.csv;
-  },
-);
+  return response.data?.itemBwfCsv?.csv;
+});
 
 export const getItemId3 = throttle(async (collectionIdentifier: string, itemIdentifier: string) => {
   const query = graphql(/* GraphQL */ `

@@ -1,6 +1,5 @@
-import type { Handler } from 'aws-lambda';
-
 import * as Sentry from '@sentry/aws-serverless';
+import type { Handler } from 'aws-lambda';
 
 import '../lib/sentry.js';
 
@@ -36,11 +35,7 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
   const collection = await getCollection(collectionIdentifier);
 
   if (!collection) {
-    throw new StepError(
-      `File ${filename} for collection: ${collectionIdentifier} but it is not in the database`,
-      event,
-      { objectKey },
-    );
+    throw new StepError(`File ${filename} for collection: ${collectionIdentifier} but it is not in the database`, event, { objectKey });
   }
 
   const details = {

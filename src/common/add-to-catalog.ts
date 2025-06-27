@@ -2,12 +2,12 @@ import fs from 'node:fs';
 
 import '../lib/sentry-node.js';
 
+import path from 'node:path';
 import { processBatch } from '../lib/batch.js';
 import { StepError } from '../lib/errors.js';
 import { getMediaMetadata, lookupMimetypeFromExtension } from '../lib/media.js';
 import { getPath, upload } from '../lib/s3.js';
 import { createEssence, getEssence, updateEssence } from '../models/essence.js';
-import path from 'node:path';
 
 type Event = {
   id: string;
@@ -28,14 +28,7 @@ const env = process.env.PARAGEST_ENV;
 
 const destBucket = `nabu-catalog-${env}`;
 
-const upsertEssence = async (
-  collectionIdentifier: string,
-  itemIdentifier: string,
-  filename: string,
-  size: number,
-  mimetype: string,
-  event: Event,
-) => {
+const upsertEssence = async (collectionIdentifier: string, itemIdentifier: string, filename: string, size: number, mimetype: string, event: Event) => {
   const attributes = {
     mimetype,
     size,

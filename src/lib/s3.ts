@@ -7,8 +7,8 @@ import {
   CreateMultipartUploadCommand,
   DeleteObjectCommand,
   GetObjectCommand,
-  GetObjectTaggingCommand,
   type GetObjectCommandInput,
+  GetObjectTaggingCommand,
   HeadObjectCommand,
   // ListObjectsV2Command,
   type PutObjectCommandInput,
@@ -21,15 +21,7 @@ import { Upload } from '@aws-sdk/lib-storage';
 
 const s3 = new S3Client();
 
-const bigCopy = async (
-  srcBucket: string,
-  src: string,
-  dstBucket: string,
-  dst: string,
-  objectSize: number,
-  metadata?: Record<string, string>,
-  tags?: Tag[],
-) => {
+const bigCopy = async (srcBucket: string, src: string, dstBucket: string, dst: string, objectSize: number, metadata?: Record<string, string>, tags?: Tag[]) => {
   const partSize = 100 * 1024 * 1024;
   let uploadId: string | undefined;
 
@@ -161,16 +153,9 @@ export const move = async (srcBucket: string, src: string, dstBucket: string, ds
   await destroy(srcBucket, src);
 };
 
-export const getPath = (filename: string) =>
-  filename.startsWith('/') ? filename : `/mnt/efs/${process.env.SFN_ID}/${filename}`;
+export const getPath = (filename: string) => (filename.startsWith('/') ? filename : `/mnt/efs/${process.env.SFN_ID}/${filename}`);
 
-export const upload = async (
-  filename: string,
-  dstBucket: string,
-  dst: string,
-  mimetype: string,
-  archiveTag = false,
-) => {
+export const upload = async (filename: string, dstBucket: string, dst: string, mimetype: string, archiveTag = false) => {
   const path = getPath(filename);
   const readStream = createReadStream(path);
 

@@ -1,6 +1,6 @@
 import nodemailer from 'nodemailer';
 
-import { getUserByUnikey, type EmailUser } from '../models/user.js';
+import { type EmailUser, getUserByUnikey } from '../models/user.js';
 import { getSecret } from './secrets.js';
 
 type SESSmtpCredentials = {
@@ -43,11 +43,7 @@ const defaultEmail = env === 'prod' ? 'admin@paradisec.org.au' : 'jferlito@gmail
 const cc = env === 'prod' ? [] : ['jferlito@gmail.com'];
 
 // eslint-disable-next-line no-unused-vars
-export const sendEmail = async (
-  principalId: string,
-  subject: string,
-  bodyFunc: (admin: EmailUser, unikey: string) => string,
-) => {
+export const sendEmail = async (principalId: string, subject: string, bodyFunc: (admin: EmailUser, unikey: string) => string) => {
   const unikey = principalId.replace(/.*:/, '');
   const admin = await getUserByUnikey(unikey);
 

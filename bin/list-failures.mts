@@ -1,11 +1,6 @@
 #!/usr/bin/env -S node --experimental-strip-types
 
-import {
-  SFNClient,
-  ListExecutionsCommand,
-  ListStateMachinesCommand,
-  GetExecutionHistoryCommand,
-} from '@aws-sdk/client-sfn';
+import { GetExecutionHistoryCommand, ListExecutionsCommand, ListStateMachinesCommand, SFNClient } from '@aws-sdk/client-sfn';
 import inquirer from 'inquirer';
 
 const ENVIRONMENTS = ['prod', 'stage'];
@@ -53,9 +48,7 @@ const listFailures = async (env: string) => {
   }
 
   // Filter executions that are within the past week
-  const recentFailures = listResponse.executions.filter(
-    (execution) => execution.startDate && execution.startDate >= oneWeekAgo,
-  );
+  const recentFailures = listResponse.executions.filter((execution) => execution.startDate && execution.startDate >= oneWeekAgo);
 
   if (recentFailures.length === 0) {
     console.log('No failed executions found in the past week.');
@@ -88,14 +81,10 @@ const listFailures = async (env: string) => {
       );
 
       // Find the execution started event which contains the input
-      const startedEvent = historyResponse.events?.find(
-        (event) => event.type === 'ExecutionStarted' && event.executionStartedEventDetails?.input,
-      );
+      const startedEvent = historyResponse.events?.find((event) => event.type === 'ExecutionStarted' && event.executionStartedEventDetails?.input);
 
       // Find the execution failed event which contains the error and cause
-      const failedEvent = historyResponse.events?.find(
-        (event) => event.type === 'TaskFailed' && event.taskFailedEventDetails,
-      );
+      const failedEvent = historyResponse.events?.find((event) => event.type === 'TaskFailed' && event.taskFailedEventDetails);
 
       if (!startedEvent?.executionStartedEventDetails?.input || !failedEvent?.taskFailedEventDetails) {
         console.warn(`Could not find complete information for execution: ${execution.executionArn}`);

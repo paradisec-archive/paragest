@@ -1,12 +1,11 @@
-import type { Handler } from 'aws-lambda';
-
 import * as Sentry from '@sentry/aws-serverless';
+import type { Handler } from 'aws-lambda';
 
 import './lib/sentry.js';
 
 import { sendEmail } from './lib/email';
-import type { EmailUser } from './models/user';
 import { destroy } from './lib/s3.js';
+import type { EmailUser } from './models/user';
 
 type Event = {
   notes: string[];
