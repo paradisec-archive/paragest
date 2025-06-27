@@ -1,7 +1,6 @@
-import * as Sentry from '@sentry/aws-serverless';
-
-import type { Handler } from 'aws-lambda';
 import { FileMagic } from '@npcz/magic';
+import * as Sentry from '@sentry/aws-serverless';
+import type { Handler } from 'aws-lambda';
 import mime from 'mime-types';
 
 import '../lib/sentry.js';
@@ -53,7 +52,7 @@ const mimetypeMatchesExtension = (mimetype: string, actualExt: string) => {
   console.log('🪚 🟩 MME');
   console.log('🪚 mimetype:', JSON.stringify(mimetype, null, 2));
   console.log('🪚 actualExt:', JSON.stringify(actualExt, null, 2));
-  const possibleExt = mime.extensions[mimetype] || [];
+  const possibleExt = mime.extensions[mimetype.toLocaleLowerCase()] || [];
   console.log('🪚 possibleExt:', JSON.stringify(possibleExt, null, 2));
 
   if (possibleExt.includes(actualExt)) {
@@ -106,29 +105,21 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
   }
 
   if (!mimetypeMatchesExtension(detectedMimetype, extension)) {
-    throw new StepError(
-      `${filename}: extension doesn't match detected mimetype ${detectedMimetype} ${extension}`,
-      event,
-      event,
-    );
-  }
-
-  const mimetype = lookupMimetypeFromExtension(extension);
-  if (!mimetype) {
-    throw new StepError(`${filename}: Unsupported file extension ${extension}`, event, { detected: detectedMimetype });
+    throw new StepError(`${filename}: extension doesn't match detected mimetype ${detectedMimetype} ${extension}`, event, event);
+  }`${filename}: extension doesn't match detected mimetype ${detectedMimetype} ${extension}`, event, eventthrow new StepError(`${filename}: Unsupported file extension ${extension}`, event, { detected: detectedMimetype });
   }
 
   if (detectedMimetype !== mimetype && !allowedMimetypeException(detectedMimetype, mimetype)) {
-    throw new StepError(
-      `${filename}: File mimetype doesn't match detected filetype ${detectedMimetype} != ${mimetype}`,
-      event,
-      { detected: detectedMimetype, extension, mimetype },
-    );
-  }
-
-  notes.push(`detectAndValidateMedia: Detected mimetype as ${mimetype}`);
-
-  let mediaType: string;
+    throw new StepError(`${filename}: File mimetype doesn't match detected filetype ${detectedMimetype} != ${mimetype}`, event, {
+      detected: detectedMimetype,
+      extension,
+      mimetype,
+    });
+  }`${filename}: File mimetype doesn't match detected filetype ${detectedMimetype} != ${mimetype}`, event, {
+      detected: detectedMimetype,
+      extension,
+      mimetype,
+    }t mediaType: string;
   switch (true) {
     case mimetype.startsWith('audio'):
       mediaType = 'audio';
