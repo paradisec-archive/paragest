@@ -12,7 +12,6 @@ const GeneralTrack = z.object({
   // Useful
   VideoCount: z.coerce.number().optional(),
   AudioCount: z.coerce.number().optional(),
-  FileExtension: z.string(),
   FileSize: z.coerce.number(),
   FrameRate: z.coerce
     .number()
@@ -86,16 +85,7 @@ const MaxTrack = z.object({
   Format: z.string().optional(),
 });
 
-const MediaTrack = z.discriminatedUnion('@type', [
-  GeneralTrack,
-  VideoTrack,
-  AudioTrack,
-  OtherTrack,
-  ImageTrack,
-  TextTrack,
-  MenuTrack,
-  MaxTrack,
-]);
+const MediaTrack = z.discriminatedUnion('@type', [GeneralTrack, VideoTrack, AudioTrack, OtherTrack, ImageTrack, TextTrack, MenuTrack, MaxTrack]);
 
 const MediaInfoSchema = z.object({
   creatingLibrary: z.object({
