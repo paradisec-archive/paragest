@@ -92,6 +92,7 @@ export class StateMachine extends Construct {
         catalogBucket.grantRead(role);
         nabuOauthSecret.grantRead(role);
       },
+      jobProps: { taskTimeout: sfn.Timeout.duration(cdk.Duration.minutes(30)) },
     });
 
     const addToCatalogFlow = sfn.Chain.start(addToCatalogStep.task).next(processSuccessStep.task);
@@ -102,7 +103,7 @@ export class StateMachine extends Construct {
       grantFunc: (role) => {
         ingestBucket.grantRead(role);
       },
-      lambdaProps: { memorySize: 10240, timeout: cdk.Duration.minutes(5) },
+      lambdaProps: { memorySize: 10240, timeout: cdk.Duration.minutes(15) },
     });
 
     const detectAndValidateMediaStep = new LambdaStep(this, 'DetectAndValidateMedia', {

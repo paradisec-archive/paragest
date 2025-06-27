@@ -215,7 +215,7 @@ export class ParagestStack extends cdk.Stack {
       },
       updateToLatestImageVersion: true,
       // spot: true,
-      maxvCpus: 1024, // 1024 vCPUs  / 16 per tasjk= 64 tasks at a time
+      // maxvCpus: 1024, // 1024 vCPUs  / 16 per tasjk= 64 tasks at a time
     });
     fileSystem.connections.allowDefaultPortFrom(batchEnv.securityGroups[0]);
 
