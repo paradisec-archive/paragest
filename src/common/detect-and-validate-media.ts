@@ -1,6 +1,7 @@
-import { FileMagic } from '@npcz/magic';
 import * as Sentry from '@sentry/aws-serverless';
+
 import type { Handler } from 'aws-lambda';
+import { FileMagic } from '@npcz/magic';
 import mime from 'mime-types';
 
 import '../lib/sentry.js';
@@ -106,7 +107,11 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
 
   if (!mimetypeMatchesExtension(detectedMimetype, extension)) {
     throw new StepError(`${filename}: extension doesn't match detected mimetype ${detectedMimetype} ${extension}`, event, event);
-  }`${filename}: extension doesn't match detected mimetype ${detectedMimetype} ${extension}`, event, eventthrow new StepError(`${filename}: Unsupported file extension ${extension}`, event, { detected: detectedMimetype });
+  }
+
+  const mimetype = lookupMimetypeFromExtension(extension);
+  if (!mimetype) {
+    throw new StepError(`${filename}: Unsupported file extension ${extension}`, event, { detected: detectedMimetype });
   }
 
   if (detectedMimetype !== mimetype && !allowedMimetypeException(detectedMimetype, mimetype)) {
@@ -115,11 +120,11 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
       extension,
       mimetype,
     });
-  }`${filename}: File mimetype doesn't match detected filetype ${detectedMimetype} != ${mimetype}`, event, {
-      detected: detectedMimetype,
-      extension,
-      mimetype,
-    }t mediaType: string;
+  }
+
+  notes.push(`detectAndValidateMedia: Detected mimetype as ${mimetype}`);
+
+  let mediaType: string;
   switch (true) {
     case mimetype.startsWith('audio'):
       mediaType = 'audio';
