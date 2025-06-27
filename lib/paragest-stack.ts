@@ -215,9 +215,7 @@ export class ParagestStack extends cdk.Stack {
       },
       updateToLatestImageVersion: true,
       // spot: true,
-      // NOTE: Leaving this at default of 256 means because we allocate 8 vCPUs per task, we can only run 32 tasks at a time
-      // NOTE: This helps us not run out of IPs
-      // maxvCpus: 256
+      maxvCpus: 1024, // 1024 vCPUs  / 16 per tasjk= 64 tasks at a time
     });
     fileSystem.connections.allowDefaultPortFrom(batchEnv.securityGroups[0]);
 
