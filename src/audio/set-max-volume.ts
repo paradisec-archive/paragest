@@ -56,6 +56,8 @@ export const handler = async (event: Event) => {
   notes.push(`setMaxVolume: Volume is at ${maxVolume} dB`);
   const diff = (-6 - maxVolume).toFixed(1);
   if (diff === '0.0') {
+    execute(`cp '${src}' '${dst}'`, event);
+
     return event;
   }
 
