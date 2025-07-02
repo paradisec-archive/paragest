@@ -67,7 +67,8 @@ const buildExecutionCache = async () => {
   const listResponse = await sfn.send(
     new ListExecutionsCommand({
       stateMachineArn,
-      maxResults: 200,
+      statusFilter: 'FAILED',
+      maxResults: 50,
       nextToken: nextExecutionToken,
     }),
   );
