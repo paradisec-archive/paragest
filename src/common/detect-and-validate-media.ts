@@ -62,7 +62,7 @@ const mimetypeMatchesExtension = (mimetype: string, actualExt: string) => {
 
   console.log('🪚 💜');
   switch (true) {
-    case mimetype === 'application/xml' && ['eaf', 'imdi', 'cmdi', 'opex'].includes(actualExt):
+    case ['text/xml', 'application/xml'].includes(mimetype) && ['eaf', 'imdi', 'cmdi', 'opex'].includes(actualExt):
       return true;
     // case detected === 'mpg' && actual === 'vob':
     //   return true;
