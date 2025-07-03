@@ -3,61 +3,28 @@ import { execute } from './command';
 
 const GeneralTrack = z.object({
   '@type': z.literal('General'),
-  // Used
+
   Duration: z.coerce.number(),
   OverallBitRate: z.coerce.number(),
   Format: z.string(),
   CodecID: z.string().optional(),
-
-  // Useful
-  VideoCount: z.coerce.number().optional(),
-  AudioCount: z.coerce.number().optional(),
-  FileSize: z.coerce.number(),
-  FrameRate: z.coerce
-    .number()
-    .transform((val) => Math.round(val))
-    .optional(),
-  FrameCount: z.coerce.number().optional(),
 });
 
 const VideoTrack = z.object({
   '@type': z.literal('Video'),
-  // Used
+
   FrameRate: z.coerce.number(),
   BitDepth: z.coerce.number().optional(),
   ScanType: z.string().optional(),
   CodecID: z.string().optional(),
-
-  // Useful
-  Format: z.string(),
-  Duration: z.coerce.number(),
-  BitRate: z.coerce.number().optional(),
-  Width: z.coerce.number(),
-  Height: z.coerce.number(),
-  Sampled_Width: z.coerce.number().optional(),
-  Sampled_Height: z.coerce.number().optional(),
-  PixelAspectRatio: z.coerce.number(),
-  DisplayAspectRatio: z.coerce.number(),
-  Rotation: z.coerce.number().optional(),
-  FrameRate_Num: z.coerce.number().optional(),
-  FrameCount: z.coerce.number(),
-  ColorSpace: z.string(),
 });
 
 const AudioTrack = z.object({
   '@type': z.literal('Audio'),
 
-  // Used
   Channels: z.coerce.number(),
   SamplingRate: z.coerce.number(),
   CodecID: z.string().optional(),
-
-  // Useful
-  Format: z.string(),
-  Duration: z.coerce.number(),
-  BitRate: z.coerce.number().optional(),
-  SamplingCount: z.coerce.number(),
-  BitDepth: z.coerce.number().optional(),
 });
 
 const TextTrack = z.object({
