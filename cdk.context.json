@@ -174,7 +174,8 @@
     ]
   },
   "acknowledged-issue-numbers": [
-    32775
+    32775,
+    34892
   ],
   "availability-zones:account=847483222616:region=ap-southeast-2": [
     "ap-southeast-2a",
