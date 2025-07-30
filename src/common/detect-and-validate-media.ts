@@ -36,6 +36,9 @@ const getMagic = async () => {
     case 'audio/x-m4a':
       mimetype = 'audio/mp4';
       break;
+    case 'audio/x-m4v':
+      mimetype = 'video/mp4';
+      break;
     case 'audio/x-wav':
       mimetype = 'audio/wav';
       break;
