@@ -7,7 +7,7 @@ import type { Handler } from 'aws-lambda';
 import '../lib/sentry.js';
 
 const EFS_MOUNT_PATH = '/mnt/efs';
-const MAX_AGE_DAYS = 7;
+const MAX_AGE_DAYS = 3;
 const MAX_AGE_MS = MAX_AGE_DAYS * 24 * 60 * 60 * 1000;
 
 export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
