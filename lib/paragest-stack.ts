@@ -6,6 +6,7 @@ import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as efs from 'aws-cdk-lib/aws-efs';
 import * as events from 'aws-cdk-lib/aws-events';
+import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as targets from 'aws-cdk-lib/aws-events-targets';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as eventsources from 'aws-cdk-lib/aws-lambda-event-sources';
@@ -300,6 +301,9 @@ export class ParagestStack extends cdk.Stack {
         src: 'cron/cleanup-efs-directories.ts',
         lambdaProps: {
           timeout: cdk.Duration.minutes(10),
+          vpc,
+          vpcSubnets: { subnets: shared.subnets },
+          filesystem: lambda.FileSystem.fromEfsAccessPoint(shared.accessPoint, '/mnt/efs'),
         },
       }),
     );
