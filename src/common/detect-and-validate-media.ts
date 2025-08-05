@@ -29,7 +29,7 @@ const getMagic = async () => {
   const magic = await FileMagic.getInstance();
 
   const path = getPath('input');
-  const magicMimetype = magic.detectMimeType(path);
+  const magicMimetype = magic.detectMimeType(path).toLowerCase();
 
   let mimetype: string = magicMimetype;
   switch (mimetype) {
