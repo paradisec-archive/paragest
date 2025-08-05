@@ -103,7 +103,7 @@ export class StateMachine extends Construct {
       grantFunc: (role) => {
         ingestBucket.grantRead(role);
       },
-      lambdaProps: { memorySize: 10240, timeout: cdk.Duration.minutes(15) },
+      lambdaProps: { memorySize: 10240, timeout: cdk.Duration.minutes(30) },
     });
 
     const detectAndValidateMediaStep = new LambdaStep(this, 'DetectAndValidateMedia', {
