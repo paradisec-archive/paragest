@@ -7,7 +7,7 @@ import inquirer from 'inquirer';
 import { v4 as uuidv4 } from 'uuid';
 
 const ENVIRONMENTS = ['prod', 'stage'];
-const PATHS = ['incoming', 'rejected'];
+const PATHS = ['incoming', 'rejected', 'damsmart'];
 
 const lambda = new LambdaClient({ region: 'ap-southeast-2' });
 const sfn = new SFNClient({ region: 'ap-southeast-2' });
@@ -103,8 +103,8 @@ const buildExecutionCache = async () => {
       const input = JSON.parse(startedEvent.executionStartedEventDetails.input) as FileInput;
 
       // Extract the key from the objectKey (remove 'incoming/')
-      if (input.objectKey.startsWith('incoming/')) {
-        const key = input.objectKey.replace('incoming/', '');
+      if (input.objectKey.startsWith('incoming/') || input.objectKey.startsWith('damsmart/')) {
+        const key = input.objectKey.replace(/(incoming|damsmart)\//, '');
         executionInputCache.set(key, input);
         processedCount++;
       }
@@ -140,7 +140,7 @@ const findOriginalInput = async (key: string) => {
 };
 
 const moveFileToIncoming = async (bucketName: string, path: string, key: string, size: number) => {
-  if (path === 'incoming') {
+  if (path === 'incoming' || path === 'damsmart') {
     console.log('File is already in incoming, no need to move');
     return;
   }
@@ -249,7 +249,7 @@ const invokeLambdaWithS3Event = async (bucketName: string, path: string, key: st
   const stateMachineArn = await findParagestStateMachine();
 
   // Create event payload - always use incoming path for key
-  const s3Key = `incoming/${key}`;
+  const s3Key = `${path === 'damsmart' ? 'damsmart' : 'incoming'}/${key}`;
   console.log(`Using S3 key: ${s3Key}`);
 
   const executionCommand = new StartExecutionCommand({
