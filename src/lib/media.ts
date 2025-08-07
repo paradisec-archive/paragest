@@ -13,7 +13,8 @@ const GeneralTrack = z.object({
 const VideoTrack = z.object({
   '@type': z.literal('Video'),
 
-  FrameRate: z.coerce.number(),
+  FrameRate_Mode: z.enum(['VFR', 'CFR']).optional(),
+  FrameRate: z.coerce.number().optional(),
   BitDepth: z.coerce.number().optional(),
   ScanType: z.string().optional(),
   CodecID: z.string().optional(),
@@ -222,7 +223,8 @@ export const getMediaMetadata = async (filename: string, event: Record<string, s
     duration: general.Duration,
     samplerate: audio?.SamplingRate,
     bitrate: general.OverallBitRate,
-    fps: video?.FrameRate ? Math.round(video.FrameRate) : null,
+    // If we are missing framerate and it is VFR we set 0 as this is special in nabu
+    fps: video?.FrameRate ? Math.round(video.FrameRate) : (video?.FrameRate_Mode === 'VFR' ? 0 : null),
     other: {
       bitDepth: video?.BitDepth,
       scanType: video?.ScanType || 'Progressive',
