@@ -178,14 +178,11 @@ export const upload = async (filename: string, dstBucket: string, dst: string, m
   }).done();
 };
 
-export const download = async (srcBucket: string, src: string, filename: string, options: { range?: string } = {}) => {
+export const download = async (srcBucket: string, src: string, filename: string) => {
   const params: GetObjectCommandInput = {
     Bucket: srcBucket,
     Key: src,
   };
-  if (options.range) {
-    params.Range = options.range;
-  }
   const getCommand = new GetObjectCommand(params);
   const { Body } = await s3.send(getCommand);
 
