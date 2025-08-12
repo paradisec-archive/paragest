@@ -1,11 +1,9 @@
+import '../lib/sentry-node.js';
+
 import fs from 'node:fs';
 
-import * as Sentry from '@sentry/aws-serverless';
-
-import type { Handler } from 'aws-lambda';
-
-import '../lib/sentry.js';
 import { download, getPath } from '../lib/s3.js';
+import { processBatch } from '../lib/batch.js';
 
 type Event = {
   id: string;
@@ -22,7 +20,7 @@ type Event = {
   };
 };
 
-export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
+const handler = async (event: Event) => {
   console.debug('Event:', JSON.stringify(event, null, 2));
 
   process.env.SFN_ID = event.id;
@@ -38,4 +36,6 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
   notes.push(`downloadMedia: downloaded ${objectKey} from bucket ${bucketName}`);
 
   return event;
-});
+};
+
+processBatch<Event>(handler);

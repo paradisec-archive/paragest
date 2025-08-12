@@ -97,13 +97,10 @@ export class StateMachine extends Construct {
 
     const addToCatalogFlow = sfn.Chain.start(addToCatalogStep.task).next(processSuccessStep.task);
 
-    const downloadMediaStep = new LambdaStep(this, 'downloadMedia', {
+    const downloadMediaStep = new FargateStep(this, 'downloadMedia', {
       shared,
       src: 'common/download-media.ts',
-      grantFunc: (role) => {
-        ingestBucket.grantRead(role);
-      },
-      lambdaProps: { memorySize: 10240, timeout: cdk.Duration.minutes(15) },
+      grantFunc: (role) => ingestBucket.grantRead(role),
     });
 
     const detectAndValidateMediaStep = new LambdaStep(this, 'DetectAndValidateMedia', {
