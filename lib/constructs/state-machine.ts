@@ -101,6 +101,7 @@ export class StateMachine extends Construct {
       shared,
       src: 'common/download-media.ts',
       grantFunc: (role) => ingestBucket.grantRead(role),
+      jobProps: { taskTimeout: sfn.Timeout.duration(cdk.Duration.minutes(30)) },
     });
 
     const detectAndValidateMediaStep = new LambdaStep(this, 'DetectAndValidateMedia', {
