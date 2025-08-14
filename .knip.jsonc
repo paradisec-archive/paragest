@@ -10,15 +10,25 @@
     "bin/list-failures.mts",
     "bin/replay-s3-event.mts",
 
-    // Lambndas
+    // Lambdas
     "src/tsconfig.json",
     "src/*.ts",
     "src/common/*.ts",
-    "src/damsmart/*.ts",
+    "src/cron/*.ts",
     "src/audio/*.ts",
     "src/image/*.ts",
     "src/video/*.ts",
-    "src/other/*.ts"
+    "src/other/*.ts",
+    "src/tsconfig.json"
   ],
-  "ignore": ["src/gql/*.ts"]
+  "ignore": ["src/gql/*.ts"],
+  "ignoreDependencies": [
+    "@sentry/cli",
+    "@tsconfig/node-lts",
+    "@tsconfig/strictest",
+    "@types/inquirer",
+    "esbuild",
+    "ts-node",
+    "eslint-import-resolver-node"
+  ],
 }
