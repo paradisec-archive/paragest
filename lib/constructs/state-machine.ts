@@ -92,7 +92,7 @@ export class StateMachine extends Construct {
         catalogBucket.grantRead(role);
         nabuOauthSecret.grantRead(role);
       },
-      jobProps: { taskTimeout: sfn.Timeout.duration(cdk.Duration.minutes(30)) },
+      jobProps: { taskTimeout: sfn.Timeout.duration(cdk.Duration.hours(2)) },
     });
 
     const addToCatalogFlow = sfn.Chain.start(addToCatalogStep.task).next(processSuccessStep.task);
