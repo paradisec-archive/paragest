@@ -35,7 +35,7 @@ const upsertEssence = async (collectionIdentifier: string, itemIdentifier: strin
   };
 
   if (mimetype.startsWith('audio') || mimetype.startsWith('video')) {
-    const { other, ...mediaAttributes } = await getMediaMetadata(getPath(`output/${filename}`), event); // eslint-disable-line @typescript-eslint/no-unused-vars
+    const { other: _other, ...mediaAttributes } = await getMediaMetadata(getPath(`output/${filename}`), event);
     Object.assign(attributes, mediaAttributes);
   }
 

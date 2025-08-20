@@ -1,5 +1,3 @@
-/* eslint-disable max-classes-per-file */
-
 import { execSync } from 'node:child_process';
 import * as path from 'node:path';
 
@@ -38,7 +36,7 @@ type LambdaStepProps = {
   taskProps?: Partial<tasks.LambdaInvokeProps>;
   lambdaProps?: nodejs.NodejsFunctionProps;
   nodeModules?: string[];
-  grantFunc?: (lamdaFunc: nodejs.NodejsFunction) => void; // eslint-disable-line no-unused-vars
+  grantFunc?: (lamdaFunc: nodejs.NodejsFunction) => void;
   jobProps?: Partial<tasks.BatchSubmitJobProps>;
   shared: SharedProps;
 };
@@ -127,7 +125,7 @@ export class LambdaStep extends Construct {
 type FargateStepProps = {
   src: string;
   taskProps?: Partial<tasks.LambdaInvokeProps>;
-  grantFunc?: (jobRole: IRole) => void; // eslint-disable-line no-unused-vars
+  grantFunc?: (jobRole: IRole) => void;
   jobProps?: Partial<tasks.BatchSubmitJobProps>;
   shared: SharedProps;
 };

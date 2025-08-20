@@ -1,6 +1,0 @@
-cdk.out
-src/gql
-test/*.js
-lib/*.js
-lib/*.d.ts
-bin/*.js

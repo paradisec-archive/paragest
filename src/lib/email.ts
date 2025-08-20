@@ -42,7 +42,6 @@ const env = process.env.PARAGEST_ENV;
 const defaultEmail = env === 'prod' ? 'admin@paradisec.org.au' : 'jferlito@gmail.com';
 const cc = env === 'prod' ? [] : ['jferlito@gmail.com'];
 
-// eslint-disable-next-line no-unused-vars
 export const sendEmail = async (principalId: string, subject: string, bodyFunc: (admin: EmailUser, unikey: string) => string) => {
   const unikey = principalId.replace(/.*:/, '');
   const admin = await getUserByUnikey(unikey);
