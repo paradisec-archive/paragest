@@ -215,8 +215,9 @@ export class ParagestStack extends cdk.Stack {
         subnets,
       },
       updateToLatestImageVersion: true,
-      // spot: true,
-      // maxvCpus: 1024, // 1024 vCPUs  / 16 per tasjk= 64 tasks at a time
+      maxvCpus: 1024, // 1024 vCPUs  / 16 per tasjk= 64 tasks at a time
+      // override the default https://github.com/aws/aws-cdk/issues/27054
+      replaceComputeEnvironment: true,
     });
     fileSystem.connections.allowDefaultPortFrom(batchEnv.securityGroups[0]);
 
