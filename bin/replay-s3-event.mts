@@ -151,7 +151,10 @@ const moveFileToIncoming = async (bucketName: string, path: string, key: string,
   if (size > 5 * 1024 * 1024 * 1024) {
     // For simplicity in this script, we're just warning about large files
     console.warn(`File is larger than 5GB (${size} bytes). You should use the AWS CLI to copy this file with tags:`);
-    console.warn(`aws s3 cp s3://${bucketName}/${path}/${key} s3://${bucketName}/incoming/${key} --tagging "manual=true" --profile ${process.env.AWS_PROFILE}`);
+    console.warn(
+      `aws s3api put-object-tagging --bucket ${bucketName} --key ${path}/${key} --tagging 'TagSet=[{Key=manual,Value=true}]' --profile ${process.env.AWS_PROFILE}`,
+    );
+    console.warn(`aws s3 cp s3://${bucketName}/${path}/${key} s3://${bucketName}/incoming/${key} --profile ${process.env.AWS_PROFILE}`);
 
     const shouldContinue = await inquirer.prompt([
       {

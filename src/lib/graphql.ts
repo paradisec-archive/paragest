@@ -55,6 +55,7 @@ export const getGraphQLClient = async () => {
 
   const client = new Client({
     url: `${apiUrl}/api/v1/graphql`,
+    preferGetMethod: false,
     exchanges: [fetchExchange],
     fetchOptions: () => ({
       headers: { authorization: `Bearer ${accessToken}`, host: tlsHostname },
