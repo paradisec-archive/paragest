@@ -173,6 +173,33 @@ export class ParagestStack extends cdk.Stack {
       },
     });
 
+    // So we can SSH using endpoint thingy
+    new ec2.InterfaceVpcEndpoint(this, 'SsmMessagesEndpoint', {
+      service: ec2.InterfaceVpcEndpointAwsService.SSM_MESSAGES,
+      vpc,
+      subnets: {
+        subnets,
+      },
+    });
+
+    // So we can SSH using endpoint thingy
+    new ec2.InterfaceVpcEndpoint(this, 'SsmEndpoint', {
+      service: ec2.InterfaceVpcEndpointAwsService.SSM,
+      vpc,
+      subnets: {
+        subnets,
+      },
+    });
+
+    // So we can SSH using endpoint thingy
+    new ec2.InterfaceVpcEndpoint(this, 'Ec2MessagesEndpoint', {
+      service: ec2.InterfaceVpcEndpointAwsService.EC2_MESSAGES,
+      vpc,
+      subnets: {
+        subnets,
+      },
+    });
+
     // /////////////////////////////
     // Filesystem
     // /////////////////////////////
