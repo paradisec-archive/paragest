@@ -174,7 +174,8 @@ export const upload = async (filename: string, dstBucket: string, dst: string, m
   await new Upload({
     client: s3,
     params,
-    partSize: 100 * 1024 * 1024,
+    partSize: 50 * 1024 * 1024,
+    queueSize: 10,
   }).done();
 };
 
