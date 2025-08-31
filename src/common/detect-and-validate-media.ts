@@ -67,6 +67,8 @@ const mimetypeMatchesExtension = (mimetype: string, actualExt: string) => {
   switch (true) {
     case ['text/xml', 'application/xml'].includes(mimetype) && ['eaf', 'imdi', 'cmdi', 'opex'].includes(actualExt):
       return true;
+    case mimetype === 'application/zip' && actualExt === 'fwbackup':
+      return true;
     // case detected === 'mpg' && actual === 'vob':
     //   return true;
     // case detected === 'mp4' && actual === 'm4a':

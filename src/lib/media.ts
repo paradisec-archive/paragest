@@ -142,6 +142,7 @@ export const lookupMimetypeFromExtension = (extension: string) => {
     case 'txt':
       return 'text/plain';
     case 'zip':
+    case 'fwbackup':
       return 'application/zip';
     case 'imdi':
       return 'application/imdi+xml';
@@ -224,7 +225,7 @@ export const getMediaMetadata = async (filename: string, event: Record<string, s
     samplerate: audio?.SamplingRate,
     bitrate: general.OverallBitRate,
     // If we are missing framerate and it is VFR we set 0 as this is special in nabu
-    fps: video?.FrameRate ? Math.round(video.FrameRate) : (video?.FrameRate_Mode === 'VFR' ? 0 : null),
+    fps: video?.FrameRate ? Math.round(video.FrameRate) : video?.FrameRate_Mode === 'VFR' ? 0 : null,
     other: {
       bitDepth: video?.BitDepth,
       scanType: video?.ScanType || 'Progressive',
