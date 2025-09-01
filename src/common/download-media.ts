@@ -1,9 +1,9 @@
-import '../lib/sentry-node.js';
-
 import fs from 'node:fs';
 
-import { download, getPath } from '../lib/s3.js';
+import '../lib/sentry-node.js';
+
 import { processBatch } from '../lib/batch.js';
+import { download, getPath } from '../lib/s3.js';
 
 type Event = {
   id: string;

@@ -56,7 +56,10 @@ export const handler = async (event: Event) => {
     return event;
   }
 
-  execute(`ffmpeg -y -hide_banner -i '${src}' -sn -map 0 -dn -c:v ffv1 -level 3 -g 1 -slicecrc 1 -slices 16 -vsync 0 -fps_mode passthrough -c:a flac '${dst}'`, event);
+  execute(
+    `ffmpeg -y -hide_banner -i '${src}' -sn -map 0 -dn -c:v ffv1 -level 3 -g 1 -slicecrc 1 -slices 16 -vsync 0 -fps_mode passthrough -c:a flac '${dst}'`,
+    event,
+  );
   notes.push('create-archival: Created MKV file');
 
   return event;
