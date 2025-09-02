@@ -8,9 +8,10 @@
     "cdk": "cdk",
     "deploy": "cdk deploy",
     "codegen": "graphql-codegen",
-    "lint": "yarn run lint:types && yarn lint:biome",
+    "lint": "pnpm run lint:types && pnpm lint:biome && pnpm lint:knip",
     "lint:types": "cd src && tsc --noEmit",
     "lint:biome": "biome check .",
+    "lint:knip": "knip",
     "file:wav": "AWS_PROFILE=nabu-$ENV aws s3 cp samples/sample.wav s3://paragest-ingest-$ENV/incoming/JFTEST-001-wav.wav",
     "file:damsmartwav": "AWS_PROFILE=nabu-$ENV aws s3 cp samples/sample.wav s3://paragest-ingest-$ENV/damsmart/JFTEST-001-DS.wav",
     "file:damsmartmp3": "AWS_PROFILE=nabu-$ENV aws s3 cp samples/sample.mp3 s3://paragest-ingest-$ENV/damsmart/JFTEST-001-DS.mp3",
@@ -37,8 +38,7 @@
     "file:imdi": "AWS_PROFILE=nabu-$ENV aws s3 cp samples/sample.imdi s3://paragest-ingest-$ENV/incoming/JFTEST-001-imdi.imdi",
     "file:srt": "AWS_PROFILE=nabu-$ENV aws s3 cp samples/sample.srt s3://paragest-ingest-$ENV/incoming/JFTEST-001-srt.srt",
     "file:zip": "AWS_PROFILE=nabu-$ENV aws s3 cp samples/sample.zip s3://paragest-ingest-$ENV/incoming/JFTEST-001-zip.zip",
-    "file:fwbackup": "AWS_PROFILE=nabu-$ENV aws s3 cp samples/sample.zip s3://paragest-ingest-$ENV/incoming/JFTEST-001-zip.fwbackup",
-    "knip": "knip"
+    "file:fwbackup": "AWS_PROFILE=nabu-$ENV aws s3 cp samples/sample.zip s3://paragest-ingest-$ENV/incoming/JFTEST-001-zip.fwbackup"
   },
   "devDependencies": {
     "@biomejs/biome": "2.2.2",
@@ -86,6 +86,5 @@
     "source-map-support": "^0.5.21",
     "uuid": "^11.1.0",
     "zod": "^4.1.5"
-  },
-  "packageManager": "yarn@4.7.0"
+  }
 }

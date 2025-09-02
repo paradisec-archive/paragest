@@ -13,7 +13,19 @@ import { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/
  * Therefore it is highly recommended to use the babel or swc plugin for production.
  * Learn more about it here: https://the-guild.dev/graphql/codegen/plugins/presets/preset-client#reducing-bundle-size
  */
-const documents = {
+type Documents = {
+    "\n\n    query GetCollectionQuery($identifier: ID!) {\n      collection(identifier: $identifier) {\n        identifier\n        title\n      }\n    }\n  ": typeof types.GetCollectionQueryDocument,
+    "\n    mutation SetCollectionHasDepositForm($input: SetCollectionHasDepositFormInput!) {\n      setCollectionHasDepositForm(input: $input) {\n        clientMutationId\n      }\n    }\n  ": typeof types.SetCollectionHasDepositFormDocument,
+    "\n  fragment EssenceItem on Essence {\n    id\n\n    filename\n    size\n\n    mimetype\n    channels\n    citation\n    duration\n    fps\n    bitrate\n    samplerate\n\n    createdAt\n    updatedAt\n  }\n": typeof types.EssenceItemFragmentDoc,
+    "\n    query GetEssenceQuery($fullIdentifier: ID!, $filename: String!) {\n      essence(fullIdentifier: $fullIdentifier, filename: $filename) {\n        id\n      }\n    }\n  ": typeof types.GetEssenceQueryDocument,
+    "\n      mutation EssenceCreateMutation($input: EssenceCreateInput!) {\n        essenceCreate(input: $input) {\n          essence {\n            ...EssenceItem\n          }\n        }\n      }\n    ": typeof types.EssenceCreateMutationDocument,
+    "\n    mutation EssenceUpdateMutation($input: EssenceUpdateInput!) {\n      essenceUpdate(input: $input) {\n        essence {\n          ...EssenceItem\n        }\n      }\n    }\n  ": typeof types.EssenceUpdateMutationDocument,
+    "\n    query GetItemQuery($fullIdentifier: ID!) {\n      item(fullIdentifier: $fullIdentifier) {\n        full_identifier\n        title\n        metadata_exportable\n\n        created_at\n        updated_at\n      }\n    }\n  ": typeof types.GetItemQueryDocument,
+    "\n    query GetItemBwfCsvQuery($fullIdentifier: ID!, $filename: String!) {\n      itemBwfCsv(fullIdentifier: $fullIdentifier, filename: $filename) {\n        csv\n      }\n    }\n  ": typeof types.GetItemBwfCsvQueryDocument,
+    "\n    query GetItemId3Query($fullIdentifier: ID!) {\n      itemId3(fullIdentifier: $fullIdentifier) {\n        txt\n      }\n    }\n  ": typeof types.GetItemId3QueryDocument,
+    "\n    query GetUserByUnikeyQuery($unikey: String!) {\n      userByUnikey(unikey: $unikey) {\n        email\n        firstName\n        lastName\n      }\n    }\n  ": typeof types.GetUserByUnikeyQueryDocument,
+};
+const documents: Documents = {
     "\n\n    query GetCollectionQuery($identifier: ID!) {\n      collection(identifier: $identifier) {\n        identifier\n        title\n      }\n    }\n  ": types.GetCollectionQueryDocument,
     "\n    mutation SetCollectionHasDepositForm($input: SetCollectionHasDepositFormInput!) {\n      setCollectionHasDepositForm(input: $input) {\n        clientMutationId\n      }\n    }\n  ": types.SetCollectionHasDepositFormDocument,
     "\n  fragment EssenceItem on Essence {\n    id\n\n    filename\n    size\n\n    mimetype\n    channels\n    citation\n    duration\n    fps\n    bitrate\n    samplerate\n\n    createdAt\n    updatedAt\n  }\n": types.EssenceItemFragmentDoc,

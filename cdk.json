@@ -11,10 +11,10 @@
       "**/*.js",
       "tsconfig.json",
       "package*.json",
-      "yarn.lock",
+      "pnpm-lock.yaml",
+      "pnpm-workspace.yaml",
       "node_modules",
       "samples",
-      "spike",
       "test"
     ]
   },

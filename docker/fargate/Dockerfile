@@ -4,12 +4,11 @@ ARG SOURCE_FILE
 
 WORKDIR /function
 
-COPY .yarnrc.yml /function
+COPY pnpm-lock.yaml /function
 COPY package.json /function
-COPY yarn.lock /function
 
 RUN corepack enable && \
-  yarn --immutable
+  pnpm --frozen-lockfile install --prod
 
 COPY src/ /function/src/
 

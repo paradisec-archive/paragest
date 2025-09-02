@@ -16,24 +16,24 @@ if [ -z "$ENV" ]; then
 fi
 
 # Check on main branch
-if [ $(git branch --show-current) != "main" ]; then
+if [ "$(git branch --show-current)" != "main" ]; then
   echo "You must be on the main branch to release."
   exit 1
 fi
 
 git push
-git switch $ENV
+git switch "$ENV"
 git merge --ff-only main
 git push
 
-AWS_PROFILE=nabu-${ENV} yarn cdk deploy
+AWS_PROFILE=nabu-${ENV} pnpm run cdk deploy
 
 RELEASE_NAME=$(git rev-parse --short HEAD)
 
 COMMON="--org nabu-d0 --project paragest"
-yarn sentry-cli releases $COMMON new $RELEASE_NAME
-yarn sentry-cli releases $COMMON set-commits --auto $RELEASE_NAME
-yarn sentry-cli releases $COMMON finalize $RELEASE_NAME
+pnpm run sentry-cli releases "$COMMON" new "$RELEASE_NAME"
+pnpm run sentry-cli releases "$COMMON" set-commits --auto "$RELEASE_NAME"
+pnpm run sentry-cli releases "$COMMON" finalize "$RELEASE_NAME"
 
 echo "Sentry release $RELEASE_NAME created."
 
