@@ -36,7 +36,7 @@ export const handler = async (event: Event) => {
   const dst = getPath(`output/${filename.replace(new RegExp(`.${extension}$`), '.mkv')}`);
 
   const {
-    other: { bitDepth, scanType, generalFormat, audioCodecId, videoCodecId },
+    other: { bitDepth, scanType, generalFormat, audioCodecId, videoCodecId, videoFrameRateMode },
   } = await getMediaMetadata(src, event);
 
   const is10Bit = bitDepth === 10;
@@ -47,6 +47,7 @@ export const handler = async (event: Event) => {
   notes.push(`create-archival: Is interlaced: ${isInterlaced}`);
   notes.push(`create-archival: Codecs (G/A/V): ${generalFormat}/${audioCodecId}/${videoCodecId}`);
   notes.push(`create-archival: Is acceptable presentation format: ${isAcceptablePresentationInput}`);
+  notes.push(`create-presentation: Video Framerate Mode: ${videoFrameRateMode}`);
 
   if (isAcceptablePresentationInput) {
     execute(`mv '${src}' '${dst}'`, event);

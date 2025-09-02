@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { execute } from './command';
 
 const GeneralTrack = z.object({
@@ -197,7 +197,6 @@ export const getMediaMetadata = async (filename: string, event: Record<string, s
   console.log('🪚 🔲');
   const output = execute(`mediainfo --output=JSON '${filename}'`, event);
   console.log('🪚 💜');
-  execute('ls -lR /mnt/efs', event);
 
   const metadata = MediaInfoSchema.parse(JSON.parse(output));
   console.debug('Metadata:', JSON.stringify(metadata, null, 2));
@@ -226,6 +225,7 @@ export const getMediaMetadata = async (filename: string, event: Record<string, s
     bitrate: general.OverallBitRate,
     // If we are missing framerate and it is VFR we set 0 as this is special in nabu
     fps: video?.FrameRate ? Math.round(video.FrameRate) : video?.FrameRate_Mode === 'VFR' ? 0 : null,
+    rawFps: video?.FrameRate,
     other: {
       bitDepth: video?.BitDepth,
       scanType: video?.ScanType || 'Progressive',
@@ -233,6 +233,7 @@ export const getMediaMetadata = async (filename: string, event: Record<string, s
       generalCodecId: general.CodecID,
       videoCodecId: video?.CodecID,
       audioCodecId: audio?.CodecID,
+      videoFrameRateMode: video?.FrameRate_Mode || 'CFR',
     },
   };
 };
