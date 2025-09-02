@@ -36,7 +36,8 @@ export const handler = async (event: Event) => {
   const dst = getPath(`output/${filename.replace(new RegExp(`.${extension}$`), '.mkv')}`);
 
   const {
-    other: { bitDepth, scanType, generalFormat, audioCodecId, videoCodecId, videoFrameRateMode },
+    rawFps,
+    other: { bitDepth, scanType, generalFormat, audioCodecId, videoCodecId, videoFrameRateMode, resolution },
   } = await getMediaMetadata(src, event);
 
   const is10Bit = bitDepth === 10;
@@ -47,7 +48,13 @@ export const handler = async (event: Event) => {
   notes.push(`create-archival: Is interlaced: ${isInterlaced}`);
   notes.push(`create-archival: Codecs (G/A/V): ${generalFormat}/${audioCodecId}/${videoCodecId}`);
   notes.push(`create-archival: Is acceptable presentation format: ${isAcceptablePresentationInput}`);
-  notes.push(`create-presentation: Video Framerate Mode: ${videoFrameRateMode}`);
+  notes.push(`create-archival: Video Framerate Mode: ${videoFrameRateMode}`);
+  notes.push(`create-archival: Video Framerate Mode: ${rawFps}/${videoFrameRateMode}`);
+  if (resolution) {
+    notes.push(
+      `create-archival: Video Resolution: w=${resolution.width} h=${resolution.height} category=${resolution.category} orientation=${resolution.orientation} isHigherThanHd=${resolution.isHigherThanHD}`,
+    );
+  }
 
   if (isAcceptablePresentationInput) {
     execute(`mv '${src}' '${dst}'`, event);
@@ -57,10 +64,9 @@ export const handler = async (event: Event) => {
     return event;
   }
 
-  execute(
-    `ffmpeg -y -hide_banner -i '${src}' -sn -map 0 -dn -c:v ffv1 -level 3 -g 1 -slicecrc 1 -slices 16 -vsync 0 -fps_mode passthrough -c:a flac '${dst}'`,
-    event,
-  );
+  const cmd = `ffmpeg -y -hide_banner -i '${src}' -sn -map 0 -dn -c:v ffv1 -level 3 -g 1 -slicecrc 1 -slices 16 -vsync 0 -fps_mode passthrough -c:a flac '${dst}'`;
+  notes.push(`create-archival: cmd: ${cmd}`);
+  execute(cmd, event);
   notes.push('create-archival: Created MKV file');
 
   return event;

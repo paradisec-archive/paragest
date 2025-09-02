@@ -36,7 +36,9 @@ export const handler = async (event: Event) => {
   const src = getPath('input');
   const dst = getPath(`output/${filename.replace(new RegExp(`.${extension}$`), '.jpg')}`);
 
-  execute(`convert '${src}' -quality 85 '${dst}'`, event);
+  const cmd = `convert '${src}' -quality 85 '${dst}'`;
+  notes.push(`create-presentation: Executing command: ${cmd}`);
+  execute(cmd, event);
 
   notes.push('create-presentation: Created JPG');
 

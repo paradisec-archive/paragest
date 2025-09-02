@@ -46,10 +46,9 @@ export const handler = async (event: Event) => {
   // NOTE: we convert to MP3 and also set max volume to 0dB
   // We assume we are already at -6dB from previous step in pipeline
   // Due to lossy nature we don't get exactly 0dB
-  execute(
-    `ffmpeg -y -i '${src}' -i /tmp/id3.txt -map_metadata 1 -write_id3v2 1 -filter:a "volume=6dB" -codec:a libmp3lame -ar 44100 -b:a 128k '${dst}'`,
-    event,
-  );
+  const cmd = `ffmpeg -y -i '${src}' -i /tmp/id3.txt -map_metadata 1 -write_id3v2 1 -filter:a "volume=6dB" -codec:a libmp3lame -ar 44100 -b:a 128k '${dst}'`;
+  notes.push(`createPresentation: Executing command: ${cmd}`);
+  execute(cmd, event);
 
   notes.push('createPresentation: Created MP3 file');
 

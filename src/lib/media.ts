@@ -18,6 +18,8 @@ const VideoTrack = z.object({
   BitDepth: z.coerce.number().optional(),
   ScanType: z.string().optional(),
   CodecID: z.string().optional(),
+  Width: z.coerce.number(),
+  Height: z.coerce.number(),
 });
 
 const AudioTrack = z.object({
@@ -191,12 +193,87 @@ export const lookupMimetypeFromExtension = (extension: string) => {
   }
 };
 
+const isHigherThanHD = (width: number, height: number) => {
+  const HD_WIDTH = 1920;
+  const HD_HEIGHT = 1080;
+  const HD_PIXELS = HD_WIDTH * HD_HEIGHT;
+
+  const totalPixels = width * height;
+  if (totalPixels > HD_PIXELS) {
+    return true;
+  }
+
+  const maxDimension = Math.max(width, height);
+  const minDimension = Math.min(width, height);
+
+  return maxDimension > HD_WIDTH || minDimension > HD_HEIGHT;
+};
+
+const getResolutionCategory = (width: number, height: number) => {
+  const orientation = width > height ? 'Horizontal' : width < height ? 'Vertical' : 'Square';
+
+  // Use the larger dimension for categorization
+  const maxDimension = Math.max(width, height);
+  const minDimension = Math.min(width, height);
+
+  let category = '';
+
+  // Categorize based on the larger dimension
+  if (maxDimension >= 7680) {
+    category = '8K';
+  } else if (maxDimension >= 3840) {
+    category = '4K/UHD';
+  } else if (maxDimension >= 2560) {
+    category = '2K/QHD';
+  } else if (maxDimension === 1920 && minDimension === 1080) {
+    category = 'Full HD';
+  } else if (maxDimension > 1280) {
+    category = 'HD+';
+  } else if (maxDimension === 1280 && minDimension === 720) {
+    category = 'HD';
+  } else {
+    category = 'SD';
+  }
+
+  return `${category} (${orientation})`;
+};
+
+const getVideoOrientation = (width: number, height: number) => {
+  if (width > height) {
+    return 'horizontal';
+  }
+
+  if (height > width) {
+    return 'vertical';
+  }
+
+  return 'square';
+};
+
+const getResolutionInfo = (width: number, height: number) => {
+  if (Number.isNaN(width) || Number.isNaN(height)) {
+    return {
+      width: 0,
+      height: 0,
+      orientation: 'unknown' as const,
+      isHigherThanHD: false,
+      category: 'Unknown' as const,
+    };
+  }
+
+  return {
+    width,
+    height,
+    orientation: getVideoOrientation(width, height),
+    isHigherThanHD: isHigherThanHD(width, height),
+    category: getResolutionCategory(width, height),
+  };
+};
+
 export const getMediaMetadata = async (filename: string, event: Record<string, string | number | object>) => {
-  console.log('🪚 ⭕', event);
   console.log('🪚 ⭕', filename);
-  console.log('🪚 🔲');
+  console.log('🪚 ⭕', event);
   const output = execute(`mediainfo --output=JSON '${filename}'`, event);
-  console.log('🪚 💜');
 
   const metadata = MediaInfoSchema.parse(JSON.parse(output));
   console.debug('Metadata:', JSON.stringify(metadata, null, 2));
@@ -234,6 +311,7 @@ export const getMediaMetadata = async (filename: string, event: Record<string, s
       videoCodecId: video?.CodecID,
       audioCodecId: audio?.CodecID,
       videoFrameRateMode: video?.FrameRate_Mode || 'CFR',
+      resolution: video && getResolutionInfo(video.Width, video.Height),
     },
   };
 };

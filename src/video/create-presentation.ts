@@ -34,7 +34,7 @@ export const handler = async (event: Event) => {
 
   const {
     rawFps,
-    other: { bitDepth, scanType, generalCodecId, audioCodecId, videoCodecId, videoFrameRateMode },
+    other: { bitDepth, scanType, generalCodecId, audioCodecId, videoCodecId, videoFrameRateMode, resolution },
   } = await getMediaMetadata(src, event);
 
   const is10Bit = bitDepth === 10;
@@ -46,7 +46,12 @@ export const handler = async (event: Event) => {
   notes.push(`create-presentation: Is interlaced: ${isInterlaced}`);
   notes.push(`create-presentation: Codecs (G/A/V): ${generalCodecId}/${audioCodecId}/${videoCodecId}`);
   notes.push(`create-presentation: Is acceptable presentation format: ${isAcceptablePresentationInput}`);
-  notes.push(`create-presentation: Video Framerate Mode: ${videoFrameRateMode}`);
+  notes.push(`create-presentation: Video Framerate Mode: ${rawFps}/${videoFrameRateMode}`);
+  if (resolution) {
+    notes.push(
+      `create-presentation: Video Resolution: w=${resolution.width} h=${resolution.height} category=${resolution.category} orientation=${resolution.orientation} isHigherThanHd=${resolution.isHigherThanHD}`,
+    );
+  }
 
   if (isAcceptablePresentationInput) {
     execute(`mv '${src}' '${dst}'`, event);
@@ -76,10 +81,19 @@ export const handler = async (event: Event) => {
     }
   }
 
-  execute(
-    `ffmpeg -y -hide_banner -i '${src}' -sn -c:v libx264 -pix_fmt yuv420p ${isInterlaced ? '-vf yadif' : ''} ${fps ? `-filter:v fps=${fps}` : ''} -preset slower -crf 15 -ac 2 -c:a aac '${dst}'`,
-    event,
-  );
+  const filter = "scale='if(gte(ih,iw),min(1080,iw),min(1920,iw))':'if(gt(ih,iw),min(1920,ih),min(1080,ih))':force_original_aspect_ratio=decrease";
+
+  if (fps) {
+    notes.push(`create-presentation: Setting output framerate to ${fps} fps`);
+    filter.concat(`,fps=${fps}`);
+  }
+  if (isInterlaced) {
+    filter.concat(',yadif');
+  }
+
+  const cmd = `ffmpeg -y -hide_banner -i '${src}' -sn -c:v libx264 -pix_fmt yuv420p -vf "${filter}" -preset slower -crf 15 -ac 2 -c:a aac '${dst}'`;
+  notes.push(`create-presentation: cmd: ${cmd}`);
+  execute(cmd, event);
 
   notes.push('create-presentation: Created MP4 file');
 

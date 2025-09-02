@@ -62,7 +62,9 @@ export const handler = async (event: Event) => {
   }
 
   notes.push(`setMaxVolume: Adjusting by ${diff} dB`);
-  execute(`ffmpeg -y -i '${src}' -af "volume=${diff}dB" -ac 2 -ar 96000 -c:a pcm_s24le -rf64 auto '${dst}'`, event);
+  const cmd = `ffmpeg -y -i '${src}' -af "volume=${diff}dB" -ac 2 -ar 96000 -c:a pcm_s24le -rf64 auto '${dst}'`;
+  notes.push(`setMaxVolume: Executing command: ${cmd}`);
+  execute(cmd, event);
 
   return event;
 };

@@ -26,7 +26,9 @@ export const handler = async (event: Event) => {
   const src = getPath('input');
   const dst = getPath(`output/${filename.replace(new RegExp(`.${extension}$`), '.tif')}`);
 
-  execute(`convert '${src}' -compress lzw '${dst}'`, event);
+  const cmd = `convert '${src}' -compress lzw '${dst}'`;
+  notes.push(`create-archival: Executing command: ${cmd}`);
+  execute(cmd, event);
 
   notes.push('create-archival: created TIFF');
 
