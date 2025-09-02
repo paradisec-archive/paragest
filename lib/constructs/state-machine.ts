@@ -166,6 +166,17 @@ export class StateMachine extends Construct {
     // /////////////////////////////
     // Video Flow Steps
     // /////////////////////////////
+    //
+    const checkVideoDuration = new LambdaStep(this, 'CheckVideoDuration', {
+      shared,
+      src: 'video/check-duration.ts',
+      grantFunc: (role) => {
+        ingestBucket.grantRead(role);
+      },
+      lambdaProps: { memorySize: 10240, timeout: cdk.Duration.minutes(15) },
+      nodeModules: ['@npcz/magic'],
+    });
+
     const createVideoArchivalStep = new FargateStep(this, 'CreateVideoArchival', {
       shared,
       src: 'video/create-archival.ts',
@@ -185,7 +196,10 @@ export class StateMachine extends Construct {
       },
       jobProps: { taskTimeout: sfn.Timeout.duration(cdk.Duration.hours(7)) },
     });
-    const processVideoFlow = sfn.Chain.start(createVideoArchivalStep.task).next(createVideoPresentationStep.task).next(addToCatalogFlow);
+    const processVideoFlow = sfn.Chain.start(checkVideoDuration.task)
+      .next(createVideoArchivalStep.task)
+      .next(createVideoPresentationStep.task)
+      .next(addToCatalogFlow);
 
     // /////////////////////////////
     // Image Flow Steps
