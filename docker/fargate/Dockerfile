@@ -8,7 +8,7 @@ COPY pnpm-lock.yaml /function
 COPY package.json /function
 
 RUN corepack enable && \
-  pnpm --frozen-lockfile install --prod
+  pnpm --frozen-lockfile install
 
 COPY src/ /function/src/
 
