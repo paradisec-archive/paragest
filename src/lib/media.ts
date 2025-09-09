@@ -152,6 +152,8 @@ export const lookupMimetypeFromExtension = (extension: string) => {
       return 'application/cmdi+xml';
     case 'opex':
       return 'application/opex+xml';
+    case 'xml':
+      return 'text/xml';
 
     // /////////////////
     // Here for later as we deal with these
@@ -171,8 +173,6 @@ export const lookupMimetypeFromExtension = (extension: string) => {
     //   return 'application/ixt+xml';
     // case 'trs':
     //   return 'application/trs+xml';
-    // case 'xml':
-    //   return 'text/xml';
     //
     // case 'html':
     //   return 'text/html';
