@@ -2,7 +2,7 @@ import { DynamoDBClient, UpdateItemCommand, type UpdateItemCommandInput } from '
 
 const CONCURRENCY_KEY = 'pk';
 const CURRENT_COUNT_ATTRIBUTE = 'currentCount';
-const CONCURRENCY_LIMIT = 10;
+const CONCURRENCY_LIMIT = 20;
 
 const DYNAMODB_ENDPOINT = process.env.DYNAMODB_ENDPOINT;
 if (!DYNAMODB_ENDPOINT) {
