@@ -71,8 +71,9 @@ const decrement = async () => {
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const MAX_RETRIES = 5;
-const BASE_DELAY = 100; // Start with 100ms delay
+const MAX_RETRIES = 7;
+const BASE_DELAY = 300; // Start with 100ms delay
+const JITTER = 500;
 
 // biome-ignore lint/suspicious/noExplicitAny: We don't care what we get
 type AnyFunction = (...args: any[]) => Promise<any>;
@@ -88,7 +89,6 @@ export const throttle =
 
         break;
       } catch (err: unknown) {
-        console.error('Failed to increment concurrency counter', err);
         const error = err as Error;
         if (error.name !== 'ConditionalCheckFailedException') {
           throw err;
@@ -99,7 +99,7 @@ export const throttle =
         }
 
         const delay = BASE_DELAY * 2 ** retries;
-        const jitter = Math.random() * 100;
+        const jitter = Math.random() * JITTER;
         console.log(`Retrying in ${delay + jitter}ms`);
         await sleep(delay + jitter);
 
