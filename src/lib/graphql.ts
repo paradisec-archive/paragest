@@ -30,6 +30,7 @@ const getAccessToken = async (credentials: OAuthSecret): Promise<string> => {
       headers: {
         'Content-Type': 'application/json',
         Host: tlsHostname,
+        'User-Agent': 'paragest',
       },
       body: JSON.stringify(tokenRequestData),
     });
@@ -58,7 +59,7 @@ export const getGraphQLClient = async () => {
     preferGetMethod: false,
     exchanges: [fetchExchange],
     fetchOptions: () => ({
-      headers: { authorization: `Bearer ${accessToken}`, host: tlsHostname },
+      headers: { authorization: `Bearer ${accessToken}`, host: tlsHostname, 'User-Agent': 'paragest' },
     }),
     fetch: fetch as unknown as typeof globalThis.fetch,
   });
