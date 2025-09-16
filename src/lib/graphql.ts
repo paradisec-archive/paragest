@@ -54,7 +54,7 @@ export const getGraphQLClient = async () => {
   const accessToken = await getAccessToken(oauthCredentials);
 
   const client = new Client({
-    url: `${apiUrl}/api/v1/graphql`,
+    url: `${apiUrl}/graphql`,
     preferGetMethod: false,
     exchanges: [fetchExchange],
     fetchOptions: () => ({
