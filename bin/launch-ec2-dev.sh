@@ -230,6 +230,8 @@ echo "aws iam delete-policy --policy-arn $EFS_POLICY_ARN"
 echo "aws iam remove-role-from-instance-profile --instance-profile-name $INSTANCE_PROFILE_NAME --role-name $ROLE_NAME"
 echo "aws iam delete-instance-profile --instance-profile-name $INSTANCE_PROFILE_NAME"
 echo "aws iam delete-role --role-name $ROLE_NAME"
+echo "aws iam detach-role-policy --role-name $ROLE_NAME --policy-arn arn:aws:iam::847483222616:policy/AWSAccelerator-SessionManagerLogging"
+echo "aws iam detach-role-policy --role-name $ROLE_NAME --policy-arn arn:aws:iam::847483222616:policy/AMSInstanceProfileBasePolicy"
 echo
 echo "# Delete the EC2 security group (wait for instance to terminate first)"
 echo "aws ec2 delete-security-group --group-id $EC2_SECURITY_GROUP_ID"
