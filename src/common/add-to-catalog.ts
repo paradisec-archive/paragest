@@ -35,7 +35,7 @@ const upsertEssence = async (collectionIdentifier: string, itemIdentifier: strin
   };
 
   if (mimetype.startsWith('audio') || mimetype.startsWith('video')) {
-    const { other: _other, ...mediaAttributes } = await getMediaMetadata(getPath(`output/${filename}`), event);
+    const { other: _other, rawFps: _rawFps, ...mediaAttributes } = await getMediaMetadata(getPath(`output/${filename}`), event);
     Object.assign(attributes, mediaAttributes);
   }
 
