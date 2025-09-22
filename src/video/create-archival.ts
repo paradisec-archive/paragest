@@ -57,7 +57,7 @@ export const handler = async (event: Event) => {
   }
 
   if (isAcceptablePresentationInput) {
-    execute(`mv '${src}' '${dst}'`, event);
+    execute(`cp '${src}' '${dst}'`, event);
 
     notes.push('create-archival: Copied MKV file');
 
@@ -65,7 +65,7 @@ export const handler = async (event: Event) => {
   }
 
   if (resolution?.isHigherThanHD) {
-    execute(`mv '${src}' '${dst}'`, event);
+    execute(`cp '${src}' '${dst}'`, event);
 
     notes.push('create-archival: Better than HD resolution copied file to catalog');
 

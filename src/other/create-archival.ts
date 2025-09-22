@@ -30,7 +30,7 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
   const src = getPath('input');
   const dst = getPath(`output/${filename.replace(new RegExp(`.${extension}$`), `.${lowerExtension}`)}`);
 
-  execute(`mv '${src}' '${dst}'`, event);
+  execute(`cp '${src}' '${dst}'`, event);
 
   notes.push('create-archival: uploaded file');
 

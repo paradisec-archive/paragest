@@ -54,7 +54,7 @@ export const handler = async (event: Event) => {
   }
 
   if (isAcceptablePresentationInput) {
-    execute(`mv '${src}' '${dst}'`, event);
+    execute(`cp '${src}' '${dst}'`, event);
 
     notes.push('create-presentation: Copied MP4 file');
 
