@@ -31,9 +31,9 @@ AWS_PROFILE=nabu-${ENV} pnpm run cdk deploy
 RELEASE_NAME=$(git rev-parse --short HEAD)
 
 COMMON="--org nabu-d0 --project paragest"
-pnpm run sentry-cli releases "$COMMON" new "$RELEASE_NAME"
-pnpm run sentry-cli releases "$COMMON" set-commits --auto "$RELEASE_NAME"
-pnpm run sentry-cli releases "$COMMON" finalize "$RELEASE_NAME"
+pnpm exec sentry-cli releases "$COMMON" new "$RELEASE_NAME"
+pnpm exec sentry-cli releases "$COMMON" set-commits --auto "$RELEASE_NAME"
+pnpm exec sentry-cli releases "$COMMON" finalize "$RELEASE_NAME"
 
 echo "Sentry release $RELEASE_NAME created."
 
