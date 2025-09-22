@@ -167,14 +167,13 @@ export class StateMachine extends Construct {
     // Video Flow Steps
     // /////////////////////////////
     //
-    const checkVideoDuration = new LambdaStep(this, 'CheckVideoDuration', {
+    const checkVideoDuration = new FargateStep(this, 'CheckVideoDuration', {
       shared,
       src: 'video/check-duration.ts',
       grantFunc: (role) => {
         ingestBucket.grantRead(role);
       },
-      lambdaProps: { memorySize: 10240, timeout: cdk.Duration.minutes(15) },
-      nodeModules: ['@npcz/magic'],
+      jobProps: { taskTimeout: sfn.Timeout.duration(cdk.Duration.minutes(15)) },
     });
 
     const createVideoArchivalStep = new FargateStep(this, 'CreateVideoArchival', {
