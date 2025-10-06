@@ -81,14 +81,14 @@ export const handler = async (event: Event) => {
     }
   }
 
-  const filter = "scale='if(gte(ih,iw),min(1080,iw),min(1920,iw))':'if(gt(ih,iw),min(1920,ih),min(1080,ih))':force_original_aspect_ratio=decrease";
+  let filter = "scale='if(gte(ih,iw),min(1080,iw),min(1920,iw))':'if(gt(ih,iw),min(1920,ih),min(1080,ih))':force_original_aspect_ratio=decrease";
 
   if (fps) {
     notes.push(`create-presentation: Setting output framerate to ${fps} fps`);
-    filter.concat(`,fps=${fps}`);
+    filter = filter.concat(`,fps=${fps}`);
   }
   if (isInterlaced) {
-    filter.concat(',yadif');
+    filter = filter.concat(',yadif');
   }
 
   const cmd = `ffmpeg -y -hide_banner -i '${src}' -sn -c:v libx264 -pix_fmt yuv420p -vf "${filter}" -preset slower -crf 15 -ac 2 -c:a aac '${dst}'`;
