@@ -65,7 +65,7 @@ export const handler = async (event: Event) => {
   }
 
   if (resolution?.isHigherThanHD) {
-    execute(`cp '${src}' '${dst}'`, event);
+    execute(`ffmpeg -i '${src}' -c copy '${dst}'`, event);
 
     notes.push('create-archival: Better than HD resolution copied file to catalog');
 
