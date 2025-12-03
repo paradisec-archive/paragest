@@ -1,9 +1,9 @@
 import '../lib/sentry-node.js';
 
 import { processBatch } from '../lib/batch.js';
+import { StepError } from '../lib/errors.js';
 import { getMediaMetadata } from '../lib/media.js';
 import { getPath } from '../lib/s3.js';
-import { StepError } from '../lib/errors.js';
 
 type Event = {
   id: string;
