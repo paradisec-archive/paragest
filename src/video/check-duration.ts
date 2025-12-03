@@ -30,7 +30,7 @@ export const handler = async (event: Event) => {
 
   notes.push(`create-archival: Duration: ${duration}`);
 
-  if (duration > 60 * 60) {
+  if (duration > 65 * 60) {
     throw new StepError(`${filename}: Video is longer than 1 hour`, event, { duration });
   }
 
