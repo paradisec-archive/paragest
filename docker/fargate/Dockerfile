@@ -26,16 +26,16 @@ RUN ./node_modules/.bin/esbuild \
   --loader:.node=copy
 # Dirty hack from https://github.com/evanw/esbuild/pull/2067
 
-FROM ubuntu:24.10
+FROM ubuntu:25.10
 
 SHELL ["/bin/bash", "-exo", "pipefail", "-c"]
 
 ARG FUNCTION_DIR
 
-ARG MEDIA_INFO_URL="https://mediaarea.net/download/binary/mediainfo/24.12/mediainfo_24.12-1_amd64.Ubuntu_24.10.deb"
-ARG LIB_MEDIA_INFO_URL="https://mediaarea.net/download/binary/libmediainfo0/24.12/libmediainfo0v5_24.12-1_amd64.Ubuntu_24.10.deb"
-ARG LIB_ZEN_URL="https://mediaarea.net/download/binary/libzen0/0.4.41/libzen0v5_0.4.41-1_amd64.Ubuntu_24.10.deb"
-ARG BWF_METAEDIT_URL="https://mediaarea.net/download/binary/bwfmetaedit/24.10/bwfmetaedit_24.10-1_amd64.Ubuntu_24.04.deb"
+ARG MEDIA_INFO_URL="https://mediaarea.net/download/binary/mediainfo/25.10/mediainfo_25.10-1_amd64.Ubuntu_25.10.deb"
+ARG LIB_MEDIA_INFO_URL="https://mediaarea.net/download/binary/libmediainfo0/25.10/libmediainfo0v5_25.10-1_amd64.Ubuntu_25.10.deb"
+ARG LIB_ZEN_URL="https://mediaarea.net/download/binary/libzen0/0.4.41/libzen0v5_0.4.41-1_amd64.Ubuntu_25.10.deb"
+ARG BWF_METAEDIT_URL="https://mediaarea.net/download/binary/bwfmetaedit/25.04.1/bwfmetaedit_25.04.1-1_amd64.Ubuntu_25.04.deb"
 
 # hadolint ignore=DL3015
 RUN apt-get update && \
