@@ -63,18 +63,14 @@ const mimetypeMatchesExtension = (mimetype: string, actualExt: string) => {
     return true;
   }
 
-  console.log('🪚 💜');
   switch (true) {
     case ['text/xml', 'application/xml'].includes(mimetype) && ['eaf', 'imdi', 'cmdi', 'opex'].includes(actualExt):
       return true;
     case mimetype === 'application/zip' && actualExt === 'fwbackup':
       return true;
-    // case detected === 'mpg' && actual === 'vob':
-    //   return true;
-    // case detected === 'mp4' && actual === 'm4a':
-    //   return true;
+    case mimetype === 'video/mp4' && actualExt === 'm4a':
+      return true;
     default:
-      console.log('🪚 🔵');
       return false;
   }
 };
@@ -83,8 +79,8 @@ const allowedMimetypeException = (detected: string, actual: string) => {
   switch (true) {
     case ['text/xml', 'application/xml'].includes(detected) && !!actual.match('application/(eaf|imdi|cmdi|opex)\\+xml'):
       return true;
-    // case detected === 'video/mp4' && actual === 'audio/mp4':
-    //   return true;
+    case detected === 'video/mp4' && actual === 'audio/mp4':
+      return true;
     // case detected === 'video/MP2P' && actual === 'video/x-ms-vob':
     //   return true;
     // case detected === 'application/rtf' && actual === 'text/rtf':
