@@ -2,7 +2,7 @@ import { DynamoDBClient, UpdateItemCommand, type UpdateItemCommandInput } from '
 
 const CONCURRENCY_KEY = 'pk';
 const CURRENT_COUNT_ATTRIBUTE = 'currentCount';
-const CONCURRENCY_LIMIT = 20;
+const CONCURRENCY_LIMIT = 40;
 
 const DYNAMODB_ENDPOINT = process.env.DYNAMODB_ENDPOINT;
 if (!DYNAMODB_ENDPOINT) {
@@ -41,7 +41,24 @@ const increment = async () => {
     ReturnValues: 'UPDATED_NEW',
   };
 
-  await dbClient.send(new UpdateItemCommand(incrementParams));
+  try {
+    const response = await dbClient.send(new UpdateItemCommand(incrementParams));
+
+    return {
+      success: true,
+      count: response.Attributes?.[CURRENT_COUNT_ATTRIBUTE]?.N,
+    };
+  } catch (err: unknown) {
+    const error = err as Error;
+    if (error.name !== 'ConditionalCheckFailedException') {
+      throw err;
+    }
+
+    return {
+      success: false,
+      count: CONCURRENCY_LIMIT.toString(),
+    };
+  }
 };
 
 const decrement = async () => {
@@ -73,7 +90,7 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const MAX_RETRIES = 7;
 const BASE_DELAY = 300; // Start with 100ms delay
-const JITTER = 500;
+const JITTER = 2000; // spread them over 2 seconds
 
 // biome-ignore lint/suspicious/noExplicitAny: We don't care what we get
 type AnyFunction = (...args: any[]) => Promise<any>;
@@ -84,27 +101,21 @@ export const throttle =
     let retries = 0;
 
     while (true) {
-      try {
-        await increment();
-
+      const result = await increment();
+      if (result.success) {
         break;
-      } catch (err: unknown) {
-        const error = err as Error;
-        if (error.name !== 'ConditionalCheckFailedException') {
-          throw err;
-        }
-
-        if (retries >= MAX_RETRIES) {
-          throw new Error('Too many retries');
-        }
-
-        const delay = BASE_DELAY * 2 ** retries;
-        const jitter = Math.random() * JITTER;
-        console.log(`Retrying in ${delay + jitter}ms`);
-        await sleep(delay + jitter);
-
-        retries += 1;
       }
+
+      if (retries >= MAX_RETRIES) {
+        throw new Error('Too many retries');
+      }
+
+      const delay = BASE_DELAY * 2 ** retries;
+      const jitter = Math.random() * JITTER;
+      console.log(`Retrying in ${delay + jitter}ms`);
+      await sleep(delay + jitter);
+
+      retries += 1;
     }
 
     try {
