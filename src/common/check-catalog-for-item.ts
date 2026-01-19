@@ -21,14 +21,14 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
     throw new StepError(`Object key ${objectKey} has more than two hyphens`, event, { objectKey });
   }
 
-  const md = objectKey.match(/^(?:incoming|damsmart)\/([A-Za-z0-9][a-zA-Z0-9_]+)-([A-Za-z0-9][a-zA-Z0-9_]+)-(.*)\.([^.]+)$/);
+  const md = objectKey.match(/^(?:incoming|damsmart)\/([A-Za-z0-9][a-zA-Z0-9_]+)-([A-Za-z0-9][a-zA-Z0-9_]+)-([^.]+)\.([^.]+)$/);
   if (!md) {
-    throw new StepError(`Object key ${objectKey} does not match expected pattern`, event, { objectKey });
+    throw new StepError(`Filename ${objectKey} does not match expected pattern`, event, { objectKey });
   }
 
   const [, collectionIdentifier, itemIdentifier, rest, extensionOrig] = md;
   if (!collectionIdentifier || !itemIdentifier || !rest || !extensionOrig) {
-    throw new StepError(`Object key ${objectKey} does not match expected pattern`, event, { objectKey });
+    throw new StepError(`Filename ${objectKey} does not match expected pattern`, event, { objectKey });
   }
   const extension = extensionOrig?.toLowerCase();
 
