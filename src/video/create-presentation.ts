@@ -81,7 +81,8 @@ export const handler = async (event: Event) => {
     }
   }
 
-  let filter = "scale='if(gte(ih,iw),min(1080,iw),min(1920,iw))':'if(gt(ih,iw),min(1920,ih),min(1080,ih))':force_original_aspect_ratio=decrease";
+  let filter =
+    "scale='trunc(if(gte(ih,iw),min(1080,iw),min(1920,iw))/2)*2':'trunc(if(gt(ih,iw),min(1920,ih),min(1080,ih))/2)*2':force_original_aspect_ratio=decrease";
 
   if (fps) {
     notes.push(`create-presentation: Setting output framerate to ${fps} fps`);
