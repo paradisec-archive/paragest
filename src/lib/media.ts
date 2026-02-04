@@ -142,6 +142,7 @@ export const lookupMimetypeFromExtension = (extension: string) => {
     case 'srt':
       return 'application/x-subrip';
     case 'txt':
+    case 'TextGrid':
       return 'text/plain';
     case 'zip':
     case 'fwbackup':
@@ -159,7 +160,6 @@ export const lookupMimetypeFromExtension = (extension: string) => {
     // Here for later as we deal with these
     // case 'annis':
     // case 'cha':
-    // case 'TextGrid':
     // case 'lbl':
     // case 'tab':
     // case 'version':

@@ -25,7 +25,7 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
     details: { filename, extension },
   } = event;
 
-  const lowerExtension = extension.toLowerCase();
+  const lowerExtension = extension === 'TextGrid' ? extension : extension.toLowerCase();
 
   const src = getPath('input');
   const dst = getPath(`output/${filename.replace(new RegExp(`.${extension}$`), `.${lowerExtension}`)}`);
