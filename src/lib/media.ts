@@ -142,7 +142,7 @@ export const lookupMimetypeFromExtension = (extension: string) => {
     case 'srt':
       return 'application/x-subrip';
     case 'txt':
-    case 'TextGrid':
+    case 'textgrid':
       return 'text/plain';
     case 'zip':
     case 'fwbackup':
