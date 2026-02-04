@@ -3,7 +3,7 @@
 import { LambdaClient, ListFunctionsCommand } from '@aws-sdk/client-lambda';
 import { CopyObjectCommand, DeleteObjectCommand, HeadObjectCommand, ListObjectsV2Command, S3Client } from '@aws-sdk/client-s3';
 import { GetExecutionHistoryCommand, ListExecutionsCommand, ListStateMachinesCommand, SFNClient, StartExecutionCommand } from '@aws-sdk/client-sfn';
-import inquirer from 'inquirer';
+import { checkbox, confirm, select } from '@inquirer/prompts';
 import { v4 as uuidv4 } from 'uuid';
 
 const ENVIRONMENTS = ['prod', 'stage'];
@@ -156,16 +156,12 @@ const moveFileToIncoming = async (bucketName: string, path: string, key: string,
     );
     console.warn(`aws s3 cp s3://${bucketName}/${path}/${key} s3://${bucketName}/incoming/${key} --profile ${process.env.AWS_PROFILE}`);
 
-    const shouldContinue = await inquirer.prompt([
-      {
-        type: 'confirm',
-        name: 'continue',
-        message: 'Do you want to continue without moving the file?',
-        default: false,
-      },
-    ]);
+    const shouldContinue = await confirm({
+      message: 'Do you want to continue without moving the file?',
+      default: false,
+    });
 
-    if (!shouldContinue.continue) {
+    if (!shouldContinue) {
       console.log('Exiting as requested');
       process.exit(0);
     }
@@ -267,31 +263,18 @@ const invokeLambdaWithS3Event = async (bucketName: string, path: string, key: st
 const s3 = new S3Client({ region: 'ap-southeast-2' });
 
 const promptForEnvironment = async (): Promise<string> => {
-  const { environment } = await inquirer.prompt([
-    {
-      type: 'list',
-      name: 'environment',
-      message: 'Select the environment:',
-      choices: ENVIRONMENTS,
-      default: 'prod',
-    },
-  ]);
-
-  return environment;
+  return select({
+    message: 'Select the environment:',
+    choices: ENVIRONMENTS.map((env) => ({ value: env })),
+    default: 'prod',
+  });
 };
 
 const promptForPath = async (): Promise<string> => {
-  const { path } = await inquirer.prompt([
-    {
-      type: 'list',
-      name: 'path',
-      message: 'Select the path:',
-      choices: PATHS,
-      default: 'incoming',
-    },
-  ]);
-
-  return path;
+  return select({
+    message: 'Select the path:',
+    choices: PATHS.map((p) => ({ value: p })),
+  });
 };
 
 const listFiles = async (s3Client: S3Client, bucket: string, prefix: string) => {
@@ -315,18 +298,15 @@ const listFiles = async (s3Client: S3Client, bucket: string, prefix: string) => 
 };
 
 const promptForFiles = async (files: string[]): Promise<string[]> => {
-  const { selectedFiles } = await inquirer.prompt([
-    {
-      type: 'checkbox',
-      name: 'selectedFiles',
-      message: 'Select file(s) to process:',
-      choices: files,
-      pageSize: 15,
-    },
-  ]);
+  const selectedFiles = await checkbox({
+    message: 'Select file(s) to process:',
+    choices: files.map((f) => ({ value: f })),
+    pageSize: 15,
+  });
 
   if (!selectedFiles.length) {
     console.log('No files selected, please select at least one file.');
+
     return promptForFiles(files);
   }
 
@@ -381,16 +361,10 @@ const processFiles = async (env: string, path: string) => {
 };
 
 const promptToContinue = async (): Promise<boolean> => {
-  const { continueProcessing } = await inquirer.prompt([
-    {
-      type: 'confirm',
-      name: 'continueProcessing',
-      message: 'Do you want to process more files?',
-      default: true,
-    },
-  ]);
-
-  return continueProcessing;
+  return confirm({
+    message: 'Do you want to process more files?',
+    default: true,
+  });
 };
 
 const main = async () => {

@@ -22,5 +22,5 @@
     "src/tsconfig.json"
   ],
   "ignore": ["src/gql/*.ts"],
-  "ignoreDependencies": ["@sentry/cli", "@tsconfig/node-lts", "@tsconfig/strictest", "@types/inquirer", "esbuild", "ts-node"]
+  "ignoreDependencies": ["@sentry/cli", "@tsconfig/node-lts", "@tsconfig/strictest", "esbuild", "ts-node"]
 }

@@ -1,7 +1,7 @@
 #!/usr/bin/env -S node --experimental-strip-types
 
 import { GetExecutionHistoryCommand, ListExecutionsCommand, ListStateMachinesCommand, SFNClient } from '@aws-sdk/client-sfn';
-import inquirer from 'inquirer';
+import { select } from '@inquirer/prompts';
 
 const ENVIRONMENTS = ['prod', 'stage'];
 
@@ -139,15 +139,11 @@ const listFailures = async (env: string) => {
 // Main execution
 const main = async () => {
   try {
-    const { environment } = await inquirer.prompt([
-      {
-        type: 'list',
-        name: 'environment',
-        message: 'Select the environment:',
-        choices: ENVIRONMENTS,
-        default: 'stage',
-      },
-    ]);
+    const environment = await select({
+      message: 'Select the environment:',
+      choices: ENVIRONMENTS.map((env) => ({ value: env })),
+      default: 'stage',
+    });
 
     await listFailures(environment);
   } catch (error) {
