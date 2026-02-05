@@ -45,6 +45,9 @@ const getMagic = async () => {
     case 'video/vnd.avi':
       mimetype = 'video/x-msvideo';
       break;
+    case 'video/x-matroska':
+      mimetype = 'video/matroska';
+      break;
     default:
   }
 
