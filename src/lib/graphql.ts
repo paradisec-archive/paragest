@@ -13,7 +13,7 @@ if (!process.env.PARAGEST_ENV) {
 }
 const apiUrl = `https://${process.env.NABU_DNS_NAME}`;
 
-const tlsHostname = process.env.PARAGEST_ENV === 'prod' ? 'catalog.nabu-prod.paradisec.org.au' : 'admin-catalog.nabu-stage.paradisec.org.au';
+const tlsHostname = `admin-catalog.nabu-${process.env.PARAGEST_ENV}.paradisec.org.au`;
 
 const getAccessToken = async (credentials: OAuthSecret): Promise<string> => {
   const tokenUrl = `${apiUrl}/oauth/token`;
