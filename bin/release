@@ -28,6 +28,10 @@ git push
 
 AWS_PROFILE=nabu-${ENV} pnpm run cdk deploy
 
+# Cleanup cdk
+# Echo cleaning up!!
+pnpm exec cdk-agc
+
 RELEASE_NAME=$(git rev-parse --short HEAD)
 
 COMMON="--org nabu-d0 --project paragest"
