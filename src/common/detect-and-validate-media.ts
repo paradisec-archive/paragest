@@ -67,7 +67,7 @@ const mimetypeMatchesExtension = (mimetype: string, actualExt: string) => {
   }
 
   switch (true) {
-    case ['text/xml', 'application/xml'].includes(mimetype) && ['eaf', 'imdi', 'cmdi', 'opex'].includes(actualExt):
+    case ['text/xml', 'application/xml'].includes(mimetype) && ['eaf', 'imdi', 'cmdi', 'opex', 'flexext'].includes(actualExt):
       return true;
     case mimetype === 'application/zip' && actualExt === 'fwbackup':
       return true;
@@ -82,7 +82,7 @@ const mimetypeMatchesExtension = (mimetype: string, actualExt: string) => {
 
 const allowedMimetypeException = (detected: string, actual: string) => {
   switch (true) {
-    case ['text/xml', 'application/xml'].includes(detected) && !!actual.match('application/(eaf|imdi|cmdi|opex)\\+xml'):
+    case ['text/xml', 'application/xml'].includes(detected) && !!actual.match('application/(eaf|imdi|cmdi|opex|flexext)\\+xml'):
       return true;
     case detected === 'video/mp4' && actual === 'audio/mp4':
       return true;

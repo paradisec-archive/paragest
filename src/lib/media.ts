@@ -165,8 +165,8 @@ export const lookupMimetypeFromExtension = (extension: string) => {
     // case 'version':
     //   return 'text/plain';
     //
-    // case 'flextext':
-    //   return 'application/flextext+xml';
+    case 'flextext':
+      return 'application/flextext+xml';
     // case 'kml':
     //   return 'application/vnd.google-earth.kml+xml';
     // case 'ixt':
