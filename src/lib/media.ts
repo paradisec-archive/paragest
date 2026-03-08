@@ -153,6 +153,8 @@ export const lookupMimetypeFromExtension = (extension: string) => {
       return 'application/cmdi+xml';
     case 'opex':
       return 'application/opex+xml';
+    case 'flextext':
+      return 'application/flextext+xml';
     case 'xml':
       return 'text/xml';
 
@@ -165,8 +167,6 @@ export const lookupMimetypeFromExtension = (extension: string) => {
     // case 'version':
     //   return 'text/plain';
     //
-    case 'flextext':
-      return 'application/flextext+xml';
     // case 'kml':
     //   return 'application/vnd.google-earth.kml+xml';
     // case 'ixt':
