@@ -228,7 +228,7 @@ export class StateMachine extends Construct {
     const createOtherArchivalStep = new LambdaStep(this, 'CreateOtherArchival', {
       shared,
       src: 'other/create-archival.ts',
-      lambdaProps: { memorySize: 10240, timeout: cdk.Duration.hours(1) },
+      lambdaProps: { memorySize: 10240, timeout: cdk.Duration.minutes(15) },
       grantFunc: (role) => {
         ingestBucket.grantReadWrite(role);
         nabuOauthSecret.grantRead(role);
