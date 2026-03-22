@@ -1,0 +1,8 @@
+# Ignore everything by default
+*
+
+# Allow only what the Dockerfile needs
+!pnpm-lock.yaml
+!package.json
+!src/
+!docker/
