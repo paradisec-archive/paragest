@@ -73,6 +73,8 @@ const mimetypeMatchesExtension = (mimetype: string, actualExt: string) => {
       return true;
     case mimetype === 'video/mp4' && actualExt === 'm4a':
       return true;
+    case mimetype === 'video/x-matroska' && actualExt === 'mkv':
+      return true;
     case mimetype === 'text/plain' && actualExt === 'textgrid':
       return true;
     default:
