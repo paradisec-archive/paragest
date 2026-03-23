@@ -209,6 +209,7 @@ export class ParagestStack extends cdk.Stack {
       vpcSubnets: {
         subnets,
       },
+      throughputMode: efs.ThroughputMode.ELASTIC,
     });
 
     const accessPoint = fileSystem.addAccessPoint('ServiceAccessPoint', {
