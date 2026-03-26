@@ -21,6 +21,7 @@
     "file:mp3": "AWS_PROFILE=nabu-$ENV aws s3 cp samples/sample.mp3 s3://paragest-ingest-$ENV/incoming/JFTEST-001-mp3.mp3",
     "file:mov": "AWS_PROFILE=nabu-$ENV aws s3 cp samples/sample.mov s3://paragest-ingest-$ENV/incoming/JFTEST-001-mov.mov",
     "file:mp4": "AWS_PROFILE=nabu-$ENV aws s3 cp samples/bbb.mp4 s3://paragest-ingest-$ENV/incoming/JFTEST-001-mp4.mp4",
+    "file:mkv": "AWS_PROFILE=nabu-$ENV aws s3 cp samples/bbb.mkv s3://paragest-ingest-$ENV/incoming/JFTEST-001-mkv.mkv",
     "file:wavbadmime": "AWS_PROFILE=nabu-$ENV aws s3 cp samples/sample.wav s3://paragest-ingest-$ENV/incoming/JFTEST-001-badmime.xml",
     "file:wavbadmime2": "AWS_PROFILE=nabu-$ENV aws s3 cp samples/random.bin s3://paragest-ingest-$ENV/incoming/JFTEST-001-badmime2.wav",
     "file:notInDb": "AWS_PROFILE=nabu-$ENV aws s3 cp samples/sample.wav s3://paragest-ingest-$ENV/incoming/JFTEST-004-notInDb.wav",
