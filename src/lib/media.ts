@@ -80,6 +80,9 @@ export const lookupMimetypeFromExtension = (extension: string) => {
       return 'audio/mpeg';
     case 'wav':
       return 'audio/wav';
+    case 'aiff':
+    case 'aif':
+      return 'audio/aiff';
 
     // /////////////////
     // Video

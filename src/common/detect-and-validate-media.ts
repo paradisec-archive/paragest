@@ -45,6 +45,9 @@ const getMagic = async () => {
     case 'video/vnd.avi':
       mimetype = 'video/x-msvideo';
       break;
+    case 'audio/x-aiff':
+      mimetype = 'audio/aiff';
+      break;
     case 'video/x-matroska':
       mimetype = 'video/matroska';
       break;
@@ -76,6 +79,8 @@ const mimetypeMatchesExtension = (mimetype: string, actualExt: string) => {
     case mimetype === 'video/matroska' && actualExt === 'mkv':
       return true;
     case mimetype === 'text/plain' && actualExt === 'textgrid':
+      return true;
+    case mimetype === 'audio/aiff' && ['aiff', 'aif'].includes(actualExt):
       return true;
     default:
       return false;
