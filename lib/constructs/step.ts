@@ -141,7 +141,7 @@ export class FargateStep extends Construct {
     const entry = path.join('src', src);
 
     const image = new ecrAssets.DockerImageAsset(this, `${id}StepDockerImage`, {
-      directory: path.join(__dirname, '..', '..'),
+      directory: path.join(import.meta.dirname, '..', '..'),
       file: 'docker/fargate/Dockerfile',
       buildArgs: {
         SOURCE_FILE: entry,

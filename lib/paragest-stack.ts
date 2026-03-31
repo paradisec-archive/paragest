@@ -16,8 +16,8 @@ import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import * as ssm from 'aws-cdk-lib/aws-ssm';
 import type { Construct } from 'constructs';
 
-import { StateMachine } from './constructs/state-machine';
-import { genLambdaProps } from './constructs/step';
+import { StateMachine } from './constructs/state-machine.ts';
+import { genLambdaProps } from './constructs/step.ts';
 
 export class ParagestStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {

@@ -5,7 +5,7 @@ import type * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import * as sfn from 'aws-cdk-lib/aws-stepfunctions';
 import { Construct } from 'constructs';
 
-import { FargateStep, LambdaStep, type SharedProps } from './step';
+import { FargateStep, LambdaStep, type SharedProps } from './step.ts';
 
 type StateMachineProps = SharedProps & {
   ingestBucket: s3.Bucket;
