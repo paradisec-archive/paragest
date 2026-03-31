@@ -319,6 +319,33 @@ export class ParagestStack extends cdk.Stack {
     processS3Event.addEventSource(s3DamsmartEventSource);
 
     // /////////////////////////////
+    // Backfill Lambda
+    // /////////////////////////////
+    const backfillExtractText = new nodejs.NodejsFunction(
+      this,
+      'BackfillExtractTextLambda',
+      genLambdaProps({
+        shared,
+        src: 'backfill/extract-text.ts',
+        lambdaProps: {
+          functionName: `paragest-backfill-extract-text-${env}`,
+          memorySize: 10240,
+          timeout: cdk.Duration.minutes(15),
+          vpc,
+          vpcSubnets: { subnets },
+        },
+        nodeModules: ['mammoth', 'exceljs', 'pdf-parse', 'rtf-stream-parser', 'fast-xml-parser'],
+      }),
+    );
+    catalogBucket.grantRead(backfillExtractText);
+    nabuOauthSecret.grantRead(backfillExtractText);
+
+    new cdk.CfnOutput(this, 'BackfillExtractTextLambdaArn', {
+      value: backfillExtractText.functionArn,
+      description: 'ARN of the BackfillExtractText Lambda',
+    });
+
+    // /////////////////////////////
     // EFS Directory Cleanup
     // /////////////////////////////
 
