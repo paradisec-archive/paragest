@@ -26,7 +26,24 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
     event: { principalId, bucketName, objectKey, notes },
     data,
   } = JSON.parse(errorMessage) as ErrorData;
-  console.debug({ message, principalId, data });
+
+  // Strip extractedText from data and any nested objects to avoid bloating error emails
+  const sanitiseData = (obj: Record<string, unknown>): Record<string, unknown> => {
+    const result: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(obj)) {
+      if (key === 'extractedText' && typeof value === 'string' && value.length > 500) {
+        result[key] = `${value.slice(0, 500)}... [truncated, ${value.length} characters total]`;
+      } else if (value && typeof value === 'object' && !Array.isArray(value)) {
+        result[key] = sanitiseData(value as Record<string, unknown>);
+      } else {
+        result[key] = value;
+      }
+    }
+    return result;
+  };
+
+  const sanitisedData = sanitiseData(data);
+  console.debug({ message, principalId, data: sanitisedData });
 
   if (!objectKey) {
     throw new Error('No object key');
@@ -48,7 +65,7 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
 
     The following data was provided:
 
-      ${JSON.stringify(data, null, 2)}
+      ${JSON.stringify(sanitisedData, null, 2)}
 
     ## Pipeline Notes
     ${notes.join('\n')}
