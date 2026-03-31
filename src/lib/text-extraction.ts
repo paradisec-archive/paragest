@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 
-import { Workbook } from 'exceljs';
+import type { Cell, Row, Worksheet } from 'exceljs';
+import ExcelJS from 'exceljs';
 import { XMLParser } from 'fast-xml-parser';
 import mammoth from 'mammoth';
 import { PDFParse } from 'pdf-parse';
@@ -45,15 +46,15 @@ const extractMammoth = async (filePath: string): Promise<string> => {
 };
 
 const extractXlsx = async (filePath: string): Promise<string> => {
-  const workbook = new Workbook();
+  const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.readFile(filePath);
 
   const sheets: string[] = [];
-  workbook.eachSheet((worksheet) => {
+  workbook.eachSheet((worksheet: Worksheet) => {
     const rows: string[] = [];
-    worksheet.eachRow((row) => {
+    worksheet.eachRow((row: Row) => {
       const cells: string[] = [];
-      row.eachCell((cell) => {
+      row.eachCell((cell: Cell) => {
         cells.push(String(cell.value ?? ''));
       });
       rows.push(cells.join(','));
