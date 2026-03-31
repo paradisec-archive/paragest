@@ -235,6 +235,13 @@ export class StateMachine extends Construct {
       },
     });
 
+    const extractTextStep = new LambdaStep(this, 'ExtractText', {
+      shared,
+      src: 'common/extract-text.ts',
+      lambdaProps: { memorySize: 10240, timeout: cdk.Duration.minutes(15) },
+      nodeModules: ['mammoth', 'exceljs', 'pdf-parse', 'rtf-stream-parser', 'fast-xml-parser'],
+    });
+
     const handleSpecialStep = new LambdaStep(this, 'HandleSpecial', {
       shared,
       src: 'common/handle-special.ts',
@@ -246,7 +253,30 @@ export class StateMachine extends Construct {
         catalogBucket.grantRead(role);
       },
     });
-    const processOtherFlow = sfn.Chain.start(createOtherArchivalStep.task).next(addToCatalogFlow);
+
+    const isTextExtractable = sfn.Condition.or(
+      sfn.Condition.stringEquals('$.details.extension', 'pdf'),
+      sfn.Condition.stringEquals('$.details.extension', 'eaf'),
+      sfn.Condition.stringEquals('$.details.extension', 'csv'),
+      sfn.Condition.stringEquals('$.details.extension', 'docx'),
+      sfn.Condition.stringEquals('$.details.extension', 'xlsx'),
+      sfn.Condition.stringEquals('$.details.extension', 'odt'),
+      sfn.Condition.stringEquals('$.details.extension', 'rtf'),
+      sfn.Condition.stringEquals('$.details.extension', 'srt'),
+      sfn.Condition.stringEquals('$.details.extension', 'txt'),
+      sfn.Condition.stringEquals('$.details.extension', 'textgrid'),
+      sfn.Condition.stringEquals('$.details.extension', 'xml'),
+      sfn.Condition.stringEquals('$.details.extension', 'imdi'),
+      sfn.Condition.stringEquals('$.details.extension', 'cmdi'),
+      sfn.Condition.stringEquals('$.details.extension', 'opex'),
+      sfn.Condition.stringEquals('$.details.extension', 'flextext'),
+    );
+
+    const extractTextFlow = sfn.Chain.start(extractTextStep.task).next(addToCatalogFlow);
+
+    const processOtherFlow = sfn.Chain.start(createOtherArchivalStep.task).next(
+      new sfn.Choice(this, 'Is Text Extractable?').when(isTextExtractable, extractTextFlow).otherwise(addToCatalogFlow),
+    );
 
     // /////////////////////////////
     // MediaFlow

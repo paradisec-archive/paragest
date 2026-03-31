@@ -273,6 +273,40 @@ const getResolutionInfo = (width: number, height: number) => {
   };
 };
 
+export type ExtractionStrategy = 'raw' | 'xml' | 'mammoth' | 'xlsx' | 'pdf' | 'rtf';
+
+export const getExtractionStrategy = (extension: string): ExtractionStrategy | null => {
+  switch (extension.toLowerCase()) {
+    case 'txt':
+    case 'csv':
+    case 'srt':
+    case 'textgrid':
+      return 'raw';
+    case 'xml':
+    case 'eaf':
+    case 'imdi':
+    case 'cmdi':
+    case 'opex':
+    case 'flextext':
+      return 'xml';
+    case 'docx':
+    case 'odt':
+      return 'mammoth';
+    case 'xlsx':
+      return 'xlsx';
+    case 'pdf':
+      return 'pdf';
+    case 'rtf':
+      return 'rtf';
+    default:
+      return null;
+  }
+};
+
+export const isTextExtractable = (extension: string): boolean => getExtractionStrategy(extension) !== null;
+
+export const EXTRACTED_TEXT_FILENAME = 'extracted_text.txt';
+
 export const getMediaMetadata = async (filename: string, event: Record<string, string | number | object>) => {
   console.log('🪚 ⭕', filename);
   console.log('🪚 ⭕', event);

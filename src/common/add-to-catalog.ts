@@ -5,7 +5,7 @@ import '../lib/sentry-node.js';
 import path from 'node:path';
 import { processBatch } from '../lib/batch.js';
 import { StepError } from '../lib/errors.js';
-import { getMediaMetadata, lookupMimetypeFromExtension } from '../lib/media.js';
+import { EXTRACTED_TEXT_FILENAME, getMediaMetadata, lookupMimetypeFromExtension } from '../lib/media.js';
 import { getPath, upload } from '../lib/s3.js';
 import { createEssence, getEssence, updateEssence } from '../models/essence.js';
 
@@ -28,7 +28,15 @@ const env = process.env.PARAGEST_ENV;
 
 const destBucket = `nabu-catalog-${env}`;
 
-const upsertEssence = async (collectionIdentifier: string, itemIdentifier: string, filename: string, size: number, mimetype: string, event: Event) => {
+const upsertEssence = async (
+  collectionIdentifier: string,
+  itemIdentifier: string,
+  filename: string,
+  size: number,
+  mimetype: string,
+  event: Event,
+  extractedText?: string,
+) => {
   const attributes = {
     mimetype,
     size,
@@ -37,6 +45,10 @@ const upsertEssence = async (collectionIdentifier: string, itemIdentifier: strin
   if (mimetype.startsWith('audio') || mimetype.startsWith('video')) {
     const { other: _other, rawFps: _rawFps, ...mediaAttributes } = await getMediaMetadata(getPath(`output/${filename}`), event);
     Object.assign(attributes, mediaAttributes);
+  }
+
+  if (extractedText) {
+    Object.assign(attributes, { extractedText });
   }
 
   console.debug('Attributes:', JSON.stringify(attributes, null, 2));
@@ -69,6 +81,13 @@ export const handler = async (event: Event) => {
 
   const dir = getPath('output');
 
+  let extractedText: string | undefined;
+  try {
+    extractedText = fs.readFileSync(getPath(EXTRACTED_TEXT_FILENAME), 'utf-8');
+  } catch {
+    // No extracted text file — expected for non-text file types
+  }
+
   const filenames = fs.readdirSync(dir);
 
   const promises = filenames.map(async (filename) => {
@@ -92,7 +111,7 @@ export const handler = async (event: Event) => {
 
     await upload(src, destBucket, dst, mimetype, ['wav', 'mkv'].includes(extension));
 
-    const created = await upsertEssence(collectionIdentifier, itemIdentifier, filename, size, mimetype, event);
+    const created = await upsertEssence(collectionIdentifier, itemIdentifier, filename, size, mimetype, event, extractedText);
 
     notes.push(`addMediaMetadata: ${created ? 'Created' : 'Updated'} essence`);
   });
