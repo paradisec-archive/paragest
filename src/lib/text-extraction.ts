@@ -81,7 +81,7 @@ const extractRtf = (filePath: string): string => {
   return typeof result.text === 'string' ? result.text : result.text.toString('utf-8');
 };
 
-const MAX_TEXT_LENGTH = 20 * 1024 * 1024;
+const MAX_TEXT_LENGTH = 5 * 1024 * 1024;
 
 const truncateText = (text: string): string => {
   if (text.length <= MAX_TEXT_LENGTH) return text;
