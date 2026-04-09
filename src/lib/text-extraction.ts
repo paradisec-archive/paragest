@@ -81,6 +81,16 @@ const extractRtf = (filePath: string): string => {
   return typeof result.text === 'string' ? result.text : result.text.toString('utf-8');
 };
 
+const MAX_TEXT_LENGTH = 20 * 1024 * 1024;
+
+const truncateText = (text: string): string => {
+  if (text.length <= MAX_TEXT_LENGTH) return text;
+
+  const lastBreak = Math.max(text.lastIndexOf('\n', MAX_TEXT_LENGTH), text.lastIndexOf(' ', MAX_TEXT_LENGTH));
+
+  return text.slice(0, lastBreak > 0 ? lastBreak : MAX_TEXT_LENGTH);
+};
+
 export const extractText = async (filePath: string, extension: string): Promise<string> => {
   const strategy = getExtractionStrategy(extension);
   if (!strategy) {
@@ -89,16 +99,16 @@ export const extractText = async (filePath: string, extension: string): Promise<
 
   switch (strategy) {
     case 'raw':
-      return extractRaw(filePath);
+      return truncateText(extractRaw(filePath));
     case 'xml':
-      return extractXml(filePath);
+      return truncateText(extractXml(filePath));
     case 'mammoth':
-      return extractMammoth(filePath);
+      return truncateText(await extractMammoth(filePath));
     case 'xlsx':
-      return extractXlsx(filePath);
+      return truncateText(await extractXlsx(filePath));
     case 'pdf':
-      return extractPdf(filePath);
+      return truncateText(await extractPdf(filePath));
     case 'rtf':
-      return extractRtf(filePath);
+      return truncateText(extractRtf(filePath));
   }
 };
