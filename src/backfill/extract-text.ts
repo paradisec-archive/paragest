@@ -49,6 +49,9 @@ export const handler: Handler = Sentry.wrapHandler(async (event: BackfillEvent) 
 
   const { essenceId, s3Key, extension, mimetype, size } = event;
 
+  Sentry.setTag('essenceId', essenceId);
+  Sentry.setTag('s3Key', s3Key);
+
   const filePath = await downloadToTmp(catalogBucket, s3Key);
 
   try {

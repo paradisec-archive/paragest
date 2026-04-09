@@ -13,6 +13,8 @@ type Event = {
   id: string;
   notes: string[];
   details: {
+    collectionIdentifier: string;
+    itemIdentifier: string;
     filename: string;
     extension: string;
   };
@@ -25,8 +27,12 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
 
   const {
     notes,
-    details: { filename, extension },
+    details: { collectionIdentifier, itemIdentifier, filename, extension },
   } = event;
+
+  Sentry.setTag('collection', collectionIdentifier);
+  Sentry.setTag('item', itemIdentifier);
+  Sentry.setTag('filename', filename);
 
   const inputPath = getPath('input');
   const outputPath = getPath(EXTRACTED_TEXT_FILENAME);

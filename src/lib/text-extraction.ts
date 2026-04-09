@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 
+import * as Sentry from '@sentry/aws-serverless';
 import type { Cell, Row, Worksheet } from 'exceljs';
 import ExcelJS from 'exceljs';
 import { XMLParser } from 'fast-xml-parser';
@@ -34,9 +35,14 @@ const collectTextNodes = (obj: unknown): string[] => {
 const extractXml = (filePath: string): string => {
   const content = fs.readFileSync(filePath, 'utf-8');
   const parser = new XMLParser({ ignoreAttributes: true, trimValues: true });
-  const parsed = parser.parse(content);
 
-  return collectTextNodes(parsed).join(' ');
+  try {
+    const parsed = parser.parse(content);
+    return collectTextNodes(parsed).join(' ');
+  } catch (error) {
+    Sentry.captureMessage(`XML parsing failed, falling back to raw text: ${error}`, 'warning');
+    return content;
+  }
 };
 
 const extractMammoth = async (filePath: string): Promise<string> => {
