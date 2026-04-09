@@ -6,7 +6,7 @@ import ExcelJS from 'exceljs';
 import { XMLParser } from 'fast-xml-parser';
 import mammoth from 'mammoth';
 import { PDFParse } from 'pdf-parse';
-import { deEncapsulateSync } from 'rtf-stream-parser';
+import rtfParser from 'rtf-parser';
 
 import { getExtractionStrategy } from './media.js';
 
@@ -88,12 +88,21 @@ const extractPdf = async (filePath: string): Promise<string> => {
   return result.text;
 };
 
-const extractRtf = (filePath: string): string => {
-  const buffer = fs.readFileSync(filePath);
-  const result = deEncapsulateSync(buffer);
+// TODO: rtf-parser is unmaintained (last updated 2019), explore alternatives like rtf-parser-wasm
+const extractRtf = (filePath: string): Promise<string> =>
+  new Promise((resolve, reject) => {
+    rtfParser.stream(fs.createReadStream(filePath), (err, doc) => {
+      if (err) return reject(err);
 
-  return typeof result.text === 'string' ? result.text : result.text.toString('utf-8');
-};
+      const extractSpans = (node: { value?: string; content?: typeof doc.content }): string[] => {
+        if (node.value) return [node.value];
+        if (node.content) return node.content.flatMap(extractSpans);
+        return [];
+      };
+
+      resolve(doc.content.flatMap(extractSpans).join('\n'));
+    });
+  });
 
 const MAX_TEXT_LENGTH = 5 * 1024 * 1024;
 
@@ -123,6 +132,6 @@ export const extractText = async (filePath: string, extension: string): Promise<
     case 'pdf':
       return truncateText(await extractPdf(filePath));
     case 'rtf':
-      return truncateText(extractRtf(filePath));
+      return truncateText(await extractRtf(filePath));
   }
 };
