@@ -34,7 +34,15 @@ const collectTextNodes = (obj: unknown): string[] => {
 
 const extractXml = (filePath: string): string => {
   const content = fs.readFileSync(filePath, 'utf-8');
-  const parser = new XMLParser({ ignoreAttributes: true, trimValues: true });
+  const parser = new XMLParser({
+    // We only care about text content, not attribute values
+    ignoreAttributes: true,
+    // Strip whitespace from text nodes for cleaner extracted output
+    trimValues: true,
+    // Linguistic files (EAF, IMDI, FlexText) commonly exceed the default limit of 1000
+    // due to standard XML escaping (&amp;, &lt;, etc.) across thousands of annotations
+    processEntities: { maxTotalExpansions: 100_000 },
+  });
 
   try {
     const parsed = parser.parse(content);
