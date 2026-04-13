@@ -4,3 +4,5 @@ onlyBuiltDependencies:
   - esbuild
   - oxc-resolver
   - unrs-resolver
+patchedDependencies:
+  rtf-parser: patches/rtf-parser.patch
