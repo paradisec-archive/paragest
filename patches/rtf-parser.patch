@@ -2,11 +2,11 @@ diff --git a/CHANGELOG.md b/CHANGELOG.md
 deleted file mode 100644
 index dc8fceb28336c8d04ef38c0130242d06570e2eff..0000000000000000000000000000000000000000
 diff --git a/rtf-interpreter.js b/rtf-interpreter.js
-index 09a89dda3b4dc6208f42c4413ad5f0e578d2d064..137b6bb8fb0723f7eb76e8ae474fef55aebf2771 100644
+index 09a89dda3b4dc6208f42c4413ad5f0e578d2d064..723bd8ad797be2b545d2fe17fe62d7426fbf2c0c 100644
 --- a/rtf-interpreter.js
 +++ b/rtf-interpreter.js
 @@ -10,7 +10,8 @@ const iconv = require('iconv-lite')
-
+ 
  const availableCP = [
    437, 737, 775, 850, 852, 853, 855, 857, 858, 860, 861, 863, 865, 866,
 -  869, 932, 936, 949, 950, 1125, 1250, 1251, 1252, 1253, 1254, 1257 ]
@@ -15,7 +15,7 @@ index 09a89dda3b4dc6208f42c4413ad5f0e578d2d064..137b6bb8fb0723f7eb76e8ae474fef55
  const codeToCP = {
    0: 'ASCII',
    2: 'SYMBOL',
-@@ -28,7 +29,8 @@ const codeToCP = {
+@@ -29,7 +30,8 @@ const codeToCP = {
    204: 'CP1251', // russian
    222: 'CP874', // thai
    238: 'CP238', // eastern european
@@ -23,9 +23,40 @@ index 09a89dda3b4dc6208f42c4413ad5f0e578d2d064..137b6bb8fb0723f7eb76e8ae474fef55
 +  254: 'CP437', // PC-437
 +  256: 'CP1252' // OEM
  }
-
+ 
  class RTFInterpreter extends Writable {
-@@ -241,6 +243,8 @@ class RTFInterpreter extends Writable {
+@@ -67,10 +69,13 @@ class RTFInterpreter extends Writable {
+   }
+   flushHexStore () {
+     if (this.hexStore.length > 0) {
++      let charset = this.group.get('charset')
++      if (!iconv.encodingExists(charset)) {
++        charset = 'CP1252'
++      }
+       let hexstr = this.hexStore.map(cmd => cmd.value).join('')
+       this.group.addContent(new RTFSpan({
+-        value: iconv.decode(
+-          Buffer.from(hexstr, 'hex'), this.group.get('charset'))
++        value: iconv.decode(Buffer.from(hexstr, 'hex'), charset)
+       }))
+       this.hexStore.splice(0)
+     }
+@@ -185,11 +190,9 @@ class RTFInterpreter extends Writable {
+     this.group.style.italic = set !== 0
+   }
+   ctrl$u (num) {
+-    var charBuf = Buffer.alloc ? Buffer.alloc(2) : new Buffer(2)
+-    // RTF, for reasons, represents unicode characters as signed integers
+-    // thus managing to match literally no one.
+-    charBuf.writeInt16LE(num, 0)
+-    this.group.addContent(new RTFSpan({value: iconv.decode(charBuf, 'ucs2')}))
++    // RTF represents unicode as signed integers, but some writers emit unsigned values
++    var code = num < 0 ? num + 0x10000 : num
++    this.group.addContent(new RTFSpan({value: String.fromCodePoint(code)}))
+   }
+   ctrl$super () {
+     this.group.style.valign = 'super'
+@@ -241,6 +244,8 @@ class RTFInterpreter extends Writable {
    ctrl$ansicpg (codepage) {
      if (availableCP.indexOf(codepage) === -1) {
        this.emit('error', new Error('Codepage ' + codepage + ' is not available.'))
@@ -34,3 +65,35 @@ index 09a89dda3b4dc6208f42c4413ad5f0e578d2d064..137b6bb8fb0723f7eb76e8ae474fef55
      } else {
        this.group.charset = 'CP' + codepage
      }
+@@ -258,7 +263,8 @@ class RTFInterpreter extends Writable {
+     } else {
+       this.group.style.font = num
+ 
+-      let fontCharset = this.group.getFont(num).charset
++      let font = this.group.getFont(num)
++      let fontCharset = font ? font.charset : null
+       fontCharset = fontCharset && fontCharset !== 'ASCII' ? fontCharset : this.group.charset// default font charset
+       this.group.charset = fontCharset
+     }
+@@ -312,7 +318,7 @@ class RTFInterpreter extends Writable {
+         charset = codeToCP[code]
+       }
+       if (charset == null) {
+-        return this.emit('error', new Error('Unsupported charset code #' + code))
++        charset = 'CP1252'
+       }
+       this.group.get('currentFont').charset = charset
+     }
+diff --git a/rtf-parser.js b/rtf-parser.js
+index e2da96cd24dd72a3e3594e38296434986a4a264a..2c72bac0b5c97f981bac97fd700788e93fc9a4f1 100644
+--- a/rtf-parser.js
++++ b/rtf-parser.js
+@@ -131,7 +131,7 @@ class RTFParser extends Transform {
+   emitControlWord () {
+     this.emitText()
+     if (this.controlWord === '') {
+-      this.emitError('empty control word')
++      // silently skip empty control words
+     } else {
+       this.push({
+         type: 'control-word',
