@@ -62,7 +62,7 @@ export const handler: Handler = Sentry.wrapHandler(async (event: BackfillEvent) 
       throw new Error(`Failed to update essence ${essenceId}: ${JSON.stringify(error)}`);
     }
 
-    console.debug(`Updated essence ${essenceId}: ${text.length} characters`);
+    console.debug(`Updated essence ${essenceId}: ${text.length} chars`);
 
     return { essenceId, characters: text.length };
   } finally {
