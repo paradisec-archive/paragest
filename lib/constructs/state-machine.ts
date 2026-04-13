@@ -239,7 +239,7 @@ export class StateMachine extends Construct {
       shared,
       src: 'common/extract-text.ts',
       lambdaProps: { memorySize: 10240, timeout: cdk.Duration.minutes(15) },
-      nodeModules: ['mammoth', 'exceljs', 'pdf-parse', 'rtf-parser', 'fast-xml-parser'],
+      nodeModules: ['mammoth', 'exceljs', 'pdf-parse'],
     });
 
     const handleSpecialStep = new LambdaStep(this, 'HandleSpecial', {
