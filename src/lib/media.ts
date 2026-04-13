@@ -273,7 +273,7 @@ const getResolutionInfo = (width: number, height: number) => {
   };
 };
 
-export type ExtractionStrategy = 'raw' | 'xml' | 'mammoth' | 'xlsx' | 'pdf' | 'rtf';
+export type ExtractionStrategy = 'raw' | 'xml' | 'mammoth' | 'xlsx' | 'pdf' | 'rtf' | 'odt';
 
 export const getExtractionStrategy = (extension: string): ExtractionStrategy | null => {
   switch (extension.toLowerCase()) {
@@ -290,8 +290,9 @@ export const getExtractionStrategy = (extension: string): ExtractionStrategy | n
     case 'flextext':
       return 'xml';
     case 'docx':
-    case 'odt':
       return 'mammoth';
+    case 'odt':
+      return 'odt';
     case 'xlsx':
       return 'xlsx';
     case 'pdf':

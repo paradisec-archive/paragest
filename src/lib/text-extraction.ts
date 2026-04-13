@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/aws-serverless';
 import type { Cell, Row, Worksheet } from 'exceljs';
 import ExcelJS from 'exceljs';
 import { XMLParser } from 'fast-xml-parser';
+import JSZip from 'jszip';
 import mammoth from 'mammoth';
 import { PDFParse } from 'pdf-parse';
 import rtfParser from 'rtf-parser';
@@ -104,6 +105,20 @@ const extractRtf = (filePath: string): Promise<string> =>
     });
   });
 
+const extractOdt = async (filePath: string): Promise<string> => {
+  const data = fs.readFileSync(filePath);
+  const zip = await JSZip.loadAsync(data);
+  const contentXml = zip.file('content.xml');
+  if (!contentXml) {
+    throw new Error('No content.xml found in ODT file');
+  }
+
+  const xml = await contentXml.async('string');
+  const parser = new XMLParser({ ignoreAttributes: true, trimValues: true });
+  const parsed = parser.parse(xml);
+  return collectTextNodes(parsed).join(' ');
+};
+
 const MAX_TEXT_LENGTH = 5 * 1024 * 1024;
 
 const truncateText = (text: string): string => {
@@ -133,5 +148,7 @@ export const extractText = async (filePath: string, extension: string): Promise<
       return truncateText(await extractPdf(filePath));
     case 'rtf':
       return truncateText(await extractRtf(filePath));
+    case 'odt':
+      return truncateText(await extractOdt(filePath));
   }
 };

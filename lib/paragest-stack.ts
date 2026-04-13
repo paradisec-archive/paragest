@@ -334,7 +334,7 @@ export class ParagestStack extends cdk.Stack {
           vpc,
           vpcSubnets: { subnets },
         },
-        nodeModules: ['mammoth', 'exceljs', 'pdf-parse'],
+        nodeModules: ['mammoth', 'exceljs', 'pdf-parse', 'jszip'],
       }),
     );
     catalogBucket.grantRead(backfillExtractText);
