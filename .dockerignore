@@ -3,6 +3,8 @@
 
 # Allow only what the Dockerfile needs
 !pnpm-lock.yaml
+!pnpm-workspace.yaml
 !package.json
 !src/
 !docker/
+!patches/

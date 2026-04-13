@@ -4,8 +4,10 @@ ARG SOURCE_FILE
 
 WORKDIR /function
 
-COPY pnpm-lock.yaml /function
-COPY package.json /function
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json /function/
+COPY patches/ /function/patches/
+RUN ls /function
+RUN ls /function/patches
 
 RUN corepack enable && \
   pnpm --frozen-lockfile install
