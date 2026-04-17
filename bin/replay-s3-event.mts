@@ -3,14 +3,21 @@
 import { LambdaClient, ListFunctionsCommand } from '@aws-sdk/client-lambda';
 import { CopyObjectCommand, DeleteObjectCommand, HeadObjectCommand, ListObjectsV2Command, S3Client } from '@aws-sdk/client-s3';
 import { GetExecutionHistoryCommand, ListExecutionsCommand, ListStateMachinesCommand, SFNClient, StartExecutionCommand } from '@aws-sdk/client-sfn';
-import { checkbox, confirm, select } from '@inquirer/prompts';
+import { checkbox, confirm, input, select } from '@inquirer/prompts';
 import { v4 as uuidv4 } from 'uuid';
 
 const ENVIRONMENTS = ['prod', 'stage'];
 const PATHS = ['incoming', 'rejected', 'damsmart'];
 
+const principalIdPrefix = process.env.PRINCIPAL_ID_PREFIX;
+if (!principalIdPrefix) {
+  throw new Error('PRINCIPAL_ID_PREFIX environment variable is required');
+}
+
+const normalisePrincipalId = (value: string) => (value.startsWith(principalIdPrefix) ? value : `${principalIdPrefix}${value}`);
+
 const lambda = new LambdaClient({ region: 'ap-southeast-2' });
-const sfn = new SFNClient({ region: 'ap-southeast-2' });
+const sfn = new SFNClient({ region: 'ap-southeast-2', maxAttempts: 10, retryMode: 'adaptive' });
 
 // Cache for file inputs to avoid repeated SFN API calls
 type FileInput = {
@@ -19,51 +26,52 @@ type FileInput = {
   objectKey: string;
   objectSize: number;
   principalId: string;
+  notes: string[];
 };
 
 // Global cache that will store execution inputs for each file
 const executionInputCache: Map<string, FileInput> = new Map();
 
-// Global variable to store the nextToken for pagination
+// Principal id reused within a collection (first '-'-separated segment of the key)
+const principalIdByCollection: Map<string, string> = new Map();
+
+const collectionFromKey = (key: string) => key.split('-')[0];
+
 let nextExecutionToken: string | undefined;
+let pagesFetched = 0;
+let paginationExhausted = false;
+const MAX_PAGES = 10;
 
-// Track pagination attempts
-let paginationAttempts = 0;
-const MAX_PAGINATION_ATTEMPTS = 10;
-
-// Find the state machine ARN for Paragest
+let paragestStateMachineArn: string | undefined;
 const findParagestStateMachine = async () => {
-  const listStateMachinesCommand = new ListStateMachinesCommand({});
-  const stateMachineResponse = await sfn.send(listStateMachinesCommand);
+  if (paragestStateMachineArn) return paragestStateMachineArn;
 
+  const stateMachineResponse = await sfn.send(new ListStateMachinesCommand({}));
   const stateMachine = stateMachineResponse.stateMachines?.find((sm) => sm.name === 'Paragest');
 
   if (!stateMachine?.stateMachineArn) {
     throw new Error('Could not find Paragest state machine');
   }
 
-  return stateMachine.stateMachineArn;
+  paragestStateMachineArn = stateMachine.stateMachineArn;
+  return paragestStateMachineArn;
 };
 
-// Initialize or extend the cache by fetching executions page by page
 const buildExecutionCache = async () => {
-  // Reset pagination attempts if we're starting a new pagination sequence
-  if (!nextExecutionToken) {
-    paginationAttempts = 0;
-  }
-
-  // Give up after MAX_PAGINATION_ATTEMPTS
-  if (paginationAttempts >= MAX_PAGINATION_ATTEMPTS) {
-    console.log(`Reached maximum pagination attempts (${MAX_PAGINATION_ATTEMPTS}), giving up on further cache building`);
+  if (paginationExhausted) {
     return;
   }
 
-  paginationAttempts++;
+  if (pagesFetched >= MAX_PAGES) {
+    console.log(`Reached maximum pages (${MAX_PAGES}), giving up on further cache building`);
+    return;
+  }
 
-  console.log(`Building execution cache from Step Function executions (page ${paginationAttempts})...`);
+  pagesFetched++;
+
+  console.log(`Building execution cache from Step Function executions (page ${pagesFetched})...`);
   const stateMachineArn = await findParagestStateMachine();
 
-  // Get executions for the Paragest state machine
   const listResponse = await sfn.send(
     new ListExecutionsCommand({
       stateMachineArn,
@@ -73,8 +81,10 @@ const buildExecutionCache = async () => {
     }),
   );
 
-  // Store the next token for pagination
   nextExecutionToken = listResponse.nextToken;
+  if (!nextExecutionToken) {
+    paginationExhausted = true;
+  }
 
   if (!listResponse.executions || listResponse.executions.length === 0) {
     console.warn('No executions found in Step Function history');
@@ -100,12 +110,17 @@ const buildExecutionCache = async () => {
         continue;
       }
 
-      const input = JSON.parse(startedEvent.executionStartedEventDetails.input) as FileInput;
+      const rawInput = JSON.parse(startedEvent.executionStartedEventDetails.input) as Partial<FileInput> & Omit<FileInput, 'notes'>;
+      const fileInput: FileInput = {
+        ...rawInput,
+        principalId: normalisePrincipalId(rawInput.principalId),
+        notes: rawInput.notes ?? [],
+      };
 
-      // Extract the key from the objectKey (remove 'incoming/')
-      if (input.objectKey.startsWith('incoming/') || input.objectKey.startsWith('damsmart/')) {
-        const key = input.objectKey.replace(/(incoming|damsmart)\//, '');
-        executionInputCache.set(key, input);
+      if (fileInput.objectKey.startsWith('incoming/') || fileInput.objectKey.startsWith('damsmart/')) {
+        const key = fileInput.objectKey.replace(/(incoming|damsmart)\//, '');
+        executionInputCache.set(key, fileInput);
+        principalIdByCollection.set(collectionFromKey(key), fileInput.principalId);
         processedCount++;
       }
     } catch (err) {
@@ -115,27 +130,25 @@ const buildExecutionCache = async () => {
     }
   }
 
-  console.log(`Cached inputs for ${processedCount} files (total pages fetched: ${paginationAttempts})`);
+  console.log(`Cached inputs for ${processedCount} files (total pages fetched: ${pagesFetched})`);
 };
 
-const findOriginalInput = async (key: string) => {
-  // Check if the input is already in our cache
-  if (executionInputCache.has(key)) {
-    const cachedInput = executionInputCache.get(key);
-    return cachedInput;
+const findOriginalInput = async (key: string): Promise<FileInput | undefined> => {
+  const cached = executionInputCache.get(key);
+  if (cached) return cached;
+
+  if (paginationExhausted) {
+    console.log(`Could not find execution for ${key} (pagination exhausted after ${pagesFetched} pages).`);
+    return undefined;
   }
 
-  if (paginationAttempts >= MAX_PAGINATION_ATTEMPTS) {
-    console.log(`Could not find execution for ${key} after ${paginationAttempts} pages.`);
-    return;
+  if (pagesFetched >= MAX_PAGES) {
+    console.log(`Could not find execution for ${key} (reached max ${MAX_PAGES} pages).`);
+    return undefined;
   }
 
-  // If not in cache, try to fetch the next page of executions
   console.log(`Cache miss for ${key}, fetching next page of executions...`);
-
-  // Try to extend the cache with the next page of data
   await buildExecutionCache();
-
   return findOriginalInput(key);
 };
 
@@ -231,29 +244,46 @@ const invokeLambdaWithS3Event = async (bucketName: string, path: string, key: st
     process.exit(1);
   }
 
-  const input = await findOriginalInput(key);
-  if (!input) {
-    console.log(`No input found for ${key}`);
-    return;
+  const cached = await findOriginalInput(key);
+
+  let fileInput: FileInput;
+  if (cached) {
+    if (cached.objectSize !== size) {
+      throw new Error(`Size mismatch: ${cached.objectSize} (original) !== ${size} (current).`);
+    }
+    const replayNote = `replayS3Event: ${cached.objectKey} replayed by ${cached.principalId} with size ${size}`;
+    fileInput = { ...cached, id: uuidv4(), notes: [replayNote, ...cached.notes] };
+  } else {
+    const collection = collectionFromKey(key);
+    let principalId = principalIdByCollection.get(collection);
+    if (principalId) {
+      console.log(`Reusing cached principalId ${principalId} for collection ${collection}`);
+    } else {
+      const entered = (
+        await input({
+          message: `No cached execution for ${key} (collection ${collection}). Enter principalId (will be prefixed with ${principalIdPrefix} if needed):`,
+          validate: (value) => value.trim().length > 0 || 'principalId cannot be empty',
+        })
+      ).trim();
+      principalId = normalisePrincipalId(entered);
+      principalIdByCollection.set(collection, principalId);
+    }
+    const objectKey = path === 'damsmart' ? `damsmart/${key}` : `incoming/${key}`;
+    fileInput = {
+      id: uuidv4(),
+      bucketName,
+      objectKey,
+      objectSize: size,
+      principalId,
+      notes: [`replayS3Event: ${objectKey} replayed by ${principalId} with size ${size} (synthesised input)`],
+    };
   }
 
-  if (input.objectSize !== size) {
-    throw new Error(`Size mismatch: ${input.objectSize} (original) !== ${size} (current).`);
-  }
-
-  // TODO: Reset the id so it can't use any old inputs
-  input.id = uuidv4();
-
-  // Get the state machine ARN
   const stateMachineArn = await findParagestStateMachine();
-
-  // Create event payload - always use incoming path for key
-  const s3Key = `${path === 'damsmart' ? 'damsmart' : 'incoming'}/${key}`;
-  console.log(`Using S3 key: ${s3Key}`);
 
   const executionCommand = new StartExecutionCommand({
     stateMachineArn,
-    input: JSON.stringify(input),
+    input: JSON.stringify(fileInput),
   });
   await sfn.send(executionCommand);
 
@@ -286,11 +316,8 @@ const listFiles = async (s3Client: S3Client, bucket: string, prefix: string) => 
 
   const response = await s3Client.send(command);
 
-  if (!response.Contents || response.Contents.length === 0) {
-    throw new Error(`No files found in ${bucket}/${prefix}/`);
-  }
-
-  return response.Contents.map((item) => item.Key)
+  return (response.Contents ?? [])
+    .map((item) => item.Key)
     .filter(Boolean)
     .filter((key) => key !== `${prefix}/` && !key.endsWith('/') && !key.endsWith('/.keep'))
     .map((key) => key.replace(`${prefix}/`, ''))
@@ -318,6 +345,11 @@ const processFiles = async (env: string, path: string) => {
   console.log(`Fetching files from ${bucketName}/${path}/...`);
 
   const files = await listFiles(s3, bucketName, path);
+
+  if (files.length === 0) {
+    console.log(`No files to process in ${bucketName}/${path}/`);
+    return true;
+  }
 
   const keys = await promptForFiles(files);
 

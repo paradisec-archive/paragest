@@ -11,15 +11,8 @@
       "**",
       // Autogen
       "!src/gql",
-      "!lib/*.js",
-      "!lib/*.d.ts",
-      "!bin/*.js",
-      "!bin/*.d.ts",
-      "!test/*.js",
-      "!test/*.d.ts",
 
       // CDK
-      "!cdk.out",
       "!cdk.context.json",
       "!cdk.json"
     ]
