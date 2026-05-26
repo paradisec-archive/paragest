@@ -1,4 +1,4 @@
-import { Client, fetchExchange } from '@urql/core';
+import { Client, type CombinedError, fetchExchange } from '@urql/core';
 import fetch from 'node-fetch';
 
 import { getSecret } from './secrets.js';
@@ -66,3 +66,6 @@ export const getGraphQLClient = async () => {
 
   return client;
 };
+
+export const isNotFoundError = (error: CombinedError): boolean =>
+  !error.networkError && error.graphQLErrors.length > 0 && error.graphQLErrors.every((e) => /^\w+ not found$/i.test(e.message));

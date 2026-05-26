@@ -1,6 +1,6 @@
 import { graphql } from '../gql';
 
-import { getGraphQLClient } from '../lib/graphql.js';
+import { getGraphQLClient, isNotFoundError } from '../lib/graphql.js';
 import { throttle } from '../lib/rate-limit';
 
 const gqlClient = await getGraphQLClient();
@@ -21,7 +21,12 @@ export const getCollection = throttle(async (identifier: string) => {
   console.log('🪚 🔲 GC');
   console.debug('Response:', JSON.stringify(response, null, 2));
 
-  return response.data?.collection;
+  if (response.error) {
+    if (isNotFoundError(response.error)) return null;
+    throw response.error;
+  }
+
+  return response.data?.collection ?? null;
 });
 
 export const setHasDepositForm = throttle(async (identifier: string) => {

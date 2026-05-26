@@ -1,7 +1,7 @@
 import { graphql } from '../gql';
 
 import type { Essence, EssenceAttributes } from '../gql/graphql';
-import { getGraphQLClient } from '../lib/graphql.js';
+import { getGraphQLClient, isNotFoundError } from '../lib/graphql.js';
 import { throttle } from '../lib/rate-limit';
 
 const gqlClient = await getGraphQLClient();
@@ -41,7 +41,12 @@ export const getEssence = throttle(async (collectionIdentifier: string, itemIden
   });
   console.debug('Response:', JSON.stringify(response, null, 2));
 
-  return response.data?.essence;
+  if (response.error) {
+    if (isNotFoundError(response.error)) return null;
+    throw response.error;
+  }
+
+  return response.data?.essence ?? null;
 });
 
 export const createEssence = throttle(async (collectionIdentifier: string, itemIdentifier: string, filename: string, attributes: Omit<Essence, 'id'>) => {

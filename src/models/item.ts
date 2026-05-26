@@ -1,6 +1,6 @@
 import { graphql } from '../gql';
 
-import { getGraphQLClient } from '../lib/graphql.js';
+import { getGraphQLClient, isNotFoundError } from '../lib/graphql.js';
 import { throttle } from '../lib/rate-limit';
 
 const gqlClient = await getGraphQLClient();
@@ -22,7 +22,12 @@ export const getItem = throttle(async (collectionIdentifier: string, itemIdentif
   const response = await gqlClient.query(ItemQuery, { fullIdentifier: `${collectionIdentifier}-${itemIdentifier}` });
   console.debug('Response:', JSON.stringify(response, null, 2));
 
-  return response.data?.item;
+  if (response.error) {
+    if (isNotFoundError(response.error)) return null;
+    throw response.error;
+  }
+
+  return response.data?.item ?? null;
 });
 
 export const getItemBwfCsv = throttle(async (collectionIdentifier: string, itemIdentifier: string, filename: string) => {
