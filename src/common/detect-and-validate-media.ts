@@ -78,7 +78,7 @@ const mimetypeMatchesExtension = (mimetype: string, actualExt: string) => {
       return true;
     case mimetype === 'video/matroska' && actualExt === 'mkv':
       return true;
-    case mimetype === 'text/plain' && actualExt === 'textgrid':
+    case mimetype === 'text/plain' && ['textgrid', 'csv'].includes(actualExt):
       return true;
     case mimetype === 'audio/aiff' && ['aiff', 'aif'].includes(actualExt):
       return true;
@@ -92,6 +92,8 @@ const allowedMimetypeException = (detected: string, actual: string) => {
     case ['text/xml', 'application/xml'].includes(detected) && !!actual.match('application/(eaf|imdi|cmdi|opex|flextext)\\+xml'):
       return true;
     case detected === 'video/mp4' && actual === 'audio/mp4':
+      return true;
+    case detected === 'text/plain' && actual === 'text/csv':
       return true;
     // case detected === 'video/MP2P' && actual === 'video/x-ms-vob':
     //   return true;
