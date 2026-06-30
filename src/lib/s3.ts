@@ -107,6 +107,15 @@ const head = async (bucket: string, key: string) => {
   }
 };
 
+export const getObjectSize = async (bucket: string, key: string) => {
+  const headObject = await head(bucket, key);
+  if (!headObject) {
+    throw new Error(`Object ${bucket}:${key} does not exist`);
+  }
+
+  return headObject.ContentLength ?? 0;
+};
+
 const copy = async (srcBucket: string, src: string, dstBucket: string, dst: string) => {
   const headObject = await head(srcBucket, src);
   if (!headObject) {

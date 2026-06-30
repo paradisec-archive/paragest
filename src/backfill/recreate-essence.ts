@@ -5,7 +5,7 @@ import '../lib/sentry-node.js';
 import { v4 as uuidv4 } from 'uuid';
 
 import { getExtractionStrategy, getMediaMetadata, lookupMimetypeFromExtension } from '../lib/media.js';
-import { download, getPath } from '../lib/s3.js';
+import { download, getObjectSize, getPath } from '../lib/s3.js';
 import { extractText } from '../lib/text-extraction.js';
 import { createEssence, getEssence } from '../models/essence.js';
 import { getItem } from '../models/item.js';
@@ -58,22 +58,36 @@ const parseKey = (rawKey: string) => {
   return { key, collectionIdentifier, itemIdentifier, filename, extension };
 };
 
+// Builds the essence attributes, downloading the object only when the bytes are actually
+// needed: audio/video need mediainfo, text types need extraction. Everything else (images,
+// other) only needs size (from a HEAD) + mimetype, so we never download those.
 const buildAttributes = async (key: string, filename: string, extension: string, mimetype: string) => {
   const attributes: Record<string, unknown> = {
     mimetype,
-    size: fs.statSync(getPath(filename)).size,
+    size: await getObjectSize(catalogBucket, key),
   };
 
-  if (mimetype.startsWith('audio') || mimetype.startsWith('video')) {
-    const { other: _other, rawFps: _rawFps, ...mediaAttributes } = await getMediaMetadata(getPath(filename), { key });
-    Object.assign(attributes, mediaAttributes);
-  } else if (getExtractionStrategy(extension)) {
-    try {
-      attributes.extractedText = await extractText(getPath(filename), extension);
-    } catch (error) {
-      // Text extraction is best-effort: still create the essence with size + mimetype.
-      console.warn(`extractText failed for ${key}:`, error);
+  const isMedia = mimetype.startsWith('audio') || mimetype.startsWith('video');
+  const isText = !isMedia && getExtractionStrategy(extension) !== null;
+  if (!isMedia && !isText) {
+    return attributes;
+  }
+
+  await download(catalogBucket, key, filename);
+  try {
+    if (isMedia) {
+      const { other: _other, rawFps: _rawFps, ...mediaAttributes } = await getMediaMetadata(getPath(filename), { key });
+      Object.assign(attributes, mediaAttributes);
+    } else {
+      try {
+        attributes.extractedText = await extractText(getPath(filename), extension);
+      } catch (error) {
+        // Text extraction is best-effort: still create the essence with size + mimetype.
+        console.warn(`extractText failed for ${key}:`, error);
+      }
     }
+  } finally {
+    fs.rmSync(getPath(filename), { force: true });
   }
 
   return attributes;
@@ -102,24 +116,18 @@ const processKey = async (rawKey: string, dryRun: boolean): Promise<Result> => {
       return { ...base, status: 'alreadyExists', essenceId: existing.id };
     }
 
-    await download(catalogBucket, key, filename);
+    const attributes = await buildAttributes(key, filename, extension, mimetype);
 
-    try {
-      const attributes = await buildAttributes(key, filename, extension, mimetype);
-
-      if (dryRun) {
-        return { ...base, status: 'wouldCreate', attributes };
-      }
-
-      const [created, error] = await createEssence(collectionIdentifier, itemIdentifier, filename, attributes as Parameters<typeof createEssence>[3]);
-      if (!created) {
-        return { ...base, attributes, error: `createEssence failed: ${JSON.stringify(error)}` };
-      }
-
-      return { ...base, status: 'created', attributes };
-    } finally {
-      fs.rmSync(getPath(filename), { force: true });
+    if (dryRun) {
+      return { ...base, status: 'wouldCreate', attributes };
     }
+
+    const [created, error] = await createEssence(collectionIdentifier, itemIdentifier, filename, attributes as Parameters<typeof createEssence>[3]);
+    if (!created) {
+      return { ...base, attributes, error: `createEssence failed: ${JSON.stringify(error)}` };
+    }
+
+    return { ...base, status: 'created', attributes };
   } catch (error) {
     const err = error as Error;
     return { key: parsed?.key ?? rawKey, status: 'error', ...parsed, error: err.message };
