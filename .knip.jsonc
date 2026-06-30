@@ -9,11 +9,13 @@
     // Our scripts
     "bin/list-failures.mts",
     "bin/replay-s3-event.mts",
+    "bin/recreate-essences.mts",
 
     // Lambdas
     "src/tsconfig.json",
     "src/*.ts",
     "src/common/*.ts",
+    "src/backfill/*.ts",
     "src/cron/*.ts",
     "src/audio/*.ts",
     "src/image/*.ts",

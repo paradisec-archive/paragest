@@ -1,9 +1,11 @@
+import * as path from 'node:path';
 import { SesSmtpCredentials } from '@pepperize/cdk-ses-smtp-credentials';
-
 import * as cdk from 'aws-cdk-lib';
 import * as batch from 'aws-cdk-lib/aws-batch';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
+import * as ecrAssets from 'aws-cdk-lib/aws-ecr-assets';
+import * as ecs from 'aws-cdk-lib/aws-ecs';
 import * as efs from 'aws-cdk-lib/aws-efs';
 import * as events from 'aws-cdk-lib/aws-events';
 import * as targets from 'aws-cdk-lib/aws-events-targets';
@@ -17,7 +19,7 @@ import * as ssm from 'aws-cdk-lib/aws-ssm';
 import type { Construct } from 'constructs';
 
 import { StateMachine } from './constructs/state-machine.ts';
-import { genLambdaProps } from './constructs/step.ts';
+import { commonEnv, genLambdaProps, getGitSha } from './constructs/step.ts';
 
 export class ParagestStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -343,6 +345,55 @@ export class ParagestStack extends cdk.Stack {
     new cdk.CfnOutput(this, 'BackfillExtractTextLambdaArn', {
       value: backfillExtractText.functionArn,
       description: 'ARN of the BackfillExtractText Lambda',
+    });
+
+    // /////////////////////////////
+    // Recreate Essence Job (standalone Fargate)
+    // /////////////////////////////
+    // Reuses the pipeline Fargate image (ffmpeg + mediainfo + full deps) so it can recreate
+    // essences for catalog objects whose essences were never created.
+    // Run with: aws batch submit-job --job-name recreate-essence --job-queue <queue>
+    //   --job-definition <def> --container-overrides
+    //   '{"environment":[{"name":"RECREATE_INPUT","value":"{\"keys\":[...],\"dryRun\":false}"}]}'
+    const recreateEssenceSrc = 'backfill/recreate-essence.ts';
+    const recreateEssenceEntry = path.join('src', recreateEssenceSrc);
+
+    const recreateEssenceImage = new ecrAssets.DockerImageAsset(this, 'RecreateEssenceImage', {
+      directory: path.join(import.meta.dirname, '..'),
+      file: 'docker/fargate/Dockerfile',
+      buildArgs: { SOURCE_FILE: recreateEssenceEntry },
+      extraHash: getGitSha(recreateEssenceEntry),
+    });
+
+    const recreateEssenceJobRole = new iam.Role(this, 'RecreateEssenceJobRole', {
+      assumedBy: new iam.ServicePrincipal('ecs-tasks.amazonaws.com'),
+    });
+    catalogBucket.grantRead(recreateEssenceJobRole);
+    nabuOauthSecret.grantRead(recreateEssenceJobRole);
+    concurrencyTable.grantReadWriteData(recreateEssenceJobRole);
+    volume.fileSystem.grantReadWrite(recreateEssenceJobRole);
+
+    const recreateEssenceJobDef = new batch.EcsJobDefinition(this, 'RecreateEssenceJobDef', {
+      jobDefinitionName: `paragest-recreate-essence-${env}`,
+      container: new batch.EcsFargateContainerDefinition(this, 'RecreateEssenceContainer', {
+        image: ecs.ContainerImage.fromDockerImageAsset(recreateEssenceImage),
+        memory: cdk.Size.gibibytes(32),
+        cpu: 16,
+        fargateCpuArchitecture: ecs.CpuArchitecture.X86_64,
+        fargateOperatingSystemFamily: ecs.OperatingSystemFamily.LINUX,
+        jobRole: recreateEssenceJobRole,
+        volumes: [volume],
+        environment: commonEnv(recreateEssenceSrc, shared),
+      }),
+    });
+
+    new cdk.CfnOutput(this, 'RecreateEssenceJobDefinitionArn', {
+      value: recreateEssenceJobDef.jobDefinitionArn,
+      description: 'Job definition ARN for the recreate-essence Fargate job',
+    });
+    new cdk.CfnOutput(this, 'RecreateEssenceJobQueueArn', {
+      value: jobQueue.jobQueueArn,
+      description: 'Job queue ARN for submitting the recreate-essence job',
     });
 
     // /////////////////////////////

@@ -44,9 +44,9 @@ type LambdaStepProps = {
 type LambdaProps = Pick<LambdaStepProps, 'src' | 'lambdaProps' | 'nodeModules' | 'shared'>;
 
 // We want the SHA to change only when the file or deps change
-const getGitSha = (file: string) => execSync(`git log -1 --format=format:%h -- ${file} src/lib`).toString().trim();
+export const getGitSha = (file: string) => execSync(`git log -1 --format=format:%h -- ${file} src/lib`).toString().trim();
 
-const commonEnv = (src: string, shared: SharedProps) => ({
+export const commonEnv = (src: string, shared: SharedProps) => ({
   NODE_OPTIONS: '--enable-source-maps',
   PARAGEST_ENV: shared.env,
   // SENTRY_DSN: 'https://e36e8aa3d034861a3803d2edbd4773ff@o4504801902985216.ingest.sentry.io/4506375864254464',
