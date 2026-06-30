@@ -6,7 +6,6 @@ import ExcelJS from 'exceljs';
 import { XMLParser } from 'fast-xml-parser';
 import JSZip from 'jszip';
 import mammoth from 'mammoth';
-import { PDFParse } from 'pdf-parse';
 import rtfParser from 'rtf-parser';
 
 import { getExtractionStrategy } from './media.js';
@@ -81,6 +80,10 @@ const extractXlsx = async (filePath: string): Promise<string> => {
 };
 
 const extractPdf = async (filePath: string): Promise<string> => {
+  // Lazily imported: pdf-parse pulls in pdf.js, which eagerly references browser globals
+  // (DOMMatrix) at module load. A static import crashes esbuild-bundled Fargate jobs on start,
+  // so only load it when a PDF is actually processed.
+  const { PDFParse } = await import('pdf-parse');
   const data = fs.readFileSync(filePath);
   const pdf = new PDFParse({ data: new Uint8Array(data) });
   const result = await pdf.getText();
