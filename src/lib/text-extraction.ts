@@ -8,8 +8,10 @@ import JSZip from 'jszip';
 import mammoth from 'mammoth';
 import rtfParser from 'rtf-parser';
 
-import type { ExtractedContentType, SegmentType } from '../gql/graphql';
+import { extractEafSegments } from './eaf.js';
+import type { ExtractedContent, ExtractedSegment } from './extracted-content.js';
 import { type ExtractionStrategy, getExtractionStrategy } from './media.js';
+import { MAX_ENTITY_EXPANSIONS } from './xml.js';
 
 const extractRaw = (filePath: string): string => fs.readFileSync(filePath, 'utf-8');
 
@@ -40,9 +42,7 @@ const extractXml = (filePath: string): string => {
     ignoreAttributes: true,
     // Strip whitespace from text nodes for cleaner extracted output
     trimValues: true,
-    // Linguistic files (EAF, IMDI, FlexText) commonly exceed the default limit of 1000
-    // due to standard XML escaping (&amp;, &lt;, etc.) across thousands of annotations
-    processEntities: { maxTotalExpansions: 100_000 },
+    processEntities: { maxTotalExpansions: MAX_ENTITY_EXPANSIONS },
   });
 
   try {
@@ -133,23 +133,7 @@ const truncateText = (text: string): string => {
   return text.slice(0, lastBreak > 0 ? lastBreak : MAX_TEXT_LENGTH);
 };
 
-type ExtractedSegment = {
-  type: SegmentType;
-  text: string;
-  page?: number;
-  tier?: string;
-  startMs?: number;
-  endMs?: number;
-};
-
-// Mirrors nabu's ExtractedContentInput GraphQL input, but as a discriminated union.
-// The enum literals come from the generated client via Extract, so schema drift
-// (a renamed or removed content type) surfaces as a compile error here.
-export type ExtractedContent =
-  | { contentType: Extract<ExtractedContentType, 'TEXT'>; text: string }
-  | { contentType: Extract<ExtractedContentType, 'PDF' | 'ELAN'>; segments: ExtractedSegment[] };
-
-const extractStrategyText = async (filePath: string, strategy: ExtractionStrategy): Promise<string> => {
+const extractStrategyText = async (filePath: string, strategy: Exclude<ExtractionStrategy, 'eaf'>): Promise<string> => {
   switch (strategy) {
     case 'raw':
       return extractRaw(filePath);
@@ -174,9 +158,31 @@ export const extractContent = async (filePath: string, extension: string): Promi
     throw new Error(`No extraction strategy for extension: ${extension}`);
   }
 
-  const text = truncateText(await extractStrategyText(filePath, strategy));
+  if (strategy === 'eaf') {
+    const segments = extractElanSegments(filePath);
+    if (segments) return { contentType: 'ELAN', segments };
+    // Fall back to the flat-XML TEXT path so a broken EAF still ingests, and its
+    // stored content type stays `text` — keeping it in the backfill's retryable population
+  }
+
+  const text = truncateText(await extractStrategyText(filePath, strategy === 'eaf' ? 'xml' : strategy));
 
   return text ? { contentType: 'TEXT', text } : null;
+};
+
+// Returns null (rather than throwing or returning empty) when the EAF is unparseable
+// or yields no usable annotations, so the caller can fall back to flat text
+const extractElanSegments = (filePath: string): ExtractedSegment[] | null => {
+  try {
+    const segments = extractEafSegments(filePath);
+    if (segments.length > 0) return segments;
+
+    Sentry.captureMessage(`EAF extraction produced no segments, falling back to flat XML text: ${filePath}`, 'warning');
+  } catch (error) {
+    Sentry.captureMessage(`EAF extraction failed, falling back to flat XML text: ${error}`, 'warning');
+  }
+
+  return null;
 };
 
 export const contentCharacterCount = (content: ExtractedContent | null): number => {

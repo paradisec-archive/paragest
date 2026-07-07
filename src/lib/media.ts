@@ -273,7 +273,7 @@ const getResolutionInfo = (width: number, height: number) => {
   };
 };
 
-export type ExtractionStrategy = 'raw' | 'xml' | 'mammoth' | 'xlsx' | 'pdf' | 'rtf' | 'odt';
+export type ExtractionStrategy = 'raw' | 'xml' | 'eaf' | 'mammoth' | 'xlsx' | 'pdf' | 'rtf' | 'odt';
 
 export const getExtractionStrategy = (extension: string): ExtractionStrategy | null => {
   switch (extension.toLowerCase()) {
@@ -282,8 +282,9 @@ export const getExtractionStrategy = (extension: string): ExtractionStrategy | n
     case 'srt':
     case 'textgrid':
       return 'raw';
-    case 'xml':
     case 'eaf':
+      return 'eaf';
+    case 'xml':
     case 'imdi':
     case 'cmdi':
     case 'opex':

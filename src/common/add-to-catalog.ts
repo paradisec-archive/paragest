@@ -5,9 +5,10 @@ import '../lib/sentry-node.js';
 import path from 'node:path';
 import { processBatch } from '../lib/batch.js';
 import { StepError } from '../lib/errors.js';
+import type { ExtractedContent } from '../lib/extracted-content.js';
 import { EXTRACTED_CONTENT_FILENAME, getMediaMetadata, lookupMimetypeFromExtension } from '../lib/media.js';
 import { getPath, upload } from '../lib/s3.js';
-import { contentCharacterCount, type ExtractedContent } from '../lib/text-extraction.js';
+import { contentCharacterCount } from '../lib/text-extraction.js';
 import { createEssence, getEssence, updateEssence } from '../models/essence.js';
 
 type Event = {
