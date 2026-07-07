@@ -22,10 +22,30 @@ describe('extractContent', () => {
     expect(content).toBeNull();
   });
 
-  it('extracts text from PDF files', async () => {
-    const content = await extractContent('samples/sample.pdf', 'pdf');
+  describe('PDF files', () => {
+    it('extracts one PAGE segment per page, dropping whitespace-only pages but keeping true page numbers', async () => {
+      const content = await extractContent('samples/multipage.pdf', 'pdf');
 
-    expect(content).toEqual({ contentType: 'TEXT', text: 'Test\n\n-- 1 of 1 --\n\n' });
+      expect(content).toEqual({
+        contentType: 'PDF',
+        segments: [
+          { type: 'PAGE', text: 'First page words', page: 1 },
+          { type: 'PAGE', text: 'Third page words', page: 3 },
+        ],
+      });
+    });
+
+    it('extracts a single-page PDF as one PAGE segment without the flat-text page separators', async () => {
+      const content = await extractContent('samples/sample.pdf', 'pdf');
+
+      expect(content).toEqual({ contentType: 'PDF', segments: [{ type: 'PAGE', text: 'Test', page: 1 }] });
+    });
+
+    it('returns null for a PDF with no text layer', async () => {
+      const content = await extractContent('samples/no-text.pdf', 'pdf');
+
+      expect(content).toBeNull();
+    });
   });
 
   describe('ELAN (.eaf) files', () => {

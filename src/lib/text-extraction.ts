@@ -80,7 +80,9 @@ const extractXlsx = async (filePath: string): Promise<string> => {
   return sheets.join('\n');
 };
 
-const extractPdf = async (filePath: string): Promise<string> => {
+// One PAGE segment per page with the library's 1-based page number; whitespace-only
+// pages are dropped, so the page field keeps numbering true for the pages that remain
+const extractPdfSegments = async (filePath: string): Promise<ExtractedSegment[]> => {
   // Lazily imported: pdf-parse pulls in pdf.js, which eagerly references browser globals
   // (DOMMatrix) at module load. A static import crashes esbuild-bundled Fargate jobs on start,
   // so only load it when a PDF is actually processed.
@@ -90,7 +92,7 @@ const extractPdf = async (filePath: string): Promise<string> => {
   const result = await pdf.getText();
   await pdf.destroy();
 
-  return result.text;
+  return result.pages.map((page): ExtractedSegment => ({ type: 'PAGE', text: page.text.trim(), page: page.num })).filter((segment) => segment.text);
 };
 
 // TODO: rtf-parser is unmaintained (last updated 2019), explore alternatives like rtf-parser-wasm
@@ -133,7 +135,7 @@ const truncateText = (text: string): string => {
   return text.slice(0, lastBreak > 0 ? lastBreak : MAX_TEXT_LENGTH);
 };
 
-const extractStrategyText = async (filePath: string, strategy: Exclude<ExtractionStrategy, 'eaf'>): Promise<string> => {
+const extractStrategyText = async (filePath: string, strategy: Exclude<ExtractionStrategy, 'eaf' | 'pdf'>): Promise<string> => {
   switch (strategy) {
     case 'raw':
       return extractRaw(filePath);
@@ -143,8 +145,6 @@ const extractStrategyText = async (filePath: string, strategy: Exclude<Extractio
       return extractMammoth(filePath);
     case 'xlsx':
       return extractXlsx(filePath);
-    case 'pdf':
-      return extractPdf(filePath);
     case 'rtf':
       return extractRtf(filePath);
     case 'odt':
@@ -158,9 +158,17 @@ export const extractContent = async (filePath: string, extension: string): Promi
     throw new Error(`No extraction strategy for extension: ${extension}`);
   }
 
+  if (strategy === 'pdf') {
+    const segments = await extractPdfSegments(filePath);
+    // No text on any page (e.g. a scanned PDF with no text layer) means no extracted
+    // content at all — matching today's empty-extraction behaviour. No TEXT fallback:
+    // the flat text would be just as empty as the segments.
+    return segments.length > 0 ? { contentType: 'PDF', segments } : null;
+  }
+
   if (strategy === 'eaf') {
     const segments = extractElanSegments(filePath);
-    if (segments) return { contentType: 'ELAN', segments };
+    if (segments.length > 0) return { contentType: 'ELAN', segments };
     // Fall back to the flat-XML TEXT path so a broken EAF still ingests, and its
     // stored content type stays `text` — keeping it in the backfill's retryable population
   }
@@ -170,9 +178,9 @@ export const extractContent = async (filePath: string, extension: string): Promi
   return text ? { contentType: 'TEXT', text } : null;
 };
 
-// Returns null (rather than throwing or returning empty) when the EAF is unparseable
-// or yields no usable annotations, so the caller can fall back to flat text
-const extractElanSegments = (filePath: string): ExtractedSegment[] | null => {
+// Returns [] (rather than throwing) when the EAF is unparseable or yields no
+// usable annotations, so the caller can fall back to flat text
+const extractElanSegments = (filePath: string): ExtractedSegment[] => {
   try {
     const segments = extractEafSegments(filePath);
     if (segments.length > 0) return segments;
@@ -182,7 +190,7 @@ const extractElanSegments = (filePath: string): ExtractedSegment[] | null => {
     Sentry.captureMessage(`EAF extraction failed, falling back to flat XML text: ${error}`, 'warning');
   }
 
-  return null;
+  return [];
 };
 
 export const contentCharacterCount = (content: ExtractedContent | null): number => {
