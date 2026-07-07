@@ -49,21 +49,28 @@ describe('extractContent', () => {
   });
 
   describe('ELAN (.eaf) files', () => {
-    it('extracts one ANNOTATION segment per alignable annotation, in time order, with verbatim tier IDs', async () => {
+    it('extracts one ANNOTATION segment per annotation across all tiers, in time order, with verbatim tier IDs', async () => {
       const content = await extractContent('samples/sample.eaf', 'eaf');
 
       if (content?.contentType !== 'ELAN') throw new Error('Expected ELAN content');
       const { segments } = content;
 
       // sample.eaf has 23 ALIGNABLE_ANNOTATIONs across three time-alignable tiers
-      // (ref-annotation tiers are not extracted in this slice)
-      expect(segments).toHaveLength(23);
-      expect(new Set(segments.map((s) => s.tier))).toEqual(new Set(['Person1 (Utterance)', 'marker', 'Person1 (Chunk)']));
+      // plus 20 REF_ANNOTATIONs across two language tiers
+      expect(segments).toHaveLength(43);
+      expect(new Set(segments.map((s) => s.tier))).toEqual(
+        new Set(['Person1 (Utterance)', 'marker', 'Person1 (Chunk)', 'Person1 (ChunkLanguage)', 'Person1 (Language)']),
+      );
       expect(segments.every((s) => s.type === 'ANNOTATION')).toBe(true);
 
       expect(segments[0]).toEqual({ type: 'ANNOTATION', text: 'convo start', tier: 'marker', startMs: 830, endMs: 5200 });
       expect(segments[1]).toEqual({ type: 'ANNOTATION', text: 'How do you read this?', tier: 'Person1 (Utterance)', startMs: 1040, endMs: 2330 });
       expect(segments[2]).toEqual({ type: 'ANNOTATION', text: 'How do you read this?', tier: 'Person1 (Chunk)', startMs: 1040, endMs: 2330 });
+
+      // Ref-annotations carry the interval of the alignable annotation they reference:
+      // a38 (ChunkLanguage) refs chunk a26, a50 (Language) refs utterance a1 — both 1040→2330
+      expect(segments[3]).toEqual({ type: 'ANNOTATION', text: 'en', tier: 'Person1 (ChunkLanguage)', startMs: 1040, endMs: 2330 });
+      expect(segments[4]).toEqual({ type: 'ANNOTATION', text: 'en', tier: 'Person1 (Language)', startMs: 1040, endMs: 2330 });
 
       const starts = segments.map((s) => s.startMs);
       expect(starts).toEqual([...starts].sort((a, b) => (a ?? Number.POSITIVE_INFINITY) - (b ?? Number.POSITIVE_INFINITY)));
@@ -79,8 +86,49 @@ describe('extractContent', () => {
       // to ts38 (8000) and the end widens forwards to ts43 (8000)
       expect(segments).toContainEqual({ type: 'ANNOTATION', text: 'quick', tier: 'words-timesub', startMs: 8000, endMs: 8000 });
 
-      // Every alignable annotation in the fixture resolves to a concrete interval
+      // Every annotation in the fixture — alignable or ref — resolves to a concrete interval
       expect(segments.every((s) => s.startMs !== undefined && s.endMs !== undefined && s.endMs >= s.startMs)).toBe(true);
+    });
+
+    it('gives symbolic-subdivision siblings the full parent interval, resolving multi-level ref chains', async () => {
+      const content = await extractContent('samples/dense.eaf', 'eaf');
+
+      if (content?.contentType !== 'ELAN') throw new Error('Expected ELAN content');
+      const { segments } = content;
+
+      // The first utterance a1 ("The quick brown fox 001", 2000→5000) subdivides
+      // symbolically into words a2395–a2399; each sibling carries a1's whole span —
+      // even division is presentational in ELAN, not data
+      const firstUtteranceWords = segments.filter((s) => s.tier === 'words-symsub' && s.startMs === 2000);
+      expect(firstUtteranceWords.map((s) => s.text)).toEqual(['The', 'quick', 'brown', 'fox', '001']);
+      expect(firstUtteranceWords.every((s) => s.endMs === 5000)).toBe(true);
+
+      // words-pos refs words-symsub refs text: the two-level chain resolves through
+      // the intermediate ref to the alignable ancestor's interval
+      const firstUtterancePos = segments.filter((s) => s.tier === 'words-pos' && s.startMs === 2000);
+      expect(firstUtterancePos.map((s) => s.text)).toEqual(['adj', 'adj', 'n']);
+      expect(firstUtterancePos.every((s) => s.endMs === 5000)).toBe(true);
+    });
+
+    it('keeps segments for broken ref chains with times omitted, sorted last, and warns via Sentry', async () => {
+      const captureMessage = vi.mocked(Sentry.captureMessage).mockClear();
+
+      const content = await extractContent('samples/broken-refs.eaf', 'eaf');
+
+      if (content?.contentType !== 'ELAN') throw new Error('Expected ELAN content');
+      const { segments } = content;
+
+      // Timed segments first (including the resolvable ref), then the broken-chain
+      // segments — a dangling ref and a two-annotation reference cycle — with null times
+      expect(segments).toEqual([
+        { type: 'ANNOTATION', text: 'an anchored utterance', tier: 'speech', startMs: 1000, endMs: 2000 },
+        { type: 'ANNOTATION', text: 'a resolvable translation', tier: 'translation', startMs: 1000, endMs: 2000 },
+        { type: 'ANNOTATION', text: 'a dangling translation', tier: 'translation', startMs: undefined, endMs: undefined },
+        { type: 'ANNOTATION', text: 'a cyclic note', tier: 'notes', startMs: undefined, endMs: undefined },
+        { type: 'ANNOTATION', text: 'another cyclic note', tier: 'notes', startMs: undefined, endMs: undefined },
+      ]);
+
+      expect(captureMessage).toHaveBeenCalledWith(expect.stringContaining('3 annotations with unresolvable time references'), 'warning');
     });
 
     it('drops empty and whitespace-only annotations', async () => {

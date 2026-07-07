@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 
+import * as Sentry from '@sentry/aws-serverless';
 import { XMLParser } from 'fast-xml-parser';
 
 import type { ExtractedSegment } from './extracted-content.js';
@@ -11,13 +12,21 @@ type EafTimeSlot = {
 };
 
 type EafAlignableAnnotation = {
+  '@_ANNOTATION_ID'?: string;
   '@_TIME_SLOT_REF1': string;
   '@_TIME_SLOT_REF2': string;
   ANNOTATION_VALUE?: string;
 };
 
+type EafRefAnnotation = {
+  '@_ANNOTATION_ID'?: string;
+  '@_ANNOTATION_REF'?: string;
+  ANNOTATION_VALUE?: string;
+};
+
 type EafAnnotation = {
   ALIGNABLE_ANNOTATION?: EafAlignableAnnotation;
+  REF_ANNOTATION?: EafRefAnnotation;
 };
 
 type EafTier = {
@@ -67,8 +76,21 @@ const resolveSlotMs = (slots: EafTimeSlot[], slotIndex: Map<string, number>, slo
   return undefined;
 };
 
-// One ANNOTATION segment per alignable annotation across all tiers, sorted by start
-// time. Ref-annotations (translations, glosses) are not extracted yet. Throws on
+type Interval = { startMs?: number | undefined; endMs?: number | undefined };
+
+type AnnotationNode = {
+  id?: string | undefined;
+  tier: string;
+  text?: string | undefined;
+  // An alignable annotation's interval is resolved at construction; a ref-annotation
+  // carries refId and resolves lazily through the chain
+  interval?: Interval | undefined;
+  refId?: string | undefined;
+};
+
+// One ANNOTATION segment per annotation across all tiers, sorted by start time.
+// Ref-annotations (translations, glosses) carry the full interval of the alignable
+// annotation their ANNOTATION_REF chain reaches — no interpolation. Throws on
 // unparseable or structurally unrecognisable files — the caller decides the fallback.
 export const extractEafSegments = (filePath: string): ExtractedSegment[] => {
   const document = parseEaf(filePath).ANNOTATION_DOCUMENT;
@@ -79,25 +101,82 @@ export const extractEafSegments = (filePath: string): ExtractedSegment[] => {
   const slots = document.TIME_ORDER?.TIME_SLOT ?? [];
   const slotIndex = new Map(slots.map((slot, index) => [slot['@_TIME_SLOT_ID'], index]));
 
-  const segments = (document.TIER ?? []).flatMap((tier) =>
-    (tier.ANNOTATION ?? []).flatMap((annotation): ExtractedSegment[] => {
+  const annotations = (document.TIER ?? []).flatMap((tier) =>
+    (tier.ANNOTATION ?? []).flatMap((annotation): AnnotationNode[] => {
       const alignable = annotation.ALIGNABLE_ANNOTATION;
-      if (!alignable) return [];
+      if (alignable) {
+        return [
+          {
+            id: alignable['@_ANNOTATION_ID'],
+            tier: tier['@_TIER_ID'],
+            text: alignable.ANNOTATION_VALUE?.trim(),
+            interval: {
+              startMs: resolveSlotMs(slots, slotIndex, alignable['@_TIME_SLOT_REF1'], -1),
+              endMs: resolveSlotMs(slots, slotIndex, alignable['@_TIME_SLOT_REF2'], 1),
+            },
+          },
+        ];
+      }
 
-      const text = alignable.ANNOTATION_VALUE?.trim();
-      if (!text) return [];
+      const ref = annotation.REF_ANNOTATION;
+      if (ref) {
+        return [
+          {
+            id: ref['@_ANNOTATION_ID'],
+            tier: tier['@_TIER_ID'],
+            text: ref.ANNOTATION_VALUE?.trim(),
+            refId: ref['@_ANNOTATION_REF'],
+          },
+        ];
+      }
 
-      return [
-        {
-          type: 'ANNOTATION',
-          text,
-          tier: tier['@_TIER_ID'],
-          startMs: resolveSlotMs(slots, slotIndex, alignable['@_TIME_SLOT_REF1'], -1),
-          endMs: resolveSlotMs(slots, slotIndex, alignable['@_TIME_SLOT_REF2'], 1),
-        },
-      ];
+      return [];
     }),
   );
+
+  const nodesById = new Map(annotations.filter((node) => node.id !== undefined).map((node) => [node.id, node]));
+
+  // Memoised resolution to the alignable ancestor's interval. null marks a broken
+  // chain (dangling ref, cycle, or a chain that never reaches an alignable annotation).
+  const intervals = new Map<string | undefined, Interval | null>();
+
+  const resolveNodeInterval = (node: AnnotationNode): Interval | null => node.interval ?? resolveRefInterval(node.refId);
+
+  const resolveRefInterval = (id: string | undefined): Interval | null => {
+    const memoised = intervals.get(id);
+    if (memoised !== undefined) return memoised;
+
+    // Mark in-progress before recursing so a reference cycle resolves as broken
+    intervals.set(id, null);
+
+    const node = id === undefined ? undefined : nodesById.get(id);
+    const interval = node ? resolveNodeInterval(node) : null;
+    intervals.set(id, interval);
+
+    return interval;
+  };
+
+  let brokenChains = 0;
+  const segments = annotations.flatMap((node): ExtractedSegment[] => {
+    if (!node.text) return [];
+
+    const interval = resolveNodeInterval(node);
+    if (interval === null) brokenChains += 1;
+
+    return [
+      {
+        type: 'ANNOTATION',
+        text: node.text,
+        tier: node.tier,
+        startMs: interval?.startMs,
+        endMs: interval?.endMs,
+      },
+    ];
+  });
+
+  if (brokenChains > 0) {
+    Sentry.captureMessage(`EAF has ${brokenChains} annotations with unresolvable time references: ${filePath}`, 'warning');
+  }
 
   return segments.sort((a, b) => (a.startMs ?? Number.POSITIVE_INFINITY) - (b.startMs ?? Number.POSITIVE_INFINITY));
 };

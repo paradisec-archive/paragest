@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Hand-written fixture: annotation reference corruption no well-formed public EAF
+     contains — a dangling ANNOTATION_REF and a reference cycle. Text segments must
+     survive with times omitted. -->
+<ANNOTATION_DOCUMENT AUTHOR="paragest" DATE="2026-07-07T00:00:00+00:00" FORMAT="3.0" VERSION="3.0">
+    <HEADER MEDIA_FILE="" TIME_UNITS="milliseconds"/>
+    <TIME_ORDER>
+        <TIME_SLOT TIME_SLOT_ID="ts1" TIME_VALUE="1000"/>
+        <TIME_SLOT TIME_SLOT_ID="ts2" TIME_VALUE="2000"/>
+    </TIME_ORDER>
+    <TIER LINGUISTIC_TYPE_REF="utterance" TIER_ID="speech">
+        <ANNOTATION>
+            <ALIGNABLE_ANNOTATION ANNOTATION_ID="a1" TIME_SLOT_REF1="ts1" TIME_SLOT_REF2="ts2">
+                <ANNOTATION_VALUE>an anchored utterance</ANNOTATION_VALUE>
+            </ALIGNABLE_ANNOTATION>
+        </ANNOTATION>
+    </TIER>
+    <TIER LINGUISTIC_TYPE_REF="translation" PARENT_REF="speech" TIER_ID="translation">
+        <ANNOTATION>
+            <REF_ANNOTATION ANNOTATION_ID="a2" ANNOTATION_REF="a1">
+                <ANNOTATION_VALUE>a resolvable translation</ANNOTATION_VALUE>
+            </REF_ANNOTATION>
+        </ANNOTATION>
+        <ANNOTATION>
+            <REF_ANNOTATION ANNOTATION_ID="a3" ANNOTATION_REF="a99">
+                <ANNOTATION_VALUE>a dangling translation</ANNOTATION_VALUE>
+            </REF_ANNOTATION>
+        </ANNOTATION>
+    </TIER>
+    <TIER LINGUISTIC_TYPE_REF="note" PARENT_REF="translation" TIER_ID="notes">
+        <ANNOTATION>
+            <REF_ANNOTATION ANNOTATION_ID="a4" ANNOTATION_REF="a5">
+                <ANNOTATION_VALUE>a cyclic note</ANNOTATION_VALUE>
+            </REF_ANNOTATION>
+        </ANNOTATION>
+        <ANNOTATION>
+            <REF_ANNOTATION ANNOTATION_ID="a5" ANNOTATION_REF="a4">
+                <ANNOTATION_VALUE>another cyclic note</ANNOTATION_VALUE>
+            </REF_ANNOTATION>
+        </ANNOTATION>
+    </TIER>
+    <LINGUISTIC_TYPE LINGUISTIC_TYPE_ID="utterance" TIME_ALIGNABLE="true"/>
+    <LINGUISTIC_TYPE CONSTRAINTS="Symbolic_Association" LINGUISTIC_TYPE_ID="translation" TIME_ALIGNABLE="false"/>
+    <LINGUISTIC_TYPE CONSTRAINTS="Symbolic_Association" LINGUISTIC_TYPE_ID="note" TIME_ALIGNABLE="false"/>
+</ANNOTATION_DOCUMENT>
