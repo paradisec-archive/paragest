@@ -5,9 +5,9 @@ import * as Sentry from '@sentry/aws-serverless';
 import type { Handler } from 'aws-lambda';
 
 import '../lib/sentry.js';
-import { EXTRACTED_TEXT_FILENAME } from '../lib/media.js';
+import { EXTRACTED_CONTENT_FILENAME } from '../lib/media.js';
 import { getPath } from '../lib/s3.js';
-import { extractText } from '../lib/text-extraction.js';
+import { contentCharacterCount, extractContent } from '../lib/text-extraction.js';
 
 type Event = {
   id: string;
@@ -35,14 +35,19 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
   Sentry.setTag('filename', filename);
 
   const inputPath = getPath('input');
-  const outputPath = getPath(EXTRACTED_TEXT_FILENAME);
+  const outputPath = getPath(EXTRACTED_CONTENT_FILENAME);
 
   notes.push(`extract-text: Extracting text from ${filename}`);
 
-  const text = await extractText(inputPath, extension);
-  fs.writeFileSync(outputPath, text, 'utf-8');
+  const content = await extractContent(inputPath, extension);
+  if (!content) {
+    notes.push('extract-text: No text extracted');
+    return event;
+  }
 
-  notes.push(`extract-text: Extracted ${text.length} characters`);
+  fs.writeFileSync(outputPath, JSON.stringify(content), 'utf-8');
+
+  notes.push(`extract-text: Extracted ${contentCharacterCount(content)} characters`);
 
   return event;
 });

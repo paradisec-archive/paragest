@@ -8,7 +8,7 @@ import * as Sentry from '@sentry/aws-serverless';
 import type { Handler } from 'aws-lambda';
 
 import '../lib/sentry.js';
-import { extractText } from '../lib/text-extraction.js';
+import { contentCharacterCount, extractContent } from '../lib/text-extraction.js';
 import { updateEssence } from '../models/essence.js';
 
 type BackfillEvent = {
@@ -55,16 +55,17 @@ export const handler: Handler = Sentry.wrapHandler(async (event: BackfillEvent) 
   const filePath = await downloadToTmp(catalogBucket, s3Key);
 
   try {
-    const text = await extractText(filePath, extension);
+    const content = await extractContent(filePath, extension);
 
-    const [essence, error] = await updateEssence(essenceId, { extractedText: text, mimetype, size });
+    const [essence, error] = await updateEssence(essenceId, { extractedContent: content ?? undefined, mimetype, size });
     if (!essence) {
       throw new Error(`Failed to update essence ${essenceId}: ${JSON.stringify(error)}`);
     }
 
-    console.debug(`Updated essence ${essenceId}: ${text.length} chars`);
+    const characters = contentCharacterCount(content);
+    console.debug(`Updated essence ${essenceId}: ${characters} chars`);
 
-    return { essenceId, characters: text.length };
+    return { essenceId, characters };
   } finally {
     unlinkSync(filePath);
   }

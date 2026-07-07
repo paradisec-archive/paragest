@@ -6,7 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 import { getMediaMetadata, isTextExtractable, lookupMimetypeFromExtension } from '../lib/media.js';
 import { download, getObjectSize, getPath } from '../lib/s3.js';
-import { extractText } from '../lib/text-extraction.js';
+import { extractContent } from '../lib/text-extraction.js';
 import { createEssence, getEssence } from '../models/essence.js';
 import { getItem } from '../models/item.js';
 
@@ -80,10 +80,13 @@ const buildAttributes = async (key: string, filename: string, extension: string,
       Object.assign(attributes, mediaAttributes);
     } else {
       try {
-        attributes.extractedText = await extractText(getPath(filename), extension);
+        const content = await extractContent(getPath(filename), extension);
+        if (content) {
+          attributes.extractedContent = content;
+        }
       } catch (error) {
         // Text extraction is best-effort: still create the essence with size + mimetype.
-        console.warn(`extractText failed for ${key}:`, error);
+        console.warn(`extractContent failed for ${key}:`, error);
       }
     }
   } finally {

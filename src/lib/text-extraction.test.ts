@@ -4,27 +4,34 @@ import path from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
-import { extractText } from './text-extraction.js';
+import { extractContent } from './text-extraction.js';
 
-describe('extractText', () => {
-  it('extracts plain text files verbatim', async () => {
-    const text = await extractText('samples/sample.txt', 'txt');
+describe('extractContent', () => {
+  it('wraps plain text files as TEXT content', async () => {
+    const content = await extractContent('samples/sample.txt', 'txt');
 
-    expect(text).toBe('MOO\nalkigaslgjas\n');
+    expect(content).toEqual({ contentType: 'TEXT', text: 'MOO\nalkigaslgjas\n' });
+  });
+
+  it('returns null when a file yields no text at all', async () => {
+    const content = await extractContent('samples/empty.txt', 'txt');
+
+    expect(content).toBeNull();
   });
 
   it('extracts text from PDF files', async () => {
-    const text = await extractText('samples/sample.pdf', 'pdf');
+    const content = await extractContent('samples/sample.pdf', 'pdf');
 
-    expect(text).toBe('Test\n\n-- 1 of 1 --\n\n');
+    expect(content).toEqual({ contentType: 'TEXT', text: 'Test\n\n-- 1 of 1 --\n\n' });
   });
 
   it('extracts EAF files as flat XML text', async () => {
-    const text = await extractText('samples/sample.eaf', 'eaf');
+    const content = await extractContent('samples/sample.eaf', 'eaf');
 
-    expect(text).toBe(
-      'urn:nl-mpi-tools-elan-eaf:80ffa83c-9429-47f8-aaff-5defd3569d9d 57 How do you read this? このリンゴ、おいしいね！ What does it mean? It means "This apple is delicious". "この" means this "リンゴ" means "apple" and "おいしい" means delicious. Oh thanks convo start convo body convo end How do you read this? このリンゴ、おいしいね！ What does it mean? It means "This apple is delicious". この means "this" リンゴ means "apple" and おいしい means "delicious" oh thanks en jp en en jp en jp en en jp en en en jp en en en en en en en jp',
-    );
+    expect(content).toEqual({
+      contentType: 'TEXT',
+      text: 'urn:nl-mpi-tools-elan-eaf:80ffa83c-9429-47f8-aaff-5defd3569d9d 57 How do you read this? このリンゴ、おいしいね！ What does it mean? It means "This apple is delicious". "この" means this "リンゴ" means "apple" and "おいしい" means delicious. Oh thanks convo start convo body convo end How do you read this? このリンゴ、おいしいね！ What does it mean? It means "This apple is delicious". この means "this" リンゴ means "apple" and おいしい means "delicious" oh thanks en jp en en jp en jp en en jp en en en jp en en en en en en en jp',
+    });
   });
 
   it('truncates extracted text to the 5MB cap at a whitespace break', async () => {
@@ -35,7 +42,10 @@ describe('extractText', () => {
     fs.writeFileSync(filePath, original);
 
     try {
-      const text = await extractText(filePath, 'txt');
+      const content = await extractContent(filePath, 'txt');
+
+      if (content?.contentType !== 'TEXT') throw new Error('Expected TEXT content');
+      const { text } = content;
 
       expect(text.length).toBeLessThanOrEqual(maxLength);
       expect(text.length).toBeGreaterThan(maxLength - line.length);
@@ -48,6 +58,6 @@ describe('extractText', () => {
   });
 
   it('rejects extensions with no extraction strategy', async () => {
-    await expect(extractText('samples/sample.txt', 'wav')).rejects.toThrow('No extraction strategy for extension: wav');
+    await expect(extractContent('samples/sample.txt', 'wav')).rejects.toThrow('No extraction strategy for extension: wav');
   });
 });

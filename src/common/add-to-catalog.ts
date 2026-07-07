@@ -5,8 +5,9 @@ import '../lib/sentry-node.js';
 import path from 'node:path';
 import { processBatch } from '../lib/batch.js';
 import { StepError } from '../lib/errors.js';
-import { EXTRACTED_TEXT_FILENAME, getMediaMetadata, lookupMimetypeFromExtension } from '../lib/media.js';
+import { EXTRACTED_CONTENT_FILENAME, getMediaMetadata, lookupMimetypeFromExtension } from '../lib/media.js';
 import { getPath, upload } from '../lib/s3.js';
+import { contentCharacterCount, type ExtractedContent } from '../lib/text-extraction.js';
 import { createEssence, getEssence, updateEssence } from '../models/essence.js';
 
 type Event = {
@@ -35,7 +36,7 @@ const upsertEssence = async (
   size: number,
   mimetype: string,
   event: Event,
-  extractedText?: string,
+  extractedContent?: ExtractedContent,
 ) => {
   const attributes = {
     mimetype,
@@ -47,11 +48,15 @@ const upsertEssence = async (
     Object.assign(attributes, mediaAttributes);
   }
 
-  if (extractedText) {
-    Object.assign(attributes, { extractedText });
+  if (extractedContent) {
+    Object.assign(attributes, { extractedContent });
   }
 
-  console.debug('Attributes:', JSON.stringify(attributes, null, 2));
+  // Summarise extractedContent in the log — the full payload can be megabytes
+  console.debug(
+    'Attributes:',
+    JSON.stringify({ ...attributes, extractedContent: extractedContent && `[${contentCharacterCount(extractedContent)} characters]` }, null, 2),
+  );
 
   const essence = await getEssence(collectionIdentifier, itemIdentifier, filename);
   if (essence) {
@@ -81,12 +86,10 @@ export const handler = async (event: Event) => {
 
   const dir = getPath('output');
 
-  let extractedText: string | undefined;
-  try {
-    extractedText = fs.readFileSync(getPath(EXTRACTED_TEXT_FILENAME), 'utf-8');
-  } catch {
-    // No extracted text file — expected for non-text file types
-  }
+  // Missing file is expected (non-text file types, empty extractions); a file that
+  // exists but fails to parse means writer/reader drift and should fail the step loudly
+  const extractedContentPath = getPath(EXTRACTED_CONTENT_FILENAME);
+  const extractedContent = fs.existsSync(extractedContentPath) ? (JSON.parse(fs.readFileSync(extractedContentPath, 'utf-8')) as ExtractedContent) : undefined;
 
   const filenames = fs.readdirSync(dir);
 
@@ -111,7 +114,7 @@ export const handler = async (event: Event) => {
 
     await upload(src, destBucket, dst, mimetype, ['wav', 'mkv'].includes(extension));
 
-    const created = await upsertEssence(collectionIdentifier, itemIdentifier, filename, size, mimetype, event, extractedText);
+    const created = await upsertEssence(collectionIdentifier, itemIdentifier, filename, size, mimetype, event, extractedContent);
 
     notes.push(`addMediaMetadata: ${created ? 'Created' : 'Updated'} essence`);
   });

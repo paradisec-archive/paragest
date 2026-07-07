@@ -8,7 +8,8 @@ import JSZip from 'jszip';
 import mammoth from 'mammoth';
 import rtfParser from 'rtf-parser';
 
-import { getExtractionStrategy } from './media.js';
+import type { ExtractedContentType, SegmentType } from '../gql/graphql';
+import { type ExtractionStrategy, getExtractionStrategy } from './media.js';
 
 const extractRaw = (filePath: string): string => fs.readFileSync(filePath, 'utf-8');
 
@@ -132,26 +133,54 @@ const truncateText = (text: string): string => {
   return text.slice(0, lastBreak > 0 ? lastBreak : MAX_TEXT_LENGTH);
 };
 
-export const extractText = async (filePath: string, extension: string): Promise<string> => {
+type ExtractedSegment = {
+  type: SegmentType;
+  text: string;
+  page?: number;
+  tier?: string;
+  startMs?: number;
+  endMs?: number;
+};
+
+// Mirrors nabu's ExtractedContentInput GraphQL input, but as a discriminated union.
+// The enum literals come from the generated client via Extract, so schema drift
+// (a renamed or removed content type) surfaces as a compile error here.
+export type ExtractedContent =
+  | { contentType: Extract<ExtractedContentType, 'TEXT'>; text: string }
+  | { contentType: Extract<ExtractedContentType, 'PDF' | 'ELAN'>; segments: ExtractedSegment[] };
+
+const extractStrategyText = async (filePath: string, strategy: ExtractionStrategy): Promise<string> => {
+  switch (strategy) {
+    case 'raw':
+      return extractRaw(filePath);
+    case 'xml':
+      return extractXml(filePath);
+    case 'mammoth':
+      return extractMammoth(filePath);
+    case 'xlsx':
+      return extractXlsx(filePath);
+    case 'pdf':
+      return extractPdf(filePath);
+    case 'rtf':
+      return extractRtf(filePath);
+    case 'odt':
+      return extractOdt(filePath);
+  }
+};
+
+export const extractContent = async (filePath: string, extension: string): Promise<ExtractedContent | null> => {
   const strategy = getExtractionStrategy(extension);
   if (!strategy) {
     throw new Error(`No extraction strategy for extension: ${extension}`);
   }
 
-  switch (strategy) {
-    case 'raw':
-      return truncateText(extractRaw(filePath));
-    case 'xml':
-      return truncateText(extractXml(filePath));
-    case 'mammoth':
-      return truncateText(await extractMammoth(filePath));
-    case 'xlsx':
-      return truncateText(await extractXlsx(filePath));
-    case 'pdf':
-      return truncateText(await extractPdf(filePath));
-    case 'rtf':
-      return truncateText(await extractRtf(filePath));
-    case 'odt':
-      return truncateText(await extractOdt(filePath));
-  }
+  const text = truncateText(await extractStrategyText(filePath, strategy));
+
+  return text ? { contentType: 'TEXT', text } : null;
+};
+
+export const contentCharacterCount = (content: ExtractedContent | null): number => {
+  if (!content) return 0;
+
+  return content.contentType === 'TEXT' ? content.text.length : content.segments.reduce((sum, segment) => sum + segment.text.length, 0);
 };
