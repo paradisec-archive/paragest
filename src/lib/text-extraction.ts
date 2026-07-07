@@ -127,6 +127,46 @@ const extractOdt = async (filePath: string): Promise<string> => {
 
 const MAX_TEXT_LENGTH = 5 * 1024 * 1024;
 
+// Headroom under OpenSearch's 10,000 nested-objects-per-document limit — nabu has no
+// guard of its own, so an oversized document would fail at indexing time, out-of-band
+const MAX_SEGMENTS = 9_500;
+
+const segmentsCharacterCount = (segments: ExtractedSegment[]): number => segments.reduce((sum, segment) => sum + segment.text.length, 0);
+
+// Shared safety valve for all segment producers: keep whole segments in their existing
+// order (time/page ascending, null-time last) until either cap bites, so a pathological
+// file degrades to losing its tail rather than failing indexing
+const truncateSegments = (segments: ExtractedSegment[], filePath: string): ExtractedSegment[] => {
+  let keptLength = 0;
+  let keep = 0;
+  for (const segment of segments) {
+    if (keep >= MAX_SEGMENTS || keptLength + segment.text.length > MAX_TEXT_LENGTH) break;
+    keptLength += segment.text.length;
+    keep += 1;
+  }
+
+  if (keep === segments.length) return segments;
+
+  Sentry.captureMessage(
+    `Segment truncation: kept ${keep} of ${segments.length} segments (${keptLength} of ${segmentsCharacterCount(segments)} chars): ${filePath}`,
+    'warning',
+  );
+
+  return segments.slice(0, keep);
+};
+
+// The one seam through which segment content is built, so every producer gets the
+// caps for free; null when there is no text to send
+const segmentContent = (
+  contentType: Extract<ExtractedContent['contentType'], 'PDF' | 'ELAN'>,
+  segments: ExtractedSegment[],
+  filePath: string,
+): ExtractedContent | null => {
+  const truncated = truncateSegments(segments, filePath);
+
+  return truncated.length > 0 ? { contentType, segments: truncated } : null;
+};
+
 const truncateText = (text: string): string => {
   if (text.length <= MAX_TEXT_LENGTH) return text;
 
@@ -159,16 +199,15 @@ export const extractContent = async (filePath: string, extension: string): Promi
   }
 
   if (strategy === 'pdf') {
-    const segments = await extractPdfSegments(filePath);
     // No text on any page (e.g. a scanned PDF with no text layer) means no extracted
     // content at all — matching today's empty-extraction behaviour. No TEXT fallback:
     // the flat text would be just as empty as the segments.
-    return segments.length > 0 ? { contentType: 'PDF', segments } : null;
+    return segmentContent('PDF', await extractPdfSegments(filePath), filePath);
   }
 
   if (strategy === 'eaf') {
-    const segments = extractElanSegments(filePath);
-    if (segments.length > 0) return { contentType: 'ELAN', segments };
+    const content = segmentContent('ELAN', extractElanSegments(filePath), filePath);
+    if (content) return content;
     // Fall back to the flat-XML TEXT path so a broken EAF still ingests, and its
     // stored content type stays `text` — keeping it in the backfill's retryable population
   }
@@ -196,5 +235,5 @@ const extractElanSegments = (filePath: string): ExtractedSegment[] => {
 export const contentCharacterCount = (content: ExtractedContent | null): number => {
   if (!content) return 0;
 
-  return content.contentType === 'TEXT' ? content.text.length : content.segments.reduce((sum, segment) => sum + segment.text.length, 0);
+  return content.contentType === 'TEXT' ? content.text.length : segmentsCharacterCount(content.segments);
 };

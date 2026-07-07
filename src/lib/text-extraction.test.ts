@@ -159,6 +159,82 @@ describe('extractContent', () => {
     });
   });
 
+  describe('segment caps and truncation', () => {
+    // Minimal well-formed EAF with one alignable annotation per text, in time order
+    const writeSyntheticEaf = (filePath: string, texts: string[]) => {
+      const slots = texts.flatMap((_, i) => [
+        `<TIME_SLOT TIME_SLOT_ID="ts${2 * i + 1}" TIME_VALUE="${i * 10}"/>`,
+        `<TIME_SLOT TIME_SLOT_ID="ts${2 * i + 2}" TIME_VALUE="${i * 10 + 5}"/>`,
+      ]);
+      const annotations = texts.map(
+        (text, i) =>
+          `<ANNOTATION><ALIGNABLE_ANNOTATION ANNOTATION_ID="a${i + 1}" TIME_SLOT_REF1="ts${2 * i + 1}" TIME_SLOT_REF2="ts${2 * i + 2}">` +
+          `<ANNOTATION_VALUE>${text}</ANNOTATION_VALUE></ALIGNABLE_ANNOTATION></ANNOTATION>`,
+      );
+
+      fs.writeFileSync(
+        filePath,
+        `<?xml version="1.0" encoding="UTF-8"?><ANNOTATION_DOCUMENT><TIME_ORDER>${slots.join('')}</TIME_ORDER>` +
+          `<TIER TIER_ID="speech">${annotations.join('')}</TIER></ANNOTATION_DOCUMENT>`,
+      );
+    };
+
+    it('caps output at 9,500 segments, dropping the latest-in-time tail whole and warning via Sentry', async () => {
+      const captureMessage = vi.mocked(Sentry.captureMessage).mockClear();
+      const filePath = path.join(os.tmpdir(), 'paragest-segment-count-cap.eaf');
+      writeSyntheticEaf(
+        filePath,
+        Array.from({ length: 9_600 }, (_, i) => `utterance ${i + 1}`),
+      );
+
+      try {
+        const content = await extractContent(filePath, 'eaf');
+
+        if (content?.contentType !== 'ELAN') throw new Error('Expected ELAN content');
+        expect(content.segments).toHaveLength(9_500);
+        expect(content.segments[0]?.text).toBe('utterance 1');
+        expect(content.segments.at(-1)?.text).toBe('utterance 9500');
+
+        expect(captureMessage).toHaveBeenCalledWith(expect.stringContaining('kept 9500 of 9600 segments'), 'warning');
+        expect(captureMessage).toHaveBeenCalledWith(expect.stringContaining(filePath), 'warning');
+      } finally {
+        fs.unlinkSync(filePath);
+      }
+    });
+
+    it('caps summed segment text at 5MB, dropping whole segments from the tail', async () => {
+      const captureMessage = vi.mocked(Sentry.captureMessage).mockClear();
+      const filePath = path.join(os.tmpdir(), 'paragest-segment-size-cap.eaf');
+      // Six 1MiB segments sum to 6MiB; exactly five fit the 5MiB budget
+      writeSyntheticEaf(
+        filePath,
+        Array.from({ length: 6 }, (_, i) => `${i + 1}`.padEnd(1024 * 1024, 'x')),
+      );
+
+      try {
+        const content = await extractContent(filePath, 'eaf');
+
+        if (content?.contentType !== 'ELAN') throw new Error('Expected ELAN content');
+        expect(content.segments.map((s) => s.text[0])).toEqual(['1', '2', '3', '4', '5']);
+        expect(content.segments.every((s) => s.text.length === 1024 * 1024)).toBe(true);
+
+        expect(captureMessage).toHaveBeenCalledWith(expect.stringContaining('kept 5 of 6 segments'), 'warning');
+      } finally {
+        fs.unlinkSync(filePath);
+      }
+    });
+
+    it('passes a realistic dense file through untouched, with no Sentry warning', async () => {
+      const captureMessage = vi.mocked(Sentry.captureMessage).mockClear();
+
+      const content = await extractContent('samples/dense.eaf', 'eaf');
+
+      if (content?.contentType !== 'ELAN') throw new Error('Expected ELAN content');
+      expect(content.segments).toHaveLength(6_786);
+      expect(captureMessage).not.toHaveBeenCalled();
+    });
+  });
+
   it('truncates extracted text to the 5MB cap at a whitespace break', async () => {
     const maxLength = 5 * 1024 * 1024;
     const line = 'the quick brown wombat jumps over the lazy dingo\n';
