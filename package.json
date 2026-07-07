@@ -10,6 +10,8 @@
     "codegen": "graphql-codegen",
     "lint": "pnpm run lint:types && pnpm lint:biome && pnpm lint:knip && pnpm test",
     "test": "vitest run",
+    "test:watch": "vitest",
+    "coverage": "vitest run --coverage",
     "lint:types": "tsc --noEmit && tsc --noEmit --project src/tsconfig.json",
     "lint:biome": "biome check .",
     "lint:knip": "knip",
@@ -44,7 +46,10 @@
     "file:srt": "AWS_PROFILE=nabu-$ENV aws s3 cp samples/sample.srt s3://paragest-ingest-$ENV/incoming/JFTEST-001-srt.srt",
     "file:xml": "AWS_PROFILE=nabu-$ENV aws s3 cp samples/sample.xml s3://paragest-ingest-$ENV/incoming/JFTEST-001-xmp.xml",
     "file:zip": "AWS_PROFILE=nabu-$ENV aws s3 cp samples/sample.zip s3://paragest-ingest-$ENV/incoming/JFTEST-001-zip.zip",
-    "file:fwbackup": "AWS_PROFILE=nabu-$ENV aws s3 cp samples/sample.zip s3://paragest-ingest-$ENV/incoming/JFTEST-001-zip.fwbackup"
+    "file:fwbackup": "AWS_PROFILE=nabu-$ENV aws s3 cp samples/sample.zip s3://paragest-ingest-$ENV/incoming/JFTEST-001-zip.fwbackup",
+    "file:pdf": "AWS_PROFILE=nabu-$ENV aws s3 cp samples/multipage.pdf s3://paragest-ingest-$ENV/incoming/JFTEST-001-pdf.pdf",
+    "file:eaf": "AWS_PROFILE=nabu-$ENV aws s3 cp samples/sample.eaf s3://paragest-ingest-$ENV/incoming/JFTEST-001-eaf.eaf",
+    "file:eafdense": "AWS_PROFILE=nabu-$ENV aws s3 cp samples/dense.eaf s3://paragest-ingest-$ENV/incoming/JFTEST-001-eafdense.eaf"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.3",
@@ -59,6 +64,7 @@
     "@types/mime-types": "^3.0.1",
     "@types/node": "^24.13.3",
     "@types/nodemailer": "^8.0.1",
+    "@vitest/coverage-v8": "^4.1.9",
     "aws-cdk": "^2.1130.0",
     "cdk-agc": "^1.14.0",
     "esbuild": "^0.28.1",
