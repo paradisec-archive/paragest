@@ -8,7 +8,8 @@
     "cdk-agc": "cdk-agc",
     "deploy": "cdk deploy",
     "codegen": "graphql-codegen",
-    "lint": "pnpm run lint:types && pnpm lint:biome && pnpm lint:knip",
+    "lint": "pnpm run lint:types && pnpm lint:biome && pnpm lint:knip && pnpm test",
+    "test": "vitest run",
     "lint:types": "tsc --noEmit && tsc --noEmit --project src/tsconfig.json",
     "lint:biome": "biome check .",
     "lint:knip": "knip",
@@ -62,7 +63,8 @@
     "cdk-agc": "^1.14.0",
     "esbuild": "^0.28.1",
     "knip": "^6.26.0",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.9"
   },
   "dependencies": {
     "@aws-sdk/client-batch": "^3.1085.0",

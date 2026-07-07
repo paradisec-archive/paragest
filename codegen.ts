@@ -1,7 +1,8 @@
 import type { CodegenConfig } from '@graphql-codegen/cli';
 
 const config: CodegenConfig = {
-  schema: 'https://admin-catalog.paradisec.org.au/paradisec.graphql',
+  // Point CODEGEN_SCHEMA at a local schema dump to generate against a not-yet-deployed nabu schema
+  schema: process.env.CODEGEN_SCHEMA ?? 'https://admin-catalog.paradisec.org.au/paradisec.graphql',
   documents: ['src/**/*.ts'],
   ignoreNoDocuments: true, // for better experience with the watcher
   generates: {

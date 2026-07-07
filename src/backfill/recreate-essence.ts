@@ -4,7 +4,7 @@ import '../lib/sentry-node.js';
 
 import { v4 as uuidv4 } from 'uuid';
 
-import { getExtractionStrategy, getMediaMetadata, lookupMimetypeFromExtension } from '../lib/media.js';
+import { getMediaMetadata, isTextExtractable, lookupMimetypeFromExtension } from '../lib/media.js';
 import { download, getObjectSize, getPath } from '../lib/s3.js';
 import { extractText } from '../lib/text-extraction.js';
 import { createEssence, getEssence } from '../models/essence.js';
@@ -68,7 +68,7 @@ const buildAttributes = async (key: string, filename: string, extension: string,
   };
 
   const isMedia = mimetype.startsWith('audio') || mimetype.startsWith('video');
-  const isText = !isMedia && getExtractionStrategy(extension) !== null;
+  const isText = !isMedia && isTextExtractable(extension);
   if (!isMedia && !isText) {
     return attributes;
   }
