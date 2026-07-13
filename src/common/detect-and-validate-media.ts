@@ -58,14 +58,10 @@ const getMagic = async () => {
 };
 
 const mimetypeMatchesExtension = (mimetype: string, actualExt: string) => {
-  console.log('🪚 🟩 MME');
-  console.log('🪚 mimetype:', JSON.stringify(mimetype, null, 2));
-  console.log('🪚 actualExt:', JSON.stringify(actualExt, null, 2));
   const possibleExt = mime.extensions[mimetype.toLocaleLowerCase()] || [];
-  console.log('🪚 possibleExt:', JSON.stringify(possibleExt, null, 2));
+  console.debug(`mimetypeMatchesExtension: mimetype=${mimetype} extension=${actualExt} possibleExtensions=${possibleExt.join(',')}`);
 
   if (possibleExt.includes(actualExt)) {
-    console.log('🪚 🔲');
     return true;
   }
 
@@ -74,7 +70,10 @@ const mimetypeMatchesExtension = (mimetype: string, actualExt: string) => {
       return true;
     case mimetype === 'application/zip' && actualExt === 'fwbackup':
       return true;
-    case mimetype === 'video/mp4' && actualExt === 'm4a':
+    // mp4 and quicktime are the same container family; files often carry the other brand's extension
+    case mimetype === 'video/mp4' && ['m4a', 'mov'].includes(actualExt):
+      return true;
+    case mimetype === 'video/quicktime' && ['mp4', 'm4v'].includes(actualExt):
       return true;
     case mimetype === 'video/matroska' && actualExt === 'mkv':
       return true;
@@ -92,6 +91,10 @@ const allowedMimetypeException = (detected: string, actual: string) => {
     case ['text/xml', 'application/xml'].includes(detected) && !!actual.match('application/(eaf|imdi|cmdi|opex|flextext)\\+xml'):
       return true;
     case detected === 'video/mp4' && actual === 'audio/mp4':
+      return true;
+    case detected === 'video/quicktime' && actual === 'video/mp4':
+      return true;
+    case detected === 'video/mp4' && actual === 'video/quicktime':
       return true;
     case detected === 'text/plain' && actual === 'text/csv':
       return true;
