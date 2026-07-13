@@ -5,7 +5,7 @@ settings:
   excludeLinksFromLockfile: false
 
 patchedDependencies:
-  rtf-parser: 1f393d4c6a9d951bdb13f94aea06da3f895ca242cbdb52d636e75045798937a2
+  rtf-parser: c7854aa9ea9d91fd8020940c6d00fd8973048f4d96a2a075b23eb4826b1719f1
 
 importers:
 
@@ -79,7 +79,7 @@ importers:
         version: 2.4.5
       rtf-parser:
         specifier: ^1.3.3
-        version: 1.3.3(patch_hash=1f393d4c6a9d951bdb13f94aea06da3f895ca242cbdb52d636e75045798937a2)
+        version: 1.3.3(patch_hash=c7854aa9ea9d91fd8020940c6d00fd8973048f4d96a2a075b23eb4826b1719f1)
       uuid:
         specifier: ^14.0.1
         version: 14.0.1
@@ -5518,7 +5518,7 @@ snapshots:
     dependencies:
       glob: 7.2.3
 
-  rtf-parser@1.3.3(patch_hash=1f393d4c6a9d951bdb13f94aea06da3f895ca242cbdb52d636e75045798937a2):
+  rtf-parser@1.3.3(patch_hash=c7854aa9ea9d91fd8020940c6d00fd8973048f4d96a2a075b23eb4826b1719f1):
     dependencies:
       iconv-lite: 0.4.24
       readable-stream: 2.3.8

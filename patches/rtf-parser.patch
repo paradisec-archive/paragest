@@ -1,3 +1,20 @@
+# Robustness fixes for legacy RTF files in the PARADISEC archive:
+# - Support codepage 10000 (MacRoman) and charset code 256 (OEM -> CP1252)
+# - Fall back to CP1252 instead of erroring on unknown charsets/codepages
+# - Decode \u control words via String.fromCodePoint (handles writers that emit unsigned values)
+# - Guard against missing font-table entries (previously crashed)
+# - Silently skip empty control words instead of emitting an error
+#
+# Upstream (iarna/rtf-parser) is unmaintained: last release Oct 2019, last commit Jul 2021,
+# open issues/PRs untouched. Researched alternatives (Jul 2026) and none fit:
+# - rtf-parser-wasm (d0rianb/rtf-parser): active, but decodes \'xx hex escapes as raw
+#   Latin-1 code points with no codepage support — would break the MacRoman/CP1252
+#   files this patch exists for; \bin can crash it
+# - rtf-stream-parser: only de-encapsulates Outlook/MSG RTF, throws on general documents
+# - @extensionengine/rtf-parser: fork of the same dead codebase, last published 2023
+# Since 1.3.3 is the final release, this patch is stable. Revisit rtf-parser-wasm only
+# if it gains codepage-aware hex decoding.
+
 diff --git a/CHANGELOG.md b/CHANGELOG.md
 deleted file mode 100644
 index dc8fceb28336c8d04ef38c0130242d06570e2eff..0000000000000000000000000000000000000000
