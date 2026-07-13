@@ -4,7 +4,6 @@
     // CDK
     "bin/paragest.ts",
     "lib/paragest-stack.ts",
-    "reset.d.ts",
 
     // Our scripts
     "bin/list-failures.mts",
@@ -23,6 +22,5 @@
     "src/other/*.ts",
     "src/tsconfig.json"
   ],
-  "ignore": ["src/gql/*.ts"],
   "ignoreDependencies": ["@sentry/cli", "esbuild"]
 }

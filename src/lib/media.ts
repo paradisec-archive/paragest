@@ -304,8 +304,6 @@ export const getExtractionStrategy = (extension: string): ExtractionStrategy | n
   }
 };
 
-export const isTextExtractable = (extension: string): boolean => getExtractionStrategy(extension) !== null;
-
 export const EXTRACTED_TEXT_FILENAME = 'extracted_text.txt';
 
 export const getMediaMetadata = async (filename: string, event: Record<string, string | number | object>) => {

@@ -1,11 +1,7 @@
-# Supply chain security
-# https://pnpm.io/supply-chain-security
-minimumReleaseAge: 4320 # 3 days, tighter than v11 default of 1440 (1 day)
 patchedDependencies:
   rtf-parser: patches/rtf-parser.patch
 allowBuilds:
-  "@parcel/watcher": true
-  "@sentry/cli": true
+  "@parcel/watcher": false
+  "@sentry/cli": false
   esbuild: true
-  oxc-resolver: true
-  unrs-resolver: true
+  oxc-resolver: false
