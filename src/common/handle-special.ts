@@ -48,7 +48,7 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
 
   await download(bucketName, objectKey, 'deposit.pdf');
 
-  const dst = `${collectionIdentifier}/pdsc_admin/${collectionIdentifier}-deposit.pdf`;
+  const dst = `${collectionIdentifier}/${collectionIdentifier}-deposit.pdf`;
 
   await upload(src, destBucket, dst, 'application/pdf');
 
