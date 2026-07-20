@@ -88,10 +88,12 @@ type AnnotationNode = {
   refId?: string | undefined;
 };
 
-// One ANNOTATION segment per annotation across all tiers, sorted by start time.
-// Ref-annotations (translations, glosses) carry the full interval of the alignable
-// annotation their ANNOTATION_REF chain reaches — no interpolation. Throws on
-// unparseable or structurally unrecognisable files — the caller decides the fallback.
+// One TIME_ALIGNED_ANNOTATION segment per annotation across all tiers, sorted by
+// start time. Ref-annotations (translations, glosses) carry the full interval of the
+// alignable annotation their ANNOTATION_REF chain reaches — no interpolation.
+// Annotations without a fully resolved interval are dropped: nabu requires startMs
+// and endMs on every segment. Throws on unparseable or structurally unrecognisable
+// files — the caller decides the fallback.
 export const extractEafSegments = (filePath: string): ExtractedSegment[] => {
   const document = parseEaf(filePath).ANNOTATION_DOCUMENT;
   if (!document) {
@@ -156,26 +158,29 @@ export const extractEafSegments = (filePath: string): ExtractedSegment[] => {
     return interval;
   };
 
-  let brokenChains = 0;
+  let dropped = 0;
   const segments = annotations.flatMap((node): ExtractedSegment[] => {
     if (!node.text) return [];
 
     const interval = resolveNodeInterval(node);
-    if (interval === null) brokenChains += 1;
+    if (interval?.startMs === undefined || interval.endMs === undefined) {
+      dropped += 1;
+      return [];
+    }
 
     return [
       {
-        type: 'ANNOTATION',
+        type: 'TIME_ALIGNED_ANNOTATION',
         text: node.text,
         tier: node.tier,
-        startMs: interval?.startMs,
-        endMs: interval?.endMs,
+        startMs: interval.startMs,
+        endMs: interval.endMs,
       },
     ];
   });
 
-  if (brokenChains > 0) {
-    Sentry.captureMessage(`EAF has ${brokenChains} annotations with unresolvable time references: ${filePath}`, 'warning');
+  if (dropped > 0) {
+    Sentry.captureMessage(`EAF has ${dropped} annotations dropped for unresolvable time references: ${filePath}`, 'warning');
   }
 
   return segments.sort((a, b) => (a.startMs ?? Number.POSITIVE_INFINITY) - (b.startMs ?? Number.POSITIVE_INFINITY));
