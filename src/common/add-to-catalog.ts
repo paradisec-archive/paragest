@@ -34,15 +34,12 @@ const upsertEssence = async (
   collectionIdentifier: string,
   itemIdentifier: string,
   filename: string,
-  size: number,
-  mimetype: string,
+  baseAttributes: { size: number; mimetype: string; ingestNotes: string },
   event: Event,
   extractedContent?: ExtractedContent,
 ) => {
-  const attributes = {
-    mimetype,
-    size,
-  };
+  const { mimetype } = baseAttributes;
+  const attributes = { ...baseAttributes };
 
   if (mimetype.startsWith('audio') || mimetype.startsWith('video')) {
     const { other: _other, rawFps: _rawFps, ...mediaAttributes } = await getMediaMetadata(getPath(`output/${filename}`), event);
@@ -94,6 +91,10 @@ export const handler = async (event: Event) => {
 
   const filenames = fs.readdirSync(dir);
 
+  // Snapshot before the per-file notes below so every essence stores the same
+  // provenance, free of catalog bookkeeping entries
+  const ingestNotes = notes.join('\n');
+
   const promises = filenames.map(async (filename) => {
     const extension = filename.split('.').pop();
     if (!extension) {
@@ -115,7 +116,7 @@ export const handler = async (event: Event) => {
 
     await upload(src, destBucket, dst, mimetype, ['wav', 'mkv'].includes(extension));
 
-    const created = await upsertEssence(collectionIdentifier, itemIdentifier, filename, size, mimetype, event, extractedContent);
+    const created = await upsertEssence(collectionIdentifier, itemIdentifier, filename, { size, mimetype, ingestNotes }, event, extractedContent);
 
     notes.push(`addMediaMetadata: ${created ? 'Created' : 'Updated'} essence`);
   });

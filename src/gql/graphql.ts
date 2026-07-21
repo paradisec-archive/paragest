@@ -11,6 +11,7 @@ export type EssenceAttributes = {
   duration?: number | null | undefined;
   extractedContent?: ExtractedContentInput | null | undefined;
   fps?: number | null | undefined;
+  ingestNotes?: string | null | undefined;
   mimetype: string;
   samplerate?: number | null | undefined;
   size: unknown;
