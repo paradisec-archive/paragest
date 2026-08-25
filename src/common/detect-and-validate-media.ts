@@ -73,6 +73,8 @@ const mimetypeMatchesExtension = (mimetype: string, actualExt: string) => {
     // mp4 and quicktime are the same container family; files often carry the other brand's extension
     case mimetype === 'video/mp4' && ['m4a', 'mov'].includes(actualExt):
       return true;
+    case mimetype === 'audio/mp4' && ['mp4'].includes(actualExt):
+      return true;
     case mimetype === 'video/quicktime' && ['mp4', 'm4v'].includes(actualExt):
       return true;
     case mimetype === 'video/matroska' && actualExt === 'mkv':
@@ -91,6 +93,8 @@ const allowedMimetypeException = (detected: string, actual: string) => {
     case ['text/xml', 'application/xml'].includes(detected) && !!actual.match('application/(eaf|imdi|cmdi|opex|flextext)\\+xml'):
       return true;
     case detected === 'video/mp4' && actual === 'audio/mp4':
+      return true;
+    case detected === 'audio/mp4' && actual === 'video/mp4':
       return true;
     case detected === 'video/quicktime' && actual === 'video/mp4':
       return true;
