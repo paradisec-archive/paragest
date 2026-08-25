@@ -5,3 +5,5 @@ allowBuilds:
   "@sentry/cli": false
   esbuild: true
   oxc-resolver: false
+update:
+  githubActions: true
