@@ -58,6 +58,9 @@ export const commonEnv = (src: string, shared: SharedProps) => ({
   SES_SMTP_SECRET_ARN: shared.sesSmtpSecret.secretArn,
 });
 
+// Mounting EFS adds an egress rule that the Lambda's default allow-all-outbound security group ignores
+export const ackEfsEgressWarning = (func: lambda.Function) => cdk.Annotations.of(func).acknowledgeWarning('@aws-cdk/aws-ec2:ipv4IgnoreEgressRule');
+
 export const genLambdaProps = (props: Pick<LambdaProps, 'src' | 'shared' | 'lambdaProps' | 'nodeModules'>): nodejs.NodejsFunctionProps => {
   const { src, nodeModules, shared } = props;
   const { environment = {}, ...lambdaProps } = props.lambdaProps ?? {};
@@ -110,6 +113,8 @@ export class LambdaStep extends Construct {
       vpcSubnets: { subnets: props.shared.subnets },
       filesystem: lambda.FileSystem.fromEfsAccessPoint(props.shared.accessPoint, '/mnt/efs'),
     });
+    ackEfsEgressWarning(this.func);
+
     grantFunc?.(this.func);
 
     props.shared.concurrencyTable.grantReadWriteData(this.func);

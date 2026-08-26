@@ -19,7 +19,7 @@ import * as ssm from 'aws-cdk-lib/aws-ssm';
 import type { Construct } from 'constructs';
 
 import { StateMachine } from './constructs/state-machine.ts';
-import { commonEnv, genLambdaProps, getGitSha } from './constructs/step.ts';
+import { ackEfsEgressWarning, commonEnv, genLambdaProps, getGitSha } from './constructs/step.ts';
 
 export class ParagestStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -414,6 +414,7 @@ export class ParagestStack extends cdk.Stack {
         },
       }),
     );
+    ackEfsEgressWarning(cleanupEfsDirectories);
 
     const cleanupRule = new events.Rule(this, 'CleanupEfsDirectoriesRule', {
       schedule: events.Schedule.cron({ minute: '0', hour: '2' }),
