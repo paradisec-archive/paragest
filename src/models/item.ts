@@ -3,8 +3,6 @@ import { graphql } from '../gql';
 import { getGraphQLClient, isNotFoundError } from '../lib/graphql.js';
 import { throttle } from '../lib/rate-limit';
 
-const gqlClient = await getGraphQLClient();
-
 export const getItem = throttle(async (collectionIdentifier: string, itemIdentifier: string) => {
   const ItemQuery = graphql(/* GraphQL */ `
     query GetItemQuery($fullIdentifier: ID!) {
@@ -19,6 +17,7 @@ export const getItem = throttle(async (collectionIdentifier: string, itemIdentif
     }
   `);
 
+  const gqlClient = await getGraphQLClient();
   const response = await gqlClient.query(ItemQuery, { fullIdentifier: `${collectionIdentifier}-${itemIdentifier}` });
   console.debug('Response:', JSON.stringify(response, null, 2));
 
@@ -39,6 +38,7 @@ export const getItemBwfCsv = throttle(async (collectionIdentifier: string, itemI
     }
   `);
 
+  const gqlClient = await getGraphQLClient();
   const response = await gqlClient.query(ItemBwfCsvQuery, {
     fullIdentifier: `${collectionIdentifier}-${itemIdentifier}`,
     filename,
@@ -57,6 +57,7 @@ export const getItemId3 = throttle(async (collectionIdentifier: string, itemIden
     }
   `);
 
+  const gqlClient = await getGraphQLClient();
   const response = await gqlClient.query(query, { fullIdentifier: `${collectionIdentifier}-${itemIdentifier}` });
   console.debug('Response:', JSON.stringify(response, null, 2));
 

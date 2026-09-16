@@ -312,7 +312,9 @@ export class StateMachine extends Construct {
     const parallel = new sfn.Parallel(this, 'ParallelErrorCatcher');
     parallel.branch(workflow);
     const failure = sfn.Chain.start(processFailureStep.task).next(failureState);
-    parallel.addCatch(failure);
+    // Keep the original input so ProcessFailure can still find the object when the
+    // error isn't a StepError carrying its own copy of the event
+    parallel.addCatch(failure, { resultPath: '$.error' });
 
     const definition = sfn.Chain.start(startState).next(parallel).next(successState);
 

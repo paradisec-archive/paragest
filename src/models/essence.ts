@@ -4,8 +4,6 @@ import type { EssenceAttributes } from '../gql/graphql';
 import { getGraphQLClient, isNotFoundError } from '../lib/graphql.js';
 import { throttle } from '../lib/rate-limit';
 
-const gqlClient = await getGraphQLClient();
-
 graphql(/* GraphQL */ `
   fragment EssenceItem on Essence {
     id
@@ -35,6 +33,7 @@ export const getEssence = throttle(async (collectionIdentifier: string, itemIden
     }
   `);
 
+  const gqlClient = await getGraphQLClient();
   const response = await gqlClient.query(EssenceQuery, {
     fullIdentifier: `${collectionIdentifier}-${itemIdentifier}`,
     filename,
@@ -80,6 +79,7 @@ export const createEssence = throttle(async (collectionIdentifier: string, itemI
     },
   };
 
+  const gqlClient = await getGraphQLClient();
   const createResponse = await gqlClient.mutation(EssenceCreateMutation, { input: params });
   console.debug('CreateResponse:', JSON.stringify(createResponse, null, 2));
 
@@ -102,6 +102,7 @@ export const updateEssence = throttle(async (id: string, attributes: EssenceAttr
     attributes,
   };
 
+  const gqlClient = await getGraphQLClient();
   const updateResponse = await gqlClient.mutation(EssenceUpdateMutation, { input: params });
   console.debug('UpdateResponse:', JSON.stringify(updateResponse, null, 2));
 

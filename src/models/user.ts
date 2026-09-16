@@ -3,8 +3,6 @@ import { graphql } from '../gql';
 import { getGraphQLClient, isNotFoundError } from '../lib/graphql.js';
 import { throttle } from '../lib/rate-limit';
 
-const gqlClient = await getGraphQLClient();
-
 export const getUserByUnikey = throttle(async (unikey: string) => {
   const UserByUnikeyQuery = graphql(/* GraphQL */ `
     query GetUserByUnikeyQuery($unikey: String!) {
@@ -20,6 +18,7 @@ export const getUserByUnikey = throttle(async (unikey: string) => {
     console.debug('No unikey provided');
   }
 
+  const gqlClient = await getGraphQLClient();
   const response = await gqlClient.query(UserByUnikeyQuery, { unikey });
   console.debug('Response:', JSON.stringify(response, null, 2));
 
