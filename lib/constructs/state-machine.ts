@@ -1,5 +1,6 @@
 import * as cdk from 'aws-cdk-lib';
 import * as iam from 'aws-cdk-lib/aws-iam';
+import type * as lambda from 'aws-cdk-lib/aws-lambda';
 import type * as s3 from 'aws-cdk-lib/aws-s3';
 import type * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import * as sfn from 'aws-cdk-lib/aws-stepfunctions';
@@ -15,6 +16,8 @@ type StateMachineProps = SharedProps & {
 
 export class StateMachine extends Construct {
   public readonly stateMachine: sfn.StateMachine;
+
+  public readonly processFailureFunc: lambda.Function;
 
   constructor(scope: Construct, id: string, props: StateMachineProps) {
     super(scope, id);
@@ -317,6 +320,8 @@ export class StateMachine extends Construct {
     parallel.addCatch(failure, { resultPath: '$.error' });
 
     const definition = sfn.Chain.start(startState).next(parallel).next(successState);
+
+    this.processFailureFunc = processFailureStep.func;
 
     this.stateMachine = new sfn.StateMachine(this, 'StateMachine', {
       definitionBody: sfn.DefinitionBody.fromChainable(definition),

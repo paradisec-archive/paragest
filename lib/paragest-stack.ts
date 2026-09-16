@@ -2,6 +2,8 @@ import * as path from 'node:path';
 import { SesSmtpCredentials } from '@pepperize/cdk-ses-smtp-credentials';
 import * as cdk from 'aws-cdk-lib';
 import * as batch from 'aws-cdk-lib/aws-batch';
+import * as cloudwatch from 'aws-cdk-lib/aws-cloudwatch';
+import * as cloudwatchActions from 'aws-cdk-lib/aws-cloudwatch-actions';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as ecrAssets from 'aws-cdk-lib/aws-ecr-assets';
@@ -15,6 +17,8 @@ import * as eventsources from 'aws-cdk-lib/aws-lambda-event-sources';
 import * as nodejs from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
+import * as sns from 'aws-cdk-lib/aws-sns';
+import * as subscriptions from 'aws-cdk-lib/aws-sns-subscriptions';
 import * as ssm from 'aws-cdk-lib/aws-ssm';
 import type { Construct } from 'constructs';
 
@@ -421,5 +425,39 @@ export class ParagestStack extends cdk.Stack {
       description: 'Daily cleanup of old EFS directories',
     });
     cleanupRule.addTarget(new targets.LambdaFunction(cleanupEfsDirectories));
+
+    // /////////////////////////////
+    // Alarms
+    // /////////////////////////////
+
+    const alarmTopic = new sns.Topic(this, 'AlarmTopic', {
+      topicName: `paragest-alarms-${env}`,
+      displayName: 'Paragest Alarms',
+    });
+    alarmTopic.addSubscription(new subscriptions.EmailSubscription(env === 'prod' ? 'admin@paradisec.org.au' : 'jferlito@gmail.com'));
+
+    // ProcessFailure is the pipeline's last line of defence; when it throws, an ingest
+    // failure goes unreported and the file is stranded in incoming/
+    const processFailureAlarm = new cloudwatch.Alarm(this, 'ProcessFailureErrorsAlarm', {
+      alarmName: `paragest-process-failure-errors-${env}`,
+      alarmDescription: 'ProcessFailure threw, so a rejected file was left in incoming/ and its depositor was not emailed',
+      metric: stateMachine.processFailureFunc.metricErrors({ period: cdk.Duration.minutes(5), statistic: 'Sum' }),
+      threshold: 0,
+      comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD,
+      evaluationPeriods: 1,
+      treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+    });
+    processFailureAlarm.addAlarmAction(new cloudwatchActions.SnsAction(alarmTopic));
+
+    const processS3EventAlarm = new cloudwatch.Alarm(this, 'ProcessS3EventErrorsAlarm', {
+      alarmName: `paragest-process-s3-event-errors-${env}`,
+      alarmDescription: 'ProcessS3Event threw, so an uploaded file may never have started a pipeline run',
+      metric: processS3Event.metricErrors({ period: cdk.Duration.minutes(5), statistic: 'Sum' }),
+      threshold: 0,
+      comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD,
+      evaluationPeriods: 1,
+      treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+    });
+    processS3EventAlarm.addAlarmAction(new cloudwatchActions.SnsAction(alarmTopic));
   }
 }
