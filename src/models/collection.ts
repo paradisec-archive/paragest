@@ -3,8 +3,6 @@ import { graphql } from '../gql';
 import { getGraphQLClient, isNotFoundError } from '../lib/graphql.js';
 import { throttle } from '../lib/rate-limit';
 
-const gqlClient = await getGraphQLClient();
-
 export const getCollection = throttle(async (identifier: string) => {
   const CollectionQuery = graphql(/* GraphQL */ `
 
@@ -17,6 +15,7 @@ export const getCollection = throttle(async (identifier: string) => {
   `);
 
   console.log('🪚 ⭐ GC');
+  const gqlClient = await getGraphQLClient();
   const response = await gqlClient.query(CollectionQuery, { identifier });
   console.log('🪚 🔲 GC');
   console.debug('Response:', JSON.stringify(response, null, 2));
@@ -42,6 +41,7 @@ export const setHasDepositForm = throttle(async (identifier: string) => {
     identifier,
   };
 
+  const gqlClient = await getGraphQLClient();
   const updateResponse = await gqlClient.mutation(query, { input: params });
   console.debug('UpdateResponse:', JSON.stringify(updateResponse, null, 2));
 
