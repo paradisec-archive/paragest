@@ -1,0 +1,39 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": ["s3:ListBucket", "s3:GetBucketLocation", "s3:ListMultipartUploadParts"],
+      "Resource": [
+        "arn:aws:s3:::nabu-catalog-stage",
+        "arn:aws:s3:::paragest-ingest-stage",
+        "arn:aws:s3:::nabu-catalog-prod",
+        "arn:aws:s3:::paragest-ingest-prod"
+      ],
+      "Effect": "Allow",
+      "Sid": "ListBucketContents"
+    },
+    {
+      "Action": "s3:GetObject",
+      "Resource": [
+        "arn:aws:s3:::nabu-catalog-stage/*",
+        "arn:aws:s3:::paragest-ingest-stage/*",
+        "arn:aws:s3:::nabu-catalog-prod/*",
+        "arn:aws:s3:::paragest-ingest-prod/*"
+      ],
+      "Effect": "Allow",
+      "Sid": "ReadAccessToCatalog"
+    },
+    {
+      "Action": ["s3:PutObject", "s3:AbortMultipartUpload", "s3:ListMultipartUploadParts"],
+      "Resource": ["arn:aws:s3:::paragest-ingest-stage/incoming/*", "arn:aws:s3:::paragest-ingest-prod/incoming/*"],
+      "Effect": "Allow",
+      "Sid": "UploadToIncoming"
+    },
+    {
+      "Action": ["s3:DeleteObject", "s3:PutObject"],
+      "Resource": ["arn:aws:s3:::paragest-ingest-stage/rejected/*", "arn:aws:s3:::paragest-ingest-prod/rejected/*"],
+      "Effect": "Allow",
+      "Sid": "CleanupRejectedAndRename"
+    }
+  ]
+}
