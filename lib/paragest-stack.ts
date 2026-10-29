@@ -434,7 +434,7 @@ export class ParagestStack extends cdk.Stack {
       topicName: `paragest-alarms-${env}`,
       displayName: 'Paragest Alarms',
     });
-    alarmTopic.addSubscription(new subscriptions.EmailSubscription(env === 'prod' ? 'admin@paradisec.org.au' : 'jferlito@gmail.com'));
+    alarmTopic.addSubscription(new subscriptions.EmailSubscription('johnf@inodes.org'));
 
     // ProcessFailure is the pipeline's last line of defence; when it throws, an ingest
     // failure goes unreported and the file is stranded in incoming/
