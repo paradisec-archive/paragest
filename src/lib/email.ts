@@ -1,4 +1,4 @@
-import nodemailer from 'nodemailer';
+import nodemailer, { type Transporter } from 'nodemailer';
 
 import { type EmailUser, getUserByUnikey } from '../models/user.js';
 import { getSecret } from './secrets.js';
@@ -8,7 +8,7 @@ type SESSmtpCredentials = {
   password: string;
 };
 
-let transport: nodemailer.Transporter | undefined;
+let transport: Transporter | undefined;
 
 const getTransporter = async () => {
   if (transport) {

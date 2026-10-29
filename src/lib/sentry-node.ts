@@ -17,7 +17,6 @@ Sentry.init({
   environment: process.env.PARAGEST_ENV,
   release: process.env.SENTRY_RELEASE,
   tracesSampleRate: 1.0,
-  profilesSampleRate: 1.0,
   beforeSend: (event, hint) => {
     const error = hint?.originalException;
     if (error instanceof Error && error.name === 'StepError') {
