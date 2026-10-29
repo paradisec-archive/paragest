@@ -9,7 +9,10 @@ COPY patches/ /function/patches/
 RUN ls /function
 RUN ls /function/patches
 
-RUN corepack enable && \
+# Node 25+ no longer bundles corepack
+# hadolint ignore=DL3016
+RUN npm install --global corepack@latest && \
+  corepack enable && \
   pnpm --frozen-lockfile install
 
 COPY src/ /function/src/
