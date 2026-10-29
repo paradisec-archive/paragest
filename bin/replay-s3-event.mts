@@ -9,13 +9,6 @@ import { v4 as uuidv4 } from 'uuid';
 const ENVIRONMENTS = ['prod', 'stage'];
 const PATHS = ['incoming', 'rejected', 'damsmart'];
 
-const principalIdPrefix = process.env.PRINCIPAL_ID_PREFIX;
-if (!principalIdPrefix) {
-  throw new Error('PRINCIPAL_ID_PREFIX environment variable is required');
-}
-
-const normalisePrincipalId = (value: string) => (value.startsWith(principalIdPrefix) ? value : `${principalIdPrefix}${value}`);
-
 const lambda = new LambdaClient({ region: 'ap-southeast-2' });
 const sfn = new SFNClient({ region: 'ap-southeast-2', maxAttempts: 10, retryMode: 'adaptive' });
 
@@ -111,11 +104,7 @@ const buildExecutionCache = async () => {
       }
 
       const rawInput = JSON.parse(startedEvent.executionStartedEventDetails.input) as Partial<FileInput> & Omit<FileInput, 'notes'>;
-      const fileInput: FileInput = {
-        ...rawInput,
-        principalId: normalisePrincipalId(rawInput.principalId),
-        notes: rawInput.notes ?? [],
-      };
+      const fileInput: FileInput = { ...rawInput, notes: rawInput.notes ?? [] };
 
       if (fileInput.objectKey.startsWith('incoming/') || fileInput.objectKey.startsWith('damsmart/')) {
         const key = fileInput.objectKey.replace(/(incoming|damsmart)\//, '');
@@ -259,13 +248,12 @@ const invokeLambdaWithS3Event = async (bucketName: string, path: string, key: st
     if (principalId) {
       console.log(`Reusing cached principalId ${principalId} for collection ${collection}`);
     } else {
-      const entered = (
+      principalId = (
         await input({
-          message: `No cached execution for ${key} (collection ${collection}). Enter principalId (will be prefixed with ${principalIdPrefix} if needed):`,
-          validate: (value) => value.trim().length > 0 || 'principalId cannot be empty',
+          message: `No cached execution for ${key} (collection ${collection}). Enter the depositor's unikey:`,
+          validate: (value) => value.trim().length > 0 || 'unikey cannot be empty',
         })
       ).trim();
-      principalId = normalisePrincipalId(entered);
       principalIdByCollection.set(collection, principalId);
     }
     const objectKey = path === 'damsmart' ? `damsmart/${key}` : `incoming/${key}`;
