@@ -168,6 +168,8 @@ export class FargateStep extends Construct {
         jobRole,
         volumes: [shared.volume],
       }),
+      // Executions started before a deploy still submit the old revision; cron/cleanup-job-definitions retires it
+      skipDeregisterOnUpdate: true,
     });
 
     this.task = new tasks.BatchSubmitJob(this, `${id}SubmitJob`, {

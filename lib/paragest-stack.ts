@@ -141,6 +141,15 @@ export class ParagestStack extends cdk.Stack {
       },
     });
 
+    // Job definition cleanup
+    new ec2.InterfaceVpcEndpoint(this, 'BatchEndpoint', {
+      service: ec2.InterfaceVpcEndpointAwsService.BATCH,
+      vpc,
+      subnets: {
+        subnets,
+      },
+    });
+
     // Our code
     new ec2.InterfaceVpcEndpoint(this, 'SESEndpoint', {
       // NOTE: upstream doesn't set the port
@@ -425,6 +434,46 @@ export class ParagestStack extends cdk.Stack {
       description: 'Daily cleanup of old EFS directories',
     });
     cleanupRule.addTarget(new targets.LambdaFunction(cleanupEfsDirectories));
+
+    // /////////////////////////////
+    // Job Definition Cleanup
+    // /////////////////////////////
+
+    const cleanupJobDefinitions = new nodejs.NodejsFunction(
+      this,
+      'CleanupJobDefinitionsLambda',
+      genLambdaProps({
+        shared,
+        src: 'cron/cleanup-job-definitions.ts',
+        lambdaProps: {
+          timeout: cdk.Duration.minutes(5),
+          vpc,
+          vpcSubnets: { subnets: shared.subnets },
+          environment: {
+            STATE_MACHINE_ARN: stateMachine.stateMachine.stateMachineArn,
+          },
+        },
+      }),
+    );
+    stateMachine.stateMachine.grantRead(cleanupJobDefinitions);
+    cleanupJobDefinitions.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ['batch:DescribeJobDefinitions'],
+        resources: ['*'],
+      }),
+    );
+    cleanupJobDefinitions.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ['batch:DeregisterJobDefinition'],
+        resources: [this.formatArn({ service: 'batch', resource: 'job-definition', resourceName: '*' })],
+      }),
+    );
+
+    const cleanupJobDefinitionsRule = new events.Rule(this, 'CleanupJobDefinitionsRule', {
+      schedule: events.Schedule.cron({ weekDay: 'MON', hour: '3', minute: '0' }),
+      description: 'Weekly deregistration of superseded Batch job definition revisions',
+    });
+    cleanupJobDefinitionsRule.addTarget(new targets.LambdaFunction(cleanupJobDefinitions));
 
     // /////////////////////////////
     // Alarms
