@@ -8,15 +8,17 @@ switch_to_main() {
 }
 
 usage() {
-  echo "Usage: bin/release <stage|prod> [--branch]"
+  echo "Usage: bin/release <stage|prod> [--branch] [--diff]"
   exit 1
 }
 
 ENV=""
 BRANCH_MODE=false
+DIFF_MODE=false
 for arg in "$@"; do
   case $arg in
     --branch) BRANCH_MODE=true ;;
+    --diff) DIFF_MODE=true ;;
     stage | prod) ENV=$arg ;;
     *) usage ;;
   esac
@@ -24,6 +26,11 @@ done
 
 if [ -z "$ENV" ]; then
   usage
+fi
+
+if [ "$DIFF_MODE" = true ]; then
+  AWS_PROFILE=nabu-${ENV} pnpm run cdk diff
+  exit
 fi
 
 if [ "$BRANCH_MODE" = true ] && [ "$ENV" != "stage" ]; then
