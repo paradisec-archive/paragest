@@ -11,7 +11,6 @@ type Event = {
   notes: string[];
   details: {
     filename: string;
-    extension: string;
   };
 };
 
@@ -22,13 +21,11 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
 
   const {
     notes,
-    details: { filename, extension },
+    details: { filename },
   } = event;
 
-  const lowerExtension = extension === 'TextGrid' ? extension : extension.toLowerCase();
-
   const src = getPath('input');
-  const dst = getPath(`output/${filename.replace(new RegExp(`.${extension}$`), `.${lowerExtension}`)}`);
+  const dst = getPath(`output/${filename}`);
 
   execute(`cp '${src}' '${dst}'`, event);
 

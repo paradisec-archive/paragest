@@ -24,7 +24,7 @@ export const handler: Handler = Sentry.wrapHandler(async (event: Event) => {
     return event;
   }
 
-  const extension = objectKey.split('.').pop();
+  const extension = objectKey.split('.').pop()?.toLowerCase();
   if (!extension) {
     throw new StepError(`File ${objectKey} does not have an extension`, event, {
       objectKey,
