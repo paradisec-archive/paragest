@@ -1,9 +1,14 @@
+update:
+  githubActions: true
+
+autoDedupe: true
+saveTypes: true
+
 patchedDependencies:
   rtf-parser: patches/rtf-parser.patch
+
 allowBuilds:
   "@parcel/watcher": false
   "@sentry/cli": false
   esbuild: true
   oxc-resolver: false
-update:
-  githubActions: true
