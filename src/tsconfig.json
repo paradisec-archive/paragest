@@ -6,6 +6,7 @@
     "lib": ["es2024", "ESNext.Array", "ESNext.Collection", "ESNext.Iterator", "ESNext.Promise"],
     "skipLibCheck": true,
     "verbatimModuleSyntax": true,
+    "noEmit": true,
     "types": ["node"],
 
     "allowUnusedLabels": false,
