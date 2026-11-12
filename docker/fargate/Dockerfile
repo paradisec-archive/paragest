@@ -1,4 +1,7 @@
-FROM node:lts-alpine AS build-image
+ARG NODE_IMAGE=node:lts-trixie-slim
+ARG UBUNTU_IMAGE=ubuntu:latest
+
+FROM ${NODE_IMAGE} AS build-image
 
 ARG SOURCE_FILE
 
@@ -6,8 +9,6 @@ WORKDIR /function
 
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json /function/
 COPY patches/ /function/patches/
-RUN ls /function
-RUN ls /function/patches
 
 # Node 25+ no longer bundles corepack
 # hadolint ignore=DL3016
@@ -31,39 +32,31 @@ RUN ./node_modules/.bin/esbuild \
   --loader:.node=copy
 # Dirty hack from https://github.com/evanw/esbuild/pull/2067
 
-FROM ubuntu:25.10
+FROM ${NODE_IMAGE} AS node
+
+FROM ${UBUNTU_IMAGE}
 
 SHELL ["/bin/bash", "-exo", "pipefail", "-c"]
 
 ARG FUNCTION_DIR
 
-ARG MEDIA_INFO_URL="https://mediaarea.net/download/binary/mediainfo/25.10/mediainfo_25.10-1_amd64.Ubuntu_25.10.deb"
-ARG LIB_MEDIA_INFO_URL="https://mediaarea.net/download/binary/libmediainfo0/25.10/libmediainfo0v5_25.10-1_amd64.Ubuntu_25.10.deb"
-ARG LIB_ZEN_URL="https://mediaarea.net/download/binary/libzen0/0.4.41/libzen0v5_0.4.41-1_amd64.Ubuntu_25.10.deb"
-ARG BWF_METAEDIT_URL="https://mediaarea.net/download/binary/bwfmetaedit/25.04.1/bwfmetaedit_25.04.1-1_amd64.Ubuntu_25.04.deb"
+ARG MEDIAAREA_REPO_URL="https://mediaarea.net/repo/deb/repo-mediaarea_1.0-27_all.deb"
 
 # hadolint ignore=DL3015
 RUN apt-get update && \
-  apt-get install -y ffmpeg imagemagick wget ca-certificates gnupg && \
+  apt-get install -y ffmpeg imagemagick wget ca-certificates && \
   rm -rf /var/lib/apt/lists/*
 
 WORKDIR /tmp
 # hadolint ignore=DL3015
-RUN wget -qO mediainfo.deb "$MEDIA_INFO_URL" && \
-  wget -qO libmediainfo.deb "$LIB_MEDIA_INFO_URL" && \
-  wget -qO libzen.deb "$LIB_ZEN_URL" && \
-  wget -qO bwfmetaedit.deb "$BWF_METAEDIT_URL" && \
+RUN wget -qO repo-mediaarea.deb "$MEDIAAREA_REPO_URL" && \
+  dpkg -i repo-mediaarea.deb && \
+  rm repo-mediaarea.deb && \
   apt-get update && \
-  apt-get install -y -f ./mediainfo.deb ./libmediainfo.deb ./libzen.deb ./bwfmetaedit.deb && \
+  apt-get install -y mediainfo bwfmetaedit && \
   rm -rf /var/lib/apt/lists/*
 
-# hadolint ignore=DL3015
-RUN mkdir -p /etc/apt/keyrings && \
-  wget -qO - https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg && \
-  echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_22.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list && \
-  apt-get update && \
-  apt-get install -y nodejs && \
-  rm -rf /var/lib/apt/lists/*
+COPY --from=node /usr/local/bin/node /usr/local/bin/node
 
 # # Set working directory to function root directory
 WORKDIR /function

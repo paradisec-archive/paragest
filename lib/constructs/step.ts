@@ -46,6 +46,23 @@ type LambdaProps = Pick<LambdaStepProps, 'src' | 'lambdaProps' | 'nodeModules' |
 // We want the SHA to change only when the file or deps change
 export const getGitSha = (file: string) => execSync(`git log -1 --format=format:%h -- ${file} src/lib`).toString().trim();
 
+const digests = new Map<string, string>();
+const resolveDigest = (image: string) => {
+  if (!digests.has(image)) {
+    const digest = execSync(`docker buildx imagetools inspect ${image} --format '{{.Manifest.Digest}}'`).toString().trim();
+    digests.set(image, `${image}@${digest}`);
+  }
+
+  return digests.get(image) as string;
+};
+
+// Pinning the digest at synth puts upstream base image updates into the asset hash
+export const fargateBuildArgs = (sourceFile: string) => ({
+  SOURCE_FILE: sourceFile,
+  NODE_IMAGE: resolveDigest('node:lts-trixie-slim'),
+  UBUNTU_IMAGE: resolveDigest('ubuntu:latest'),
+});
+
 export const commonEnv = (src: string, shared: SharedProps) => ({
   NODE_OPTIONS: '--enable-source-maps',
   PARAGEST_ENV: shared.env,
@@ -72,7 +89,6 @@ export const genLambdaProps = (props: Pick<LambdaProps, 'src' | 'shared' | 'lamb
       ...commonEnv(src, shared),
       ...environment,
     },
-    runtime: lambda.Runtime.NODEJS_22_X,
     memorySize: 2048,
     ephemeralStorageSize: cdk.Size.gibibytes(10),
     timeout: cdk.Duration.seconds(120),
@@ -148,9 +164,7 @@ export class FargateStep extends Construct {
     const image = new ecrAssets.DockerImageAsset(this, `${id}StepDockerImage`, {
       directory: path.join(import.meta.dirname, '..', '..'),
       file: 'docker/fargate/Dockerfile',
-      buildArgs: {
-        SOURCE_FILE: entry,
-      },
+      buildArgs: fargateBuildArgs(entry),
       extraHash: getGitSha(entry),
     });
 
