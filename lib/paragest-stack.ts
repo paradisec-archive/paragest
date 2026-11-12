@@ -23,7 +23,7 @@ import * as ssm from 'aws-cdk-lib/aws-ssm';
 import type { Construct } from 'constructs';
 
 import { StateMachine } from './constructs/state-machine.ts';
-import { ackEfsEgressWarning, commonEnv, genLambdaProps, getGitSha } from './constructs/step.ts';
+import { ackEfsEgressWarning, commonEnv, fargateBuildArgs, genLambdaProps, getGitSha } from './constructs/step.ts';
 
 export class ParagestStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -374,7 +374,7 @@ export class ParagestStack extends cdk.Stack {
     const recreateEssenceImage = new ecrAssets.DockerImageAsset(this, 'RecreateEssenceImage', {
       directory: path.join(import.meta.dirname, '..'),
       file: 'docker/fargate/Dockerfile',
-      buildArgs: { SOURCE_FILE: recreateEssenceEntry },
+      buildArgs: fargateBuildArgs(recreateEssenceEntry),
       extraHash: getGitSha(recreateEssenceEntry),
     });
 
